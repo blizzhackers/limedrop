@@ -5,6 +5,7 @@ import type React from "react";
 interface TopbarProps {
   searchTerm: string;
   setSearchTerm: (v: string) => void;
+  onSearch?: (e: React.FormEvent<HTMLFormElement>) => void;
   cartCount: number;
   onCartOpen: () => void;
   session: string | null;
@@ -24,6 +25,7 @@ interface TopbarProps {
 export const Topbar: React.FC<TopbarProps> = ({
   searchTerm,
   setSearchTerm,
+  onSearch,
   cartCount,
   onCartOpen,
   session,
@@ -47,12 +49,14 @@ export const Topbar: React.FC<TopbarProps> = ({
       <span className="logo-text">
         <img src="/logo-text.png" alt="homepage" className="light-logo" />
       </span>
-      {session && <form className="relative ml-6 w-64" onSubmit={(e) => e.preventDefault()}>
+      {session && <form className="relative ml-6 w-64" onSubmit={onSearch}>
         <Input
+          id="searchTerm"
+          name="searchTerm"
+          type="text"
           className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
           placeholder="Search & enter"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => e.target.value === "" && searchTerm && setSearchTerm("")}
         />
         <span className="absolute left-2 top-2.5 text-gray-400 pointer-events-none">
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -92,7 +96,6 @@ export const Topbar: React.FC<TopbarProps> = ({
           className="flex items-center gap-2 p-2 hover:bg-gray-700 rounded"
           onClick={() => setLoginOpen(!loginOpen)}
         >
-          {/* <img src="/vite.svg" alt="user" className="h-8 w-8 rounded-full" /> */}
           <CircleUser className="h-8 w-8 rounded-full" />
           <span>{session ? username : "User"}</span>
           <ChevronDown className="w-4 h-4" />

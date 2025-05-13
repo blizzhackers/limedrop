@@ -9,7 +9,6 @@ import { type ApiItemResponse, type ApiResponse, D2BotAPI } from "@/lib/D2Bot";
 import { type InventoryItem, deepEqual, extractItemInfo } from "@/lib/utils";
 import { setApiUrl, setUsername, useAppStore } from "@/stores/useAppStore";
 import { toast } from "sonner";
-import { useDebounce } from "use-debounce";
 
 declare global {
   interface Window {
@@ -28,11 +27,10 @@ export default function App() {
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
   const [password, setPassword] = useState("");
   const [session, setSession] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [accounts, setAccounts] = useState<Record<string, string[]>>({});
@@ -91,10 +89,10 @@ export default function App() {
     };
   }, [api]);
 
-  // Login handler
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError(null);
+    
     try {
       await api.login(username, password, apiUrl);
       setSession(api.config.session || null);
@@ -111,12 +109,10 @@ export default function App() {
     }
   }
 
-  // Sign out handler
   function handleSignOut() {
     workerRef.current?.terminate();
     setSession(null);
     setPassword("");
-    setInventory([]);
     setAccounts({});
     setSelectedAccount("Show All");
     setSelectedCharacter("Show All");
@@ -135,14 +131,10 @@ export default function App() {
         pollingCounterRef.current = 0;
 
         try {
-          const response = await api.poll();
+          const { status, body } = await api.poll();
 
           // Handle failed responses with invalid session
-          if (
-            response &&
-            response.status === "failed" &&
-            response.body === "invalid session"
-          ) {
+          if (status === "failed" && body === "invalid session") {
             console.log(
               "Polling detected invalid session, may need to log in again",
             );
@@ -167,17 +159,16 @@ export default function App() {
 
           // Handle empty response
           if (
-            (response && response.body === "empty") ||
-            (response &&
-              response.status === "success" &&
-              (!response.body || response.body === "empty"))
+            body === "empty"
+            || (status === "success" && (body || body === "empty"))
           ) {
             return;
           }
 
-          if (response && Array.isArray(response)) {
-            for (const message of response) {
+          if (body && Array.isArray(body)) {
+            for (const message of body) {
               if (message && message.body) {
+                console.debug(message);
                 try {
                   const data = JSON.parse(message.body);
                   toast.info("Game Action", { description: data.data });
@@ -345,7 +336,6 @@ export default function App() {
         toast.error("Session Error", {
           description: "Your session has expired, please log in again",
         });
-        setInventory([]);
         setIsFetchingMore(false);
         return [];
       }
@@ -420,12 +410,11 @@ export default function App() {
   }, [session]);
 
   const fullInventoryRef = useRef<InventoryItem[]>([]);
-  const [visibleCount, setVisibleCount] = useState(100); // Number of items to show initially and per page
+  const [visibleCount, setVisibleCount] = useState(100);
 
   useEffect(() => {
     if (session && accountsToLoad.length > 0) {
       fullInventoryRef.current = [];
-      setInventory([]);
       setIsFetchingMore(true);
       setVisibleCount(100);
       
@@ -435,7 +424,6 @@ export default function App() {
         const items = await loadAccount(acc);
         setLoadingInventory(false);
         fullInventoryRef.current = items;
-        setInventory(fullInventoryRef.current.slice(0, 100));
         setHasMore(accountsToLoad.length > 1);
         
         // Start worker for the rest
@@ -454,7 +442,6 @@ export default function App() {
             const msg = e.data;
             if (msg.type === "account-items") {
               fullInventoryRef.current = appendUniqueItems(fullInventoryRef.current, msg.items);
-              setInventory(fullInventoryRef.current.slice(0, visibleCount));
             } else if (msg.type === "done") {
               done = true;
               setIsFetchingMore(false);
@@ -488,11 +475,6 @@ export default function App() {
     // eslint-disable-next-line
   }, [accountsToLoad, session, selectedCharacter, realm, gameClass, gameType, gameMode, apiUrl]);
 
-  // New effect: update visible inventory when visibleCount changes
-  useEffect(() => {
-    setInventory(fullInventoryRef.current.slice(0, visibleCount));
-  }, [visibleCount]);
-
   // Infinite scroll handler
   function handleLoadMore() {
     setVisibleCount((prev) => {
@@ -503,34 +485,63 @@ export default function App() {
 
   useEffect(() => {
     setHasMore(fullInventoryRef.current.length > visibleCount || isFetchingMore);
-  }, [visibleCount, isFetchingMore, inventory]);
+  }, [visibleCount, isFetchingMore]);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults([]);
+    }
+  }, [searchTerm]);
+
+  async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const searchTerm = formData.get("searchTerm");
+    if (typeof searchTerm !== "string" || !searchTerm) {
+      setSearchTerm("");
+      setSearchResults([]);
+      return;
+    }
+    try {
+      setSearchTerm(searchTerm);
+      const acc = selectedAccount === "Show All" ? "" : selectedAccount;
+      const char = selectedCharacter === "Show All" ? "" : selectedCharacter;
+      const response = await api.query(searchTerm.toLocaleLowerCase(), realm, acc, char);
+      if (Array.isArray(response)) {
+        const items = response.map((el: ApiItemResponse) => {
+          const [desc, id] = el.description.split("$");
+          const { quality, classid } = extractItemInfo(id, desc);
+          return {
+            ...el,
+            title: desc.split("\n")[0],
+            description: desc,
+            itemid: id,
+            realm: realm.toLowerCase(),
+            quality,
+            classid,
+          };
+        });
+        const existingIds = new Set(fullInventoryRef.current.map(i => i.itemid));
+        const newItems = items.filter(i => !existingIds.has(i.itemid));
+        if (newItems.length > 0) {
+          fullInventoryRef.current = fullInventoryRef.current.concat(newItems);
+        }
+        setSearchResults(items);
+      }
+    } catch (err) {
+      toast.error("Search failed", { description: String(err) });
+    }
+  }
 
   // Compute filteredInventory from fullInventoryRef.current, then slice for visible items
-  const filteredInventory = fullInventoryRef.current.filter(item => {
-    // Realm filter (if needed, but realm is already set in item)
-    // Account filter
+  const filteredInventory = (searchTerm ? searchResults : fullInventoryRef.current).filter(item => {
     if (selectedAccount !== "Show All" && item.account !== selectedAccount) return false;
-    // Character filter
     if (selectedCharacter !== "Show All" && item.character !== selectedCharacter) return false;
-    // Quality filter
     if (qualityFilter !== null && item.quality !== qualityFilter) return false;
-    // Search filter
-    if (debouncedSearchTerm) {
-      const lower = debouncedSearchTerm.toLowerCase();
-      return (
-        item.description.toLowerCase().includes(lower) ||
-        item.account.toLowerCase().includes(lower) ||
-        item.character.toLowerCase().includes(lower) ||
-        (item.title && item.title.toLowerCase().includes(lower))
-      );
-    }
     return true;
   });
 
-  // Only show the visible slice for infinite scroll
   const visibleInventory = filteredInventory.slice(0, visibleCount);
-
-  // Memoized Set of cart itemids for fast lookup
   const cartItemIds = useMemo(() => new Set(cart.map(i => i.itemid)), [cart]);
 
   const allVisibleSelected =
@@ -612,6 +623,7 @@ export default function App() {
         setPassword={setPassword}
         loginError={loginError}
         setUsername={setUsername}
+        onSearch={handleSearch}
       />
       <div className="flex flex-1">
         <Sidebar
