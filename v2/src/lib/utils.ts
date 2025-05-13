@@ -1,9 +1,9 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { sdk } from "./sdk";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export interface InventoryItem {
@@ -12,13 +12,13 @@ export interface InventoryItem {
   sc: boolean;
   ladder: boolean;
 
-  account: string; 
+  account: string;
   character: string;
 
   // Item details
   description: string;
   image?: string;
-  
+
   title: string;
   realm: string;
   classid: number;
@@ -29,7 +29,7 @@ export interface InventoryItem {
 export function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== typeof b) return false;
-  if (typeof a !== 'object' || a === null || b === null) return false;
+  if (typeof a !== "object" || a === null || b === null) return false;
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
@@ -43,14 +43,17 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   const bKeys = Object.keys(bObj);
   if (aKeys.length !== bKeys.length) return false;
   for (const key of aKeys) {
-    if (!Object.prototype.hasOwnProperty.call(bObj, key) || !deepEqual(aObj[key], bObj[key])) {
+    if (
+      !Object.prototype.hasOwnProperty.call(bObj, key) ||
+      !deepEqual(aObj[key], bObj[key])
+    ) {
       return false;
     }
   }
   return true;
 }
 
-export function extractItemInfo(itemid:string, desc: string) {
+export function extractItemInfo(itemid: string, desc: string) {
   //unit.gid ":" + unit.classid + ":" + unit.location + ":" + unit.x + ":" + unit.y + ":" + unit.ethereal;
   const [gid, classid, loc, x, y, eth] = itemid.split(":");
   const codeToQuality = {
@@ -62,7 +65,7 @@ export function extractItemInfo(itemid:string, desc: string) {
     [sdk.colors.DarkGold]: sdk.items.quality.Unique,
     [sdk.colors.Orange]: sdk.items.quality.Normal,
     [sdk.colors.Gray]: sdk.items.quality.Normal,
-};
+  };
 
   return {
     gid,
@@ -82,5 +85,5 @@ export function extractItemInfo(itemid:string, desc: string) {
     })(),
     rune: desc.slice(0, 3) === sdk.colors.Orange,
     quest: Object.values(sdk.items.quest).includes(Number(classid)),
-  }
+  };
 }

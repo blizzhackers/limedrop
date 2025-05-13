@@ -1,13 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import type React from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import "./App.css";
-import { D2BotAPI, type ApiItemResponse, type ApiResponse } from "@/lib/D2Bot";
-import { toast } from "sonner";
-import { setApiUrl, setUsername, useAppStore } from "@/stores/useAppStore";
-import { Topbar } from "@/components/Topbar";
-import { Sidebar } from "@/components/Sidebar";
-import { InventoryGrid } from "@/components/InventoryGrid";
 import { CartDrawer } from "@/components/CartDrawer";
-import { deepEqual, extractItemInfo, type InventoryItem } from "@/lib/utils";
+import { InventoryGrid } from "@/components/InventoryGrid";
+import { Sidebar } from "@/components/Sidebar";
+import { Topbar } from "@/components/Topbar";
+import { type ApiItemResponse, type ApiResponse, D2BotAPI } from "@/lib/D2Bot";
+import { type InventoryItem, deepEqual, extractItemInfo } from "@/lib/utils";
+import { setApiUrl, setUsername, useAppStore } from "@/stores/useAppStore";
+import { toast } from "sonner";
+import { useDebounce } from "use-debounce";
 
 declare global {
   interface Window {
@@ -26,6 +28,7 @@ export default function App() {
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
   const [password, setPassword] = useState("");
   const [session, setSession] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -34,25 +37,41 @@ export default function App() {
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [accounts, setAccounts] = useState<Record<string, string[]>>({});
   const [selectedAccount, setSelectedAccount] = useState<string>("Show All");
-  const [selectedCharacter, setSelectedCharacter] = useState<string>("Show All");
+  const [selectedCharacter, setSelectedCharacter] =
+    useState<string>("Show All");
   const [cart, setCart] = useState<InventoryItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [gamePass, setGamePass] = useState("");
-  
+  const [qualityFilter, setQualityFilter] = useState<number | null>(null);
+
   // Reference to polling interval
   const pollingIntervalRef = useRef<number | null>(null);
   // Counter for polling - used to reduce frequency of actual API calls
   const pollingCounterRef = useRef<number>(0);
+
+  // Account-based pagination state
+  const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  // Web Worker instance and ref
+  const workerRef = useRef<Worker | null>(null);
+
+  // Helper to append items without duplicates
+  function appendUniqueItems(prev: InventoryItem[], newItems: InventoryItem[]) {
+    const existingIds = new Set(prev.map((i) => i.itemid));
+    return prev.concat(newItems.filter((i) => !existingIds.has(i.itemid)));
+  }
 
   // D2BotAPI instance (persisted)
   const [api] = useState(() => {
     const apiInstance = new D2BotAPI();
     apiInstance.config.host = apiUrl;
     apiInstance.config.username = username;
-    
+
     return apiInstance;
   });
-  
+
   useEffect(() => {
     const pingApi = async () => {
       try {
@@ -62,11 +81,11 @@ export default function App() {
       } catch (err) {
         console.error("API is unreachable:", err);
       }
-    }
+    };
     pingApi();
-    
-    toast.success("Notification", { description: "Welcome to Lime Drop!" })
-    
+
+    toast.success("Notification", { description: "Welcome to Lime Drop!" });
+
     return () => {
       stopPolling();
     };
@@ -80,10 +99,11 @@ export default function App() {
       await api.login(username, password, apiUrl);
       setSession(api.config.session || null);
       setLoginOpen(false);
-      toast.success("Login successful!", { description: "Welcome to LimeDrop!"});
+      toast.success("Login successful!", {
+        description: "Welcome to LimeDrop!",
+      });
       fetchAccounts();
-      fetchInventory();
-      
+
       // Start polling
       startPolling();
     } catch (err: unknown) {
@@ -93,6 +113,7 @@ export default function App() {
 
   // Sign out handler
   function handleSignOut() {
+    workerRef.current?.terminate();
     setSession(null);
     setPassword("");
     setInventory([]);
@@ -100,52 +121,60 @@ export default function App() {
     setSelectedAccount("Show All");
     setSelectedCharacter("Show All");
     toast.success("Signed out successfully!");
-    
+
     // Stop polling when signed out
     stopPolling();
   }
 
   function startPolling() {
     stopPolling();
-    
+
     pollingIntervalRef.current = window.setInterval(async () => {
       // Only poll every ~2 seconds (20 * 100ms)
       if (pollingCounterRef.current > 20) {
         pollingCounterRef.current = 0;
-        
+
         try {
           const response = await api.poll();
-          
+
           // Handle failed responses with invalid session
-          if (response && response.status === "failed" && response.body === "invalid session") {
-            console.log("Polling detected invalid session, may need to log in again");
-            
-            let sessionFailCount = (window).sessionFailCount || 0;
+          if (
+            response &&
+            response.status === "failed" &&
+            response.body === "invalid session"
+          ) {
+            console.log(
+              "Polling detected invalid session, may need to log in again",
+            );
+
+            let sessionFailCount = window.sessionFailCount || 0;
             sessionFailCount++;
-            (window).sessionFailCount = sessionFailCount;
-            
+            window.sessionFailCount = sessionFailCount;
+
             if (sessionFailCount > 3) {
               console.error("Too many failed session attempts, logging out");
               handleSignOut();
-              toast.error("Session Error", { description: "Your session has expired, please log in again" });
-              (window).sessionFailCount = 0;
+              toast.error("Session Error", {
+                description: "Your session has expired, please log in again",
+              });
+              window.sessionFailCount = 0;
             }
             return;
           }
-          
+
           // Reset the failure counter on success
-          (window).sessionFailCount = 0;
-          
+          window.sessionFailCount = 0;
+
           // Handle empty response
           if (
-            (response && response.body === "empty")
-            || (
-              response && response.status === "success" && (!response.body || response.body === "empty")
-            )
+            (response && response.body === "empty") ||
+            (response &&
+              response.status === "success" &&
+              (!response.body || response.body === "empty"))
           ) {
             return;
           }
-          
+
           if (response && Array.isArray(response)) {
             for (const message of response) {
               if (message && message.body) {
@@ -160,20 +189,25 @@ export default function App() {
           }
         } catch (error) {
           console.error("Polling error:", error);
-          
-          if (error instanceof Error && error.message.includes("invalid session")) {
+
+          if (
+            error instanceof Error &&
+            error.message.includes("invalid session")
+          ) {
             // Don't flood the console with repeated errors
             console.log("Polling error with invalid session");
-            
-            let sessionFailCount = (window).sessionFailCount || 0;
+
+            let sessionFailCount = window.sessionFailCount || 0;
             sessionFailCount++;
-            (window).sessionFailCount = sessionFailCount;
-            
+            window.sessionFailCount = sessionFailCount;
+
             if (sessionFailCount > 3) {
               console.error("Too many failed session attempts, logging out");
               handleSignOut();
-              toast.error("Session Error", { description: "Your session has expired, please log in again" });
-              (window).sessionFailCount = 0;
+              toast.error("Session Error", {
+                description: "Your session has expired, please log in again",
+              });
+              window.sessionFailCount = 0;
             }
           }
         }
@@ -182,7 +216,7 @@ export default function App() {
       }
     }, 100);
   }
-  
+
   function stopPolling() {
     if (pollingIntervalRef.current !== null) {
       window.clearInterval(pollingIntervalRef.current);
@@ -193,65 +227,73 @@ export default function App() {
 
   async function fetchAccounts() {
     if (!session) return;
-    
+
     try {
       setLoadingAccounts(true);
       const response = await api.accounts(realm);
-      
+
       if (response.status === "failed") {
         console.error("Failed to fetch accounts:", response.body);
-        
+
         if (response.body === "invalid session") {
-          console.error("Invalid session detected, session needs to be refreshed");
+          console.error(
+            "Invalid session detected, session needs to be refreshed",
+          );
           handleSignOut();
-          toast.error("Session Error", { description: "Your session has expired, please log in again" });
+          toast.error("Session Error", {
+            description: "Your session has expired, please log in again",
+          });
           return;
         }
         return;
       }
-      
+
       const { body: accountsData } = response;
-      
+
       if (!Array.isArray(accountsData)) {
         console.error("Unexpected accounts data format:", accountsData);
         return;
       }
-      
+
+      accountsData.sort(naturalSort);
       console.debug("Fetched accounts:", accountsData);
       const accountsMap: Record<string, string[]> = {};
-      
-      // Process accounts data similar to the original version
+
       for (const account of accountsData) {
         const res = account.split("\\");
         if (!res || res.length < 3) continue;
-        
+
         if (!accountsMap[res[1]]) {
           accountsMap[res[1]] = [];
         }
-        
+
         const charkey = res[2].split(".")[1];
-        
+
         // Check if character matches current filters
         const charCheck = {
           ladder: charkey[2] === "l",
           lod: charkey[1] === "e",
-          sc: charkey[0] === "s"
+          sc: charkey[0] === "s",
         };
-        
+
         const checks = {
           ladder: gameClass === "Ladder",
           lod: gameType === "Expansion",
-          sc: gameMode === "Softcore"
+          sc: gameMode === "Softcore",
         };
-        
-        if ((charCheck.ladder === checks.ladder) && 
-            (charCheck.lod === checks.lod) && 
-            (charCheck.sc === checks.sc)) {
+
+        if (
+          charCheck.ladder === checks.ladder &&
+          charCheck.lod === checks.lod &&
+          charCheck.sc === checks.sc
+        ) {
           accountsMap[res[1]].push(res[2]);
         }
       }
-      
-      setAccounts(prev => deepEqual(prev, accountsMap) ? prev : accountsMap);
+
+      setAccounts((prev) =>
+        deepEqual(prev, accountsMap) ? prev : accountsMap,
+      );
     } catch (err) {
       console.error("Failed to fetch accounts:", err);
     } finally {
@@ -259,98 +301,84 @@ export default function App() {
     }
   }
 
-  async function fetchInventory() {
-    if (!session) return;
-    
-    try {
-      setLoadingInventory(true);
-      let accountList: string[] = [];
-      if (selectedAccount === "Show All") {
-        accountList = Object.keys(accounts);
-      } else {
-        accountList = [selectedAccount];
-      }
-      
-      const queries: Promise<ApiResponse | ApiItemResponse[]>[] = [];
-      for (const acc of accountList) {
-        let charList: string[] = [];
-        if (selectedCharacter === "Show All") {
-          charList = accounts[acc] || [];
-        } else {
-          charList = [selectedCharacter];
-        }
-        for (const charname of charList) {
-          queries.push(api.query("", realm, acc, charname));
-        }
-      }
-      
-      // Fetch all in parallel
-      const results = await Promise.all(queries);
-      let allResults: ApiItemResponse[] = [];
-      for (const resp of results) {
-        if (resp && !Array.isArray(resp) && resp.status === "failed" && resp.body === "invalid session") {
-          handleSignOut();
-          toast.error("Session Error", { description: "Your session has expired, please log in again" });
-          setInventory([]);
-          setLoadingInventory(false);
-          return;
-        }
-        if (Array.isArray(resp)) {
-          allResults = allResults.concat(resp);
-        }
-      }
+  // Natural sort helper for account names
+  function naturalSort(a: string, b: string) {
+    return a.localeCompare(b, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  }
 
-      // console.log(JSON.stringify(allResults, null, 2));
-      // Filter aggregated results
-      const checks = {
-        ladder: gameClass === "Ladder",
-        lod: gameType === "Expansion",
-        sc: gameMode === "Softcore"
-      };
-      const filtered = allResults.filter(item =>
-        item.ladder === checks.ladder &&
-        item.lod === checks.lod &&
-        item.sc === checks.sc
-      ).map(el => {
-        const [desc, id] = el.description.split("$");
-        const { quality, classid } = extractItemInfo(id, desc);
-        return { ...el, title: desc.split("\n")[0], description: desc, itemid: id, realm: realm.toLowerCase(), quality, classid };
-      });
-      setInventory(prev => deepEqual(prev, filtered) ? prev : filtered);
-      setFullInventory(prev => deepEqual(prev, filtered) ? prev : filtered); // Save the full list for client-side search
-    } catch (err) {
-      console.error("Error fetching inventory:", err);
-      if (err instanceof Error && err.message.includes("invalid session")) {
-        handleSignOut();
-        toast.error("Session Error", { description: "Your session has expired, please log in again" });
-        
-      }
-      setInventory([]);
-    } finally {
-      setLoadingInventory(false);
+  function resetAccountLoading() {
+    if (selectedAccount === "Show All") {
+      const accs = Object.keys(accounts).sort(naturalSort);
+      setAccountsToLoad(accs);
+      setHasMore(accs.length > 0);
+    } else {
+      setAccountsToLoad([selectedAccount]);
+      setHasMore(false);
     }
   }
 
-  const [fullInventory, setFullInventory] = useState<InventoryItem[]>([]);
-  const [qualityFilter, setQualityFilter] = useState<number | null>(null);
-
-  useEffect(() => {
-    let filtered = fullInventory;
-    if (qualityFilter !== null) {
-      filtered = filtered.filter(item => item.quality === qualityFilter);
-    }
-    if (!searchTerm) {
-      setInventory(filtered);
+  // Load items for a single account (used for both UI and background loading)
+  async function loadAccount(acc: string): Promise<InventoryItem[]> {
+    let charList: string[] = [];
+    if (selectedCharacter === "Show All") {
+      charList = accounts[acc] || [];
     } else {
-      const lower = searchTerm.toLowerCase();
-      setInventory(filtered.filter(item =>
-        item.description.toLowerCase().includes(lower) ||
-        item.account.toLowerCase().includes(lower) ||
-        item.character.toLowerCase().includes(lower) ||
-        (item.title && item.title.toLowerCase().includes(lower))
-      ));
+      charList = [selectedCharacter];
     }
-  }, [searchTerm, fullInventory, qualityFilter]);
+    const queries: Promise<ApiResponse | ApiItemResponse[]>[] = [];
+    for (const charname of charList) {
+      queries.push(api.query("", realm, acc, charname));
+    }
+    const results = await Promise.all(queries);
+    let allResults: ApiItemResponse[] = [];
+    for (const resp of results) {
+      if (
+        resp &&
+        !Array.isArray(resp) &&
+        resp.status === "failed" &&
+        resp.body === "invalid session"
+      ) {
+        handleSignOut();
+        toast.error("Session Error", {
+          description: "Your session has expired, please log in again",
+        });
+        setInventory([]);
+        setIsFetchingMore(false);
+        return [];
+      }
+      if (Array.isArray(resp)) {
+        allResults = allResults.concat(resp);
+      }
+    }
+    const checks = {
+      ladder: gameClass === "Ladder",
+      lod: gameType === "Expansion",
+      sc: gameMode === "Softcore",
+    };
+    return allResults
+      .filter(
+        (item) =>
+          item.ladder === checks.ladder &&
+          item.lod === checks.lod &&
+          item.sc === checks.sc,
+      )
+      .map((el) => {
+        const [desc, id] = el.description.split("$");
+        const { quality, classid } = extractItemInfo(id, desc);
+        return {
+          ...el,
+          title: desc.split("\n")[0],
+          description: desc,
+          itemid: id,
+          realm: realm.toLowerCase(),
+          quality,
+          classid,
+        };
+      });
+  }
 
   useEffect(() => {
     if (session) fetchAccounts();
@@ -358,12 +386,26 @@ export default function App() {
   }, [realm, gameType, gameMode, gameClass, session]);
 
   useEffect(() => {
-    if (session) fetchInventory();
+    if (session) {
+      resetAccountLoading();
+    }
     // eslint-disable-next-line
-  }, [accounts, realm, selectedAccount, selectedCharacter, session, gameType, gameMode, gameClass]);
+  }, [
+    accounts,
+    realm,
+    selectedAccount,
+    selectedCharacter,
+    session,
+    gameType,
+    gameMode,
+    gameClass,
+  ]);
 
   useEffect(() => {
-    if (selectedAccount !== "Show All" && !accounts[selectedAccount]?.includes(selectedCharacter)) {
+    if (
+      selectedAccount !== "Show All" &&
+      !accounts[selectedAccount]?.includes(selectedCharacter)
+    ) {
       setSelectedCharacter("Show All");
     }
   }, [selectedAccount, accounts, selectedCharacter]);
@@ -377,13 +419,142 @@ export default function App() {
     // eslint-disable-next-line
   }, [session]);
 
+  const fullInventoryRef = useRef<InventoryItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(100); // Number of items to show initially and per page
+
+  useEffect(() => {
+    if (session && accountsToLoad.length > 0) {
+      fullInventoryRef.current = [];
+      setInventory([]);
+      setIsFetchingMore(true);
+      setVisibleCount(100);
+      
+      (async () => {
+        setLoadingInventory(true);
+        const acc = accountsToLoad[0];
+        const items = await loadAccount(acc);
+        setLoadingInventory(false);
+        fullInventoryRef.current = items;
+        setInventory(fullInventoryRef.current.slice(0, 100));
+        setHasMore(accountsToLoad.length > 1);
+        
+        // Start worker for the rest
+        if (accountsToLoad.length > 1) {
+          if (workerRef.current) workerRef.current.terminate();
+          const worker = new Worker(
+            new URL("./workers/inventoryWorker.ts", import.meta.url),
+            { type: "module" },
+          );
+          workerRef.current = worker;
+          let done = false;
+          const doneTimeout = setTimeout(() => {
+            if (!done) setIsFetchingMore(false);
+          }, 60000);
+          worker.onmessage = (e: MessageEvent) => {
+            const msg = e.data;
+            if (msg.type === "account-items") {
+              fullInventoryRef.current = appendUniqueItems(fullInventoryRef.current, msg.items);
+              setInventory(fullInventoryRef.current.slice(0, visibleCount));
+            } else if (msg.type === "done") {
+              done = true;
+              setIsFetchingMore(false);
+              setHasMore(false);
+              clearTimeout(doneTimeout);
+            } else if (msg.type === "error") {
+              setIsFetchingMore(false);
+              clearTimeout(doneTimeout);
+            }
+          };
+          worker.postMessage({
+            type: "load-accounts",
+            accounts: accountsToLoad.slice(1),
+            accountsMap: accounts,
+            selectedCharacter,
+            realm,
+            gameClass,
+            gameType,
+            gameMode,
+            apiUrl,
+            session: api.config.session,
+            username,
+            password,
+          });
+        } else {
+          setIsFetchingMore(false);
+          setHasMore(false);
+        }
+      })();
+    }
+    // eslint-disable-next-line
+  }, [accountsToLoad, session, selectedCharacter, realm, gameClass, gameType, gameMode, apiUrl]);
+
+  // New effect: update visible inventory when visibleCount changes
+  useEffect(() => {
+    setInventory(fullInventoryRef.current.slice(0, visibleCount));
+  }, [visibleCount]);
+
+  // Infinite scroll handler
+  function handleLoadMore() {
+    setVisibleCount((prev) => {
+      const next = prev + 100;
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    setHasMore(fullInventoryRef.current.length > visibleCount || isFetchingMore);
+  }, [visibleCount, isFetchingMore, inventory]);
+
+  // Compute filteredInventory from fullInventoryRef.current, then slice for visible items
+  const filteredInventory = fullInventoryRef.current.filter(item => {
+    // Realm filter (if needed, but realm is already set in item)
+    // Account filter
+    if (selectedAccount !== "Show All" && item.account !== selectedAccount) return false;
+    // Character filter
+    if (selectedCharacter !== "Show All" && item.character !== selectedCharacter) return false;
+    // Quality filter
+    if (qualityFilter !== null && item.quality !== qualityFilter) return false;
+    // Search filter
+    if (debouncedSearchTerm) {
+      const lower = debouncedSearchTerm.toLowerCase();
+      return (
+        item.description.toLowerCase().includes(lower) ||
+        item.account.toLowerCase().includes(lower) ||
+        item.character.toLowerCase().includes(lower) ||
+        (item.title && item.title.toLowerCase().includes(lower))
+      );
+    }
+    return true;
+  });
+
+  // Only show the visible slice for infinite scroll
+  const visibleInventory = filteredInventory.slice(0, visibleCount);
+
+  // Memoized Set of cart itemids for fast lookup
+  const cartItemIds = useMemo(() => new Set(cart.map(i => i.itemid)), [cart]);
+
+  const allVisibleSelected =
+    visibleInventory.length > 0 &&
+    visibleInventory.every((item) => cartItemIds.has(item.itemid));
+
   function handleSelectItem(item: InventoryItem) {
     setCart((prev) => {
-      if (prev.find((i) => i.itemid === item.itemid)) {
+      if (cartItemIds.has(item.itemid)) {
         return prev.filter((i) => i.itemid !== item.itemid);
       }
       return [...prev, item];
     });
+  }
+
+  function handleToggleSelectAll() {
+    if (allVisibleSelected) {
+      setCart((prev) => prev.filter((item) => !cartItemIds.has(item.itemid) || !visibleInventory.some((i) => i.itemid === item.itemid)));
+    } else {
+      setCart((prev) => {
+        const toAdd = visibleInventory.filter((i) => !cartItemIds.has(i.itemid));
+        return [...prev, ...toAdd];
+      });
+    }
   }
 
   function handleRemoveFromCart(item: InventoryItem) {
@@ -399,7 +570,9 @@ export default function App() {
     // Group by hash (realm+account)
     const drops: Record<string, Partial<InventoryItem>[]> = {};
     for (const item of cart) {
-      const hash = await api.md5((realm).toLowerCase() + (item.account || '').toLowerCase());
+      const hash = await api.md5(
+        realm.toLowerCase() + (item.account || "").toLowerCase(),
+      );
       if (!drops[hash]) drops[hash] = [];
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { image, description, ...cleanItem } = item;
@@ -410,27 +583,14 @@ export default function App() {
         hash,
         profile: username,
         action: "doDrop",
-        data: JSON.stringify({ gameName, gamePass, items: drops[hash] })
+        data: JSON.stringify({ gameName, gamePass, items: drops[hash] }),
       };
       console.debug("GameAction", JSON.stringify(GameInfo, null, 2));
-      await api.gameaction(GameInfo); // You may want to handle errors/feedback
+      await api.gameaction(GameInfo);
     }
     setCart([]);
     setCartOpen(false);
     toast.info("Drop Queue", { description: "Drop action sent!" });
-  }
-
-  const allVisibleSelected = inventory.length > 0 && inventory.every(item => cart.some(i => i.itemid === item.itemid));
-  function handleToggleSelectAll() {
-    if (allVisibleSelected) {
-      setCart(prev => prev.filter(item => !inventory.some(i => i.itemid === item.itemid)));
-    } else {
-      setCart(prev => {
-        const ids = new Set(prev.map(i => i.itemid));
-        const toAdd = inventory.filter(i => !ids.has(i.itemid));
-        return [...prev, ...toAdd];
-      });
-    }
   }
 
   return (
@@ -470,10 +630,13 @@ export default function App() {
         />
         <main className="flex-1 p-2 bg-gray-900">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <section className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col" style={{ minHeight: '80vh' }}>
+            <section
+              className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
+              style={{ minHeight: "80vh" }}
+            >
               <InventoryGrid
                 session={session}
-                inventory={inventory}
+                inventory={visibleInventory}
                 loadingInventory={loadingInventory}
                 cart={cart}
                 handleSelectItem={handleSelectItem}
@@ -481,8 +644,11 @@ export default function App() {
                 handleToggleSelectAll={handleToggleSelectAll}
                 qualityFilter={qualityFilter}
                 setQualityFilter={setQualityFilter}
-                fetchInventory={fetchInventory}
+                fetchInventory={async () => { resetAccountLoading(); }}
                 loadingAccounts={loadingAccounts}
+                hasMore={hasMore}
+                isFetchingMore={isFetchingMore}
+                onLoadMore={handleLoadMore}
               />
             </section>
           </div>
