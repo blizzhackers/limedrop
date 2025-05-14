@@ -48,8 +48,7 @@ export default function App() {
   const pollingIntervalRef = useRef<number | null>(null);
   const pollingCounterRef = useRef<number>(0);
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
   const [api] = useState(() => {
@@ -148,7 +147,6 @@ export default function App() {
   useEffect(() => {
     if (!session || accountsToLoad.length === 0) return;
     fullInventoryRef.current = [];
-    setIsFetchingMore(true);
     setVisibleCount(MIN_ITEM_COUNT);
 
     (async () => {
@@ -158,7 +156,6 @@ export default function App() {
       setInventory(items);
       setLoadingInventory(false);
       fullInventoryRef.current = items;
-      setHasMore(accountsToLoad.length > 1);
 
       // Start worker for the rest
       if (accountsToLoad.length > 1) {
@@ -168,11 +165,6 @@ export default function App() {
           { type: "module" },
         );
         workerRef.current = worker;
-        let done = false;
-
-        const doneTimeout = setTimeout(() => {
-          if (!done) setIsFetchingMore(false);
-        }, 60000);
 
         worker.onmessage = (e: MessageEvent) => {
           const msg = e.data;
@@ -181,14 +173,12 @@ export default function App() {
               fullInventoryRef.current,
               msg.items,
             );
+            setHasMore(fullInventoryRef.current.length > visibleCount);
           } else if (msg.type === "done") {
-            done = true;
-            setIsFetchingMore(false);
-            setHasMore(false);
-            clearTimeout(doneTimeout);
+            console.log(msg);
+            setHasMore(fullInventoryRef.current.length > visibleCount);
           } else if (msg.type === "error") {
-            setIsFetchingMore(false);
-            clearTimeout(doneTimeout);
+            console.error(msg);
           }
         };
 
@@ -206,9 +196,6 @@ export default function App() {
           username,
           password: useAppStore.getState().password,
         });
-      } else {
-        setIsFetchingMore(false);
-        setHasMore(false);
       }
     })();
     // eslint-disable-next-line
@@ -224,10 +211,8 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    setHasMore(
-      fullInventoryRef.current.length > visibleCount || isFetchingMore,
-    );
-  }, [visibleCount, isFetchingMore]);
+    setHasMore(fullInventoryRef.current.length > visibleCount);
+  }, [visibleCount]);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -445,10 +430,8 @@ export default function App() {
     if (selectedAccount === "Show All") {
       const accs = Object.keys(accounts).sort(naturalSort);
       setAccountsToLoad(accs);
-      setHasMore(accs.length > 0);
     } else {
       setAccountsToLoad([selectedAccount]);
-      setHasMore(false);
     }
   }
 
@@ -477,7 +460,6 @@ export default function App() {
         toast.error("Session Error", {
           description: "Your session has expired, please log in again",
         });
-        setIsFetchingMore(false);
         return [];
       }
       if (Array.isArray(resp)) {
@@ -628,7 +610,7 @@ export default function App() {
                 }}
                 loadingAccounts={loadingAccounts}
                 hasMore={hasMore}
-                isFetchingMore={isFetchingMore}
+                // isFetchingMore={isFetchingMore}
                 onLoadMore={handleLoadMore}
               />
             </section>

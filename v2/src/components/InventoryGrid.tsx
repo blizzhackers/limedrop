@@ -11,7 +11,7 @@ import type { InventoryItem } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
 import { ArrowUp, RefreshCw } from "lucide-react";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
@@ -24,7 +24,6 @@ interface InventoryGridProps {
   fetchInventory: () => Promise<void>;
   loadingAccounts: boolean;
   hasMore: boolean;
-  isFetchingMore: boolean;
   onLoadMore: () => void;
 }
 
@@ -38,20 +37,44 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   loadingAccounts,
   onLoadMore,
   hasMore,
-  isFetchingMore,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
+  const loadMoreCooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const [loadMoreCooldown, setLoadMoreCooldown] = useState(false);
 
-  const handleScroll = () => {
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerLoadMore = useCallback(() => {
+    if (loadMoreCooldown) return;
+    setLoadMoreCooldown(true);
+    onLoadMore();
+    loadMoreCooldownRef.current = setTimeout(() => {
+      setLoadMoreCooldown(false);
+    }, 1000);
+  }, [loadMoreCooldown, onLoadMore]);
+  
+  const handleScroll = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const el = scrollRef.current;
+      if (!el || !hasMore) return;
+      setShowBackToTop(el.scrollTop > 300);
+
+      const scrollPercent = (el.scrollTop + el.clientHeight) / el.scrollHeight;
+      if (scrollPercent > 0.75 && !loadMoreCooldown) {
+        triggerLoadMore();
+      }
+    }, 100);
+  }, [hasMore, loadMoreCooldown, triggerLoadMore]);
+
+  useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !hasMore || isFetchingMore) return;
-    setShowBackToTop(el.scrollTop > 300);
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) {
-      onLoadMore();
-    }
-  };
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [hasMore, handleScroll]);
 
   const handleBackToTop = () => {
     const el = scrollRef.current;
@@ -78,13 +101,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
       setSelectAll(true);
     }
   }
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll);
-    return () => el.removeEventListener("scroll", handleScroll);
-  });
 
   return (
     <section
@@ -175,7 +191,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
               {inventory.map((item, idx) => {
                 return <InventoryCard key={item.itemid || idx} item={item} />;
               })}
-              {isFetchingMore && (
+              {loadMoreCooldown && (
                 <div className="col-span-full flex justify-center py-4">
                   <span className="animate-spin h-6 w-6 border-4 border-lime-500 border-t-transparent rounded-full inline-block"></span>
                   <span className="ml-2 text-lime-400">Loading more...</span>
