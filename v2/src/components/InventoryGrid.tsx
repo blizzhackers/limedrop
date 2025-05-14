@@ -27,7 +27,7 @@ interface InventoryGridProps {
   loadingAccounts: boolean;
   hasMore: boolean;
   isFetchingMore: boolean;
-  onLoadMore: () => void; // Add onLoadMore prop
+  onLoadMore: () => void;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = ({
@@ -57,6 +57,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
       onLoadMore();
     }
   };
+  
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;

@@ -16,6 +16,8 @@ declare global {
   }
 }
 
+const MIN_ITEM_COUNT = 100;
+
 export default function App() {
   const realm = useAppStore((s) => s.realm);
   const gameType = useAppStore((s) => s.gameType);
@@ -30,6 +32,7 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [session, setSession] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
@@ -41,27 +44,15 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [gamePass, setGamePass] = useState("");
   const [qualityFilter, setQualityFilter] = useState<number | null>(null);
-
-  // Reference to polling interval
+  const fullInventoryRef = useRef<InventoryItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(MIN_ITEM_COUNT);
   const pollingIntervalRef = useRef<number | null>(null);
-  // Counter for polling - used to reduce frequency of actual API calls
   const pollingCounterRef = useRef<number>(0);
-
-  // Account-based pagination state
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-
-  // Web Worker instance and ref
   const workerRef = useRef<Worker | null>(null);
 
-  // Helper to append items without duplicates
-  function appendUniqueItems(prev: InventoryItem[], newItems: InventoryItem[]) {
-    const existingIds = new Set(prev.map((i) => i.itemid));
-    return prev.concat(newItems.filter((i) => !existingIds.has(i.itemid)));
-  }
-
-  // D2BotAPI instance (persisted)
   const [api] = useState(() => {
     const apiInstance = new D2BotAPI();
     apiInstance.config.host = apiUrl;
@@ -69,6 +60,22 @@ export default function App() {
 
     return apiInstance;
   });
+
+  const filteredInventory = useMemo(() => {
+    return (searchTerm ? searchResults : inventory).filter(item => {
+      if (selectedAccount !== "Show All" && item.account !== selectedAccount) return false;
+      if (selectedCharacter !== "Show All" && item.character !== selectedCharacter) return false;
+      if (qualityFilter !== null && item.quality !== qualityFilter) return false;
+      return true;
+    });
+  }, [inventory, searchResults, selectedAccount, selectedCharacter, qualityFilter, searchTerm]);
+
+  const visibleInventory = useMemo(() => filteredInventory.slice(0, visibleCount), [visibleCount, filteredInventory]);
+  const cartItemIds = useMemo(() => new Set(cart.map(i => i.itemid)), [cart]);
+
+  const allVisibleSelected =
+    visibleInventory.length > 0 &&
+    visibleInventory.every((item) => cartItemIds.has(item.itemid));
 
   useEffect(() => {
     const pingApi = async () => {
@@ -88,6 +95,134 @@ export default function App() {
       stopPolling();
     };
   }, [api]);
+
+  useEffect(() => {
+    if (session) fetchAccounts();
+    // eslint-disable-next-line
+  }, [realm, gameType, gameMode, gameClass, session]);
+
+  useEffect(() => {
+    if (session) {
+      resetAccountLoading();
+    }
+    // eslint-disable-next-line
+  }, [
+    accounts,
+    realm,
+    selectedAccount,
+    selectedCharacter,
+    session,
+    gameType,
+    gameMode,
+    gameClass,
+  ]);
+
+  useEffect(() => {
+    if (
+      selectedAccount !== "Show All" &&
+      !accounts[selectedAccount]?.includes(selectedCharacter)
+    ) {
+      setSelectedCharacter("Show All");
+    }
+  }, [selectedAccount, accounts, selectedCharacter]);
+
+  useEffect(() => {
+    if (session) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+    // eslint-disable-next-line
+  }, [session]);
+
+  useEffect(() => {
+    if (!session || accountsToLoad.length === 0) return;
+    fullInventoryRef.current = [];
+    setIsFetchingMore(true);
+    setVisibleCount(MIN_ITEM_COUNT);
+    
+    (async () => {
+      setLoadingInventory(true);
+      const acc = accountsToLoad[0];
+      const items = await loadAccount(acc);
+      setInventory(items);
+      setLoadingInventory(false);
+      fullInventoryRef.current = items;
+      setHasMore(accountsToLoad.length > 1);
+      
+      // Start worker for the rest
+      if (accountsToLoad.length > 1) {
+        if (workerRef.current) workerRef.current.terminate();
+        const worker = new Worker(
+          new URL("./workers/inventoryWorker.ts", import.meta.url),
+          { type: "module" },
+        );
+        workerRef.current = worker;
+        let done = false;
+
+        const doneTimeout = setTimeout(() => {
+          if (!done) setIsFetchingMore(false);
+        }, 60000);
+
+        worker.onmessage = (e: MessageEvent) => {
+          const msg = e.data;
+          if (msg.type === "account-items") {
+            fullInventoryRef.current = appendUniqueItems(fullInventoryRef.current, msg.items);
+          } else if (msg.type === "done") {
+            done = true;
+            setIsFetchingMore(false);
+            setHasMore(false);
+            clearTimeout(doneTimeout);
+          } else if (msg.type === "error") {
+            setIsFetchingMore(false);
+            clearTimeout(doneTimeout);
+          }
+        };
+
+        worker.postMessage({
+          type: "load-accounts",
+          accounts: accountsToLoad.slice(1),
+          accountsMap: accounts,
+          selectedCharacter,
+          realm,
+          gameClass,
+          gameType,
+          gameMode,
+          apiUrl,
+          session: api.config.session,
+          username,
+          password,
+        });
+      } else {
+        setIsFetchingMore(false);
+        setHasMore(false);
+      }
+    })();
+    // eslint-disable-next-line
+  }, [accountsToLoad, session, selectedCharacter, realm, gameClass, gameType, gameMode, apiUrl]);
+
+  useEffect(() => {
+    setHasMore(fullInventoryRef.current.length > visibleCount || isFetchingMore);
+  }, [visibleCount, isFetchingMore]);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults([]);
+      setVisibleCount(MIN_ITEM_COUNT);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (hasMore) {
+      setInventory(fullInventoryRef.current.slice(0, visibleCount));
+    }
+  }, [hasMore, visibleCount]);
+
+  // Helper to append items without duplicates
+  function appendUniqueItems(prev: InventoryItem[], newItems: InventoryItem[]) {
+    const existingIds = new Set(prev.map((i) => i.itemid));
+    return prev.concat(newItems.filter((i) => !existingIds.has(i.itemid)));
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -114,6 +249,7 @@ export default function App() {
     setSession(null);
     setPassword("");
     setAccounts({});
+    setInventory([]);
     setSelectedAccount("Show All");
     setSelectedCharacter("Show All");
     toast.success("Signed out successfully!");
@@ -369,129 +505,13 @@ export default function App() {
         };
       });
   }
-
-  useEffect(() => {
-    if (session) fetchAccounts();
-    // eslint-disable-next-line
-  }, [realm, gameType, gameMode, gameClass, session]);
-
-  useEffect(() => {
-    if (session) {
-      resetAccountLoading();
-    }
-    // eslint-disable-next-line
-  }, [
-    accounts,
-    realm,
-    selectedAccount,
-    selectedCharacter,
-    session,
-    gameType,
-    gameMode,
-    gameClass,
-  ]);
-
-  useEffect(() => {
-    if (
-      selectedAccount !== "Show All" &&
-      !accounts[selectedAccount]?.includes(selectedCharacter)
-    ) {
-      setSelectedCharacter("Show All");
-    }
-  }, [selectedAccount, accounts, selectedCharacter]);
-
-  useEffect(() => {
-    if (session) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-    // eslint-disable-next-line
-  }, [session]);
-
-  const fullInventoryRef = useRef<InventoryItem[]>([]);
-  const [visibleCount, setVisibleCount] = useState(100);
-
-  useEffect(() => {
-    if (session && accountsToLoad.length > 0) {
-      fullInventoryRef.current = [];
-      setIsFetchingMore(true);
-      setVisibleCount(100);
-      
-      (async () => {
-        setLoadingInventory(true);
-        const acc = accountsToLoad[0];
-        const items = await loadAccount(acc);
-        setLoadingInventory(false);
-        fullInventoryRef.current = items;
-        setHasMore(accountsToLoad.length > 1);
-        
-        // Start worker for the rest
-        if (accountsToLoad.length > 1) {
-          if (workerRef.current) workerRef.current.terminate();
-          const worker = new Worker(
-            new URL("./workers/inventoryWorker.ts", import.meta.url),
-            { type: "module" },
-          );
-          workerRef.current = worker;
-          let done = false;
-          const doneTimeout = setTimeout(() => {
-            if (!done) setIsFetchingMore(false);
-          }, 60000);
-          worker.onmessage = (e: MessageEvent) => {
-            const msg = e.data;
-            if (msg.type === "account-items") {
-              fullInventoryRef.current = appendUniqueItems(fullInventoryRef.current, msg.items);
-            } else if (msg.type === "done") {
-              done = true;
-              setIsFetchingMore(false);
-              setHasMore(false);
-              clearTimeout(doneTimeout);
-            } else if (msg.type === "error") {
-              setIsFetchingMore(false);
-              clearTimeout(doneTimeout);
-            }
-          };
-          worker.postMessage({
-            type: "load-accounts",
-            accounts: accountsToLoad.slice(1),
-            accountsMap: accounts,
-            selectedCharacter,
-            realm,
-            gameClass,
-            gameType,
-            gameMode,
-            apiUrl,
-            session: api.config.session,
-            username,
-            password,
-          });
-        } else {
-          setIsFetchingMore(false);
-          setHasMore(false);
-        }
-      })();
-    }
-    // eslint-disable-next-line
-  }, [accountsToLoad, session, selectedCharacter, realm, gameClass, gameType, gameMode, apiUrl]);
-
-  // Infinite scroll handler
+  
   function handleLoadMore() {
     setVisibleCount((prev) => {
-      const next = prev + 100;
+      const next = prev + MIN_ITEM_COUNT;
       return next;
     });
   }
-
-  useEffect(() => {
-    setHasMore(fullInventoryRef.current.length > visibleCount || isFetchingMore);
-  }, [visibleCount, isFetchingMore]);
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setSearchResults([]);
-    }
-  }, [searchTerm]);
 
   async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -503,6 +523,7 @@ export default function App() {
       return;
     }
     try {
+      setLoadingInventory(true);
       setSearchTerm(searchTerm);
       const acc = selectedAccount === "Show All" ? "" : selectedAccount;
       const char = selectedCharacter === "Show All" ? "" : selectedCharacter;
@@ -530,23 +551,10 @@ export default function App() {
       }
     } catch (err) {
       toast.error("Search failed", { description: String(err) });
+    } finally {
+      setLoadingInventory(false);
     }
   }
-
-  // Compute filteredInventory from fullInventoryRef.current, then slice for visible items
-  const filteredInventory = (searchTerm ? searchResults : fullInventoryRef.current).filter(item => {
-    if (selectedAccount !== "Show All" && item.account !== selectedAccount) return false;
-    if (selectedCharacter !== "Show All" && item.character !== selectedCharacter) return false;
-    if (qualityFilter !== null && item.quality !== qualityFilter) return false;
-    return true;
-  });
-
-  const visibleInventory = filteredInventory.slice(0, visibleCount);
-  const cartItemIds = useMemo(() => new Set(cart.map(i => i.itemid)), [cart]);
-
-  const allVisibleSelected =
-    visibleInventory.length > 0 &&
-    visibleInventory.every((item) => cartItemIds.has(item.itemid));
 
   function handleSelectItem(item: InventoryItem) {
     setCart((prev) => {
