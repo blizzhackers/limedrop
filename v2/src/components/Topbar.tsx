@@ -1,6 +1,12 @@
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
-import { setCartOpen, setPassword, setUsername, useAppStore } from "@/stores/useAppStore";
+import {
+  setCartOpen,
+  setPassword,
+  setRecentDropsOpen,
+  setUsername,
+  useAppStore,
+} from "@/stores/useAppStore";
 import { ChevronDown, CircleUser, History, ShoppingCart } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
@@ -15,7 +21,6 @@ interface TopbarProps {
   handleSignOut: () => void;
   apiUrl: string;
   setApiUrl: (v: string) => void;
-  onShowRecentDrops?: () => void;
   api: D2BotAPI;
   setSession: (value: React.SetStateAction<string | null>) => void;
   startPolling: () => void;
@@ -31,7 +36,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   handleSignOut,
   apiUrl,
   setApiUrl,
-  onShowRecentDrops,
   api,
   setSession,
   fetchAccounts,
@@ -111,6 +115,15 @@ export const Topbar: React.FC<TopbarProps> = ({
         )}
       </div>
       <div className="flex items-center gap-4 flex-1 justify-end">
+        {session && (
+          <button
+            className="relative p-2 hover:bg-gray-700 rounded"
+            onClick={() => setRecentDropsOpen(true)}
+            title="Show Recent Drops"
+          >
+            <History className="w-6 h-6 text-lime-400" />
+          </button>
+        )}
         <button
           className="relative p-2 hover:bg-gray-700 rounded"
           onClick={openCart}
@@ -122,15 +135,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             </span>
           )}
         </button>
-        {onShowRecentDrops && (
-          <button
-            className="relative p-2 hover:bg-gray-700 rounded"
-            onClick={onShowRecentDrops}
-            title="Show Recent Drops"
-          >
-            <History className="w-6 h-6 text-lime-400" />
-          </button>
-        )}
         <div className="relative">
           <button
             className="flex items-center gap-2 p-2 hover:bg-gray-700 rounded"

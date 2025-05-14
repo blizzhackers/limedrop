@@ -6,7 +6,6 @@ import { InventoryGrid } from "@/components/InventoryGrid";
 import { RecentDrops } from "@/components/RecentDrops";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { type ApiItemResponse, type ApiResponse, D2BotAPI } from "@/lib/D2Bot";
 import { type InventoryItem, deepEqual, extractItemInfo } from "@/lib/utils";
 import {
@@ -52,7 +51,6 @@ export default function App() {
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const workerRef = useRef<Worker | null>(null);
-  const [recentDropsOpen, setRecentDropsOpen] = useState(false);
 
   const [api] = useState(() => {
     const apiInstance = new D2BotAPI();
@@ -593,22 +591,13 @@ export default function App() {
         apiUrl={apiUrl}
         setApiUrl={setApiUrl}
         onSearch={handleSearch}
-        onShowRecentDrops={() => setRecentDropsOpen(true)}
         api={api}
         setSession={setSession}
         startPolling={startPolling}
         fetchAccounts={fetchAccounts}
       />
 
-      <Drawer
-        open={recentDropsOpen && !!session}
-        onOpenChange={setRecentDropsOpen}
-        direction="right"
-      >
-        <DrawerContent className="w-screen max-w-screen h-full bg-gray-800 shadow-lg flex flex-col">
-          <RecentDrops username={username} />
-        </DrawerContent>
-      </Drawer>
+      <RecentDrops username={username} session={session} />
 
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         <Sidebar

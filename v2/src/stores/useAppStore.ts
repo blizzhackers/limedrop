@@ -14,6 +14,7 @@ interface AppState {
   cart: InventoryItem[];
   cartItemIds: Set<string>;
   cartOpen: boolean;
+  recentDropsOpen: boolean;
 }
 
 interface AppActions {
@@ -30,6 +31,7 @@ interface AppActions {
   clearCart: () => void;
   setPassword: (password: string) => void;
   setCartOpen: (cartOpen: boolean) => void;
+  setRecentDropsOpen: (open: boolean) => void;
 }
 
 export type AppStore = AppState & AppActions;
@@ -68,6 +70,8 @@ export const useCartItemIds = () =>
   useAppStore((state) => new Set(state.cart.map((i) => i.itemid)));
 export const setCartOpen = (cartOpen: boolean) =>
   useAppStore.setState({ cartOpen });
+export const setRecentDropsOpen = (open: boolean) =>
+  useAppStore.setState({ recentDropsOpen: open });
 
 export const useAppStore = create(
   persist(
@@ -83,6 +87,7 @@ export const useAppStore = create(
       cart: [],
       cartItemIds: new Set(),
       cartOpen: false,
+      recentDropsOpen: false,
     })),
     {
       name: "limedrop-app",
