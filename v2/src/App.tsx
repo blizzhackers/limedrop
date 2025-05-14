@@ -12,7 +12,7 @@ import { type InventoryItem, deepEqual, extractItemInfo } from "@/lib/utils";
 import {
   clearCart,
   setApiUrl,
-  setUsername,
+  setPassword,
   useAppStore,
 } from "@/stores/useAppStore";
 import { toast } from "sonner";
@@ -33,11 +33,8 @@ export default function App() {
   const apiUrl = useAppStore((s) => s.apiUrl);
   const username = useAppStore((s) => s.username);
 
-  const [loginOpen, setLoginOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [password, setPassword] = useState("");
   const [session, setSession] = useState<string | null>(null);
-  const [loginError, setLoginError] = useState<string | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
@@ -46,7 +43,6 @@ export default function App() {
   const [selectedAccount, setSelectedAccount] = useState<string>("Show All");
   const [selectedCharacter, setSelectedCharacter] =
     useState<string>("Show All");
-  const [cartOpen, setCartOpen] = useState(false);
   const [qualityFilter, setQualityFilter] = useState<number | null>(null);
   const fullInventoryRef = useRef<InventoryItem[]>([]);
   const [visibleCount, setVisibleCount] = useState(MIN_ITEM_COUNT);
@@ -210,7 +206,7 @@ export default function App() {
           apiUrl,
           session: api.config.session,
           username,
-          password,
+          password: useAppStore.getState().password,
         });
       } else {
         setIsFetchingMore(false);
@@ -252,26 +248,6 @@ export default function App() {
   function appendUniqueItems(prev: InventoryItem[], newItems: InventoryItem[]) {
     const existingIds = new Set(prev.map((i) => i.itemid));
     return prev.concat(newItems.filter((i) => !existingIds.has(i.itemid)));
-  }
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoginError(null);
-
-    try {
-      await api.login(username, password, apiUrl);
-      setSession(api.config.session || null);
-      setLoginOpen(false);
-      toast.success("Login successful!", {
-        description: "Welcome to LimeDrop!",
-      });
-      fetchAccounts();
-
-      // Start polling
-      startPolling();
-    } catch (err: unknown) {
-      setLoginError((err as Error).message || "Login failed");
-    }
   }
 
   function handleSignOut() {
@@ -611,21 +587,17 @@ export default function App() {
       <Topbar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        onCartOpen={() => setCartOpen(true)}
         session={session}
         username={username}
-        loginOpen={loginOpen}
-        setLoginOpen={setLoginOpen}
         handleSignOut={handleSignOut}
-        handleLogin={handleLogin}
         apiUrl={apiUrl}
         setApiUrl={setApiUrl}
-        password={password}
-        setPassword={setPassword}
-        loginError={loginError}
-        setUsername={setUsername}
         onSearch={handleSearch}
         onShowRecentDrops={() => setRecentDropsOpen(true)}
+        api={api}
+        setSession={setSession}
+        startPolling={startPolling}
+        fetchAccounts={fetchAccounts}
       />
 
       <Drawer
@@ -676,8 +648,6 @@ export default function App() {
       </div>
       <CartDrawer
         api={api}
-        cartOpen={cartOpen}
-        setCartOpen={setCartOpen}
         handleClearDropsFromInvo={handleClearDropsFromInvo}
       />
       <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">

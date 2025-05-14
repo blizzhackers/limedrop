@@ -13,6 +13,7 @@ import type { InventoryItem } from "@/lib/utils";
 import {
   clearCart,
   removeFromCart,
+  setCartOpen,
   setGameName,
   useAppStore,
 } from "@/stores/useAppStore";
@@ -24,21 +25,18 @@ import { Button } from "./ui/button";
 
 interface CartDrawerProps {
   api: D2BotAPI;
-  cartOpen: boolean;
-  setCartOpen: (v: boolean) => void;
   handleClearDropsFromInvo: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
   api,
-  cartOpen,
-  setCartOpen,
   handleClearDropsFromInvo,
 }) => {
   const realm = useAppStore((s) => s.realm);
   const username = useAppStore((s) => s.username);
   const gameName = useAppStore((s) => s.gameName);
   const cart = useAppStore((s) => s.cart);
+  const cartOpen = useAppStore((s) => s.cartOpen);
 
   const [gamePass, setGamePass] = useState("");
   const [showPassword, setShowPassword] = useState(false);

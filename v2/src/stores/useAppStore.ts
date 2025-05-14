@@ -9,9 +9,11 @@ interface AppState {
   gameClass: string;
   apiUrl: string;
   username: string;
+  password: string;
   gameName: string;
   cart: InventoryItem[];
   cartItemIds: Set<string>;
+  cartOpen: boolean;
 }
 
 interface AppActions {
@@ -26,6 +28,8 @@ interface AppActions {
   addToCart: (item: InventoryItem) => void;
   removeFromCart: (item: InventoryItem) => void;
   clearCart: () => void;
+  setPassword: (password: string) => void;
+  setCartOpen: (cartOpen: boolean) => void;
 }
 
 export type AppStore = AppState & AppActions;
@@ -41,6 +45,8 @@ export const setGameClass = (gameClass: string) =>
 export const setApiUrl = (apiUrl: string) => useAppStore.setState({ apiUrl });
 export const setUsername = (username: string) =>
   useAppStore.setState({ username });
+export const setPassword = (password: string) =>
+  useAppStore.setState({ password });
 export const setGameName = (gameName: string) =>
   useAppStore.setState({ gameName });
 export const setCart = (cart: InventoryItem[]) =>
@@ -60,6 +66,8 @@ export const clearCart = () => useAppStore.setState({ cart: [] });
 
 export const useCartItemIds = () =>
   useAppStore((state) => new Set(state.cart.map((i) => i.itemid)));
+export const setCartOpen = (cartOpen: boolean) =>
+  useAppStore.setState({ cartOpen });
 
 export const useAppStore = create(
   persist(
@@ -70,9 +78,11 @@ export const useAppStore = create(
       gameClass: "Ladder",
       apiUrl: "http://localhost:8080",
       username: "",
+      password: "",
       gameName: "",
       cart: [],
       cartItemIds: new Set(),
+      cartOpen: false,
     })),
     {
       name: "limedrop-app",

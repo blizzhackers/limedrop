@@ -1,48 +1,71 @@
 import { Input } from "@/components/ui/input";
-import { useAppStore } from "@/stores/useAppStore";
+import type { D2BotAPI } from "@/lib/D2Bot";
+import { setCartOpen, setPassword, setUsername, useAppStore } from "@/stores/useAppStore";
 import { ChevronDown, CircleUser, History, ShoppingCart } from "lucide-react";
 import type React from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface TopbarProps {
   searchTerm: string;
   setSearchTerm: (v: string) => void;
   onSearch?: (e: React.FormEvent<HTMLFormElement>) => void;
-  onCartOpen: () => void;
   session: string | null;
   username: string;
-  loginOpen: boolean;
-  setLoginOpen: (v: boolean) => void;
   handleSignOut: () => void;
-  handleLogin: (e: React.FormEvent) => void;
   apiUrl: string;
   setApiUrl: (v: string) => void;
-  password: string;
-  setPassword: (v: string) => void;
-  loginError: string | null;
-  setUsername: (v: string) => void;
   onShowRecentDrops?: () => void;
+  api: D2BotAPI;
+  setSession: (value: React.SetStateAction<string | null>) => void;
+  startPolling: () => void;
+  fetchAccounts: () => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
   searchTerm,
   setSearchTerm,
   onSearch,
-  onCartOpen,
   session,
   username,
-  loginOpen,
-  setLoginOpen,
   handleSignOut,
-  handleLogin,
   apiUrl,
   setApiUrl,
-  password,
-  setPassword,
-  loginError,
-  setUsername,
   onShowRecentDrops,
+  api,
+  setSession,
+  fetchAccounts,
+  startPolling,
 }) => {
+  const password = useAppStore((s) => s.password);
   const cart = useAppStore((s) => s.cart);
+
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const openCart = () => {
+    setCartOpen(true);
+  };
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoginError(null);
+
+    try {
+      await api.login(username, password, apiUrl);
+      setSession(api.config.session || null);
+      setLoginOpen(false);
+      toast.success("Login successful!", {
+        description: "Welcome to LimeDrop!",
+      });
+      fetchAccounts();
+
+      // Start polling
+      startPolling();
+    } catch (err: unknown) {
+      setLoginError((err as Error).message || "Login failed");
+    }
+  }
 
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-gray-800 shadow">
@@ -90,7 +113,7 @@ export const Topbar: React.FC<TopbarProps> = ({
       <div className="flex items-center gap-4 flex-1 justify-end">
         <button
           className="relative p-2 hover:bg-gray-700 rounded"
-          onClick={onCartOpen}
+          onClick={openCart}
         >
           <ShoppingCart className="w-6 h-6" />
           {cart.length > 0 && (
