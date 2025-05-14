@@ -1,13 +1,20 @@
 import type React from "react";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { CartDrawer } from "@/components/CartDrawer";
 import { InventoryGrid } from "@/components/InventoryGrid";
+import { RecentDrops } from "@/components/RecentDrops";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { type ApiItemResponse, type ApiResponse, D2BotAPI } from "@/lib/D2Bot";
 import { type InventoryItem, deepEqual, extractItemInfo } from "@/lib/utils";
-import { setApiUrl, setUsername, useAppStore } from "@/stores/useAppStore";
+import {
+  clearCart,
+  setApiUrl,
+  setUsername,
+  useAppStore,
+} from "@/stores/useAppStore";
 import { toast } from "sonner";
 
 declare global {
@@ -25,7 +32,6 @@ export default function App() {
   const gameClass = useAppStore((s) => s.gameClass);
   const apiUrl = useAppStore((s) => s.apiUrl);
   const username = useAppStore((s) => s.username);
-  const gameName = useAppStore((s) => s.gameName);
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,9 +46,7 @@ export default function App() {
   const [selectedAccount, setSelectedAccount] = useState<string>("Show All");
   const [selectedCharacter, setSelectedCharacter] =
     useState<string>("Show All");
-  const [cart, setCart] = useState<InventoryItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [gamePass, setGamePass] = useState("");
   const [qualityFilter, setQualityFilter] = useState<number | null>(null);
   const fullInventoryRef = useRef<InventoryItem[]>([]);
   const [visibleCount, setVisibleCount] = useState(MIN_ITEM_COUNT);
@@ -52,6 +56,7 @@ export default function App() {
   const [hasMore, setHasMore] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+  const [recentDropsOpen, setRecentDropsOpen] = useState(false);
 
   const [api] = useState(() => {
     const apiInstance = new D2BotAPI();
@@ -62,20 +67,31 @@ export default function App() {
   });
 
   const filteredInventory = useMemo(() => {
-    return (searchTerm ? searchResults : inventory).filter(item => {
-      if (selectedAccount !== "Show All" && item.account !== selectedAccount) return false;
-      if (selectedCharacter !== "Show All" && item.character !== selectedCharacter) return false;
-      if (qualityFilter !== null && item.quality !== qualityFilter) return false;
+    return (searchTerm ? searchResults : inventory).filter((item) => {
+      if (selectedAccount !== "Show All" && item.account !== selectedAccount)
+        return false;
+      if (
+        selectedCharacter !== "Show All" &&
+        item.character !== selectedCharacter
+      )
+        return false;
+      if (qualityFilter !== null && item.quality !== qualityFilter)
+        return false;
       return true;
     });
-  }, [inventory, searchResults, selectedAccount, selectedCharacter, qualityFilter, searchTerm]);
+  }, [
+    inventory,
+    searchResults,
+    selectedAccount,
+    selectedCharacter,
+    qualityFilter,
+    searchTerm,
+  ]);
 
-  const visibleInventory = useMemo(() => filteredInventory.slice(0, visibleCount), [visibleCount, filteredInventory]);
-  const cartItemIds = useMemo(() => new Set(cart.map(i => i.itemid)), [cart]);
-
-  const allVisibleSelected =
-    visibleInventory.length > 0 &&
-    visibleInventory.every((item) => cartItemIds.has(item.itemid));
+  const visibleInventory = useMemo(
+    () => filteredInventory.slice(0, visibleCount),
+    [visibleCount, filteredInventory],
+  );
 
   useEffect(() => {
     const pingApi = async () => {
@@ -140,7 +156,7 @@ export default function App() {
     fullInventoryRef.current = [];
     setIsFetchingMore(true);
     setVisibleCount(MIN_ITEM_COUNT);
-    
+
     (async () => {
       setLoadingInventory(true);
       const acc = accountsToLoad[0];
@@ -149,7 +165,7 @@ export default function App() {
       setLoadingInventory(false);
       fullInventoryRef.current = items;
       setHasMore(accountsToLoad.length > 1);
-      
+
       // Start worker for the rest
       if (accountsToLoad.length > 1) {
         if (workerRef.current) workerRef.current.terminate();
@@ -167,7 +183,10 @@ export default function App() {
         worker.onmessage = (e: MessageEvent) => {
           const msg = e.data;
           if (msg.type === "account-items") {
-            fullInventoryRef.current = appendUniqueItems(fullInventoryRef.current, msg.items);
+            fullInventoryRef.current = appendUniqueItems(
+              fullInventoryRef.current,
+              msg.items,
+            );
           } else if (msg.type === "done") {
             done = true;
             setIsFetchingMore(false);
@@ -199,10 +218,21 @@ export default function App() {
       }
     })();
     // eslint-disable-next-line
-  }, [accountsToLoad, session, selectedCharacter, realm, gameClass, gameType, gameMode, apiUrl]);
+  }, [
+    accountsToLoad,
+    session,
+    selectedCharacter,
+    realm,
+    gameClass,
+    gameType,
+    gameMode,
+    apiUrl,
+  ]);
 
   useEffect(() => {
-    setHasMore(fullInventoryRef.current.length > visibleCount || isFetchingMore);
+    setHasMore(
+      fullInventoryRef.current.length > visibleCount || isFetchingMore,
+    );
   }, [visibleCount, isFetchingMore]);
 
   useEffect(() => {
@@ -227,7 +257,7 @@ export default function App() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError(null);
-    
+
     try {
       await api.login(username, password, apiUrl);
       setSession(api.config.session || null);
@@ -250,6 +280,7 @@ export default function App() {
     setPassword("");
     setAccounts({});
     setInventory([]);
+    clearCart();
     setSelectedAccount("Show All");
     setSelectedCharacter("Show All");
     toast.success("Signed out successfully!");
@@ -295,8 +326,8 @@ export default function App() {
 
           // Handle empty response
           if (
-            body === "empty"
-            || (status === "success" && (body || body === "empty"))
+            body === "empty" ||
+            (status === "success" && (body || body === "empty"))
           ) {
             return;
           }
@@ -505,7 +536,7 @@ export default function App() {
         };
       });
   }
-  
+
   function handleLoadMore() {
     setVisibleCount((prev) => {
       const next = prev + MIN_ITEM_COUNT;
@@ -527,7 +558,12 @@ export default function App() {
       setSearchTerm(searchTerm);
       const acc = selectedAccount === "Show All" ? "" : selectedAccount;
       const char = selectedCharacter === "Show All" ? "" : selectedCharacter;
-      const response = await api.query(searchTerm.toLocaleLowerCase(), realm, acc, char);
+      const response = await api.query(
+        searchTerm.toLocaleLowerCase(),
+        realm,
+        acc,
+        char,
+      );
       if (Array.isArray(response)) {
         const items = response.map((el: ApiItemResponse) => {
           const [desc, id] = el.description.split("$");
@@ -542,8 +578,10 @@ export default function App() {
             classid,
           };
         });
-        const existingIds = new Set(fullInventoryRef.current.map(i => i.itemid));
-        const newItems = items.filter(i => !existingIds.has(i.itemid));
+        const existingIds = new Set(
+          fullInventoryRef.current.map((i) => i.itemid),
+        );
+        const newItems = items.filter((i) => !existingIds.has(i.itemid));
         if (newItems.length > 0) {
           fullInventoryRef.current = fullInventoryRef.current.concat(newItems);
         }
@@ -556,68 +594,23 @@ export default function App() {
     }
   }
 
-  function handleSelectItem(item: InventoryItem) {
-    setCart((prev) => {
-      if (cartItemIds.has(item.itemid)) {
-        return prev.filter((i) => i.itemid !== item.itemid);
-      }
-      return [...prev, item];
-    });
-  }
-
-  function handleToggleSelectAll() {
-    if (allVisibleSelected) {
-      setCart((prev) => prev.filter((item) => !cartItemIds.has(item.itemid) || !visibleInventory.some((i) => i.itemid === item.itemid)));
-    } else {
-      setCart((prev) => {
-        const toAdd = visibleInventory.filter((i) => !cartItemIds.has(i.itemid));
-        return [...prev, ...toAdd];
-      });
-    }
-  }
-
-  function handleRemoveFromCart(item: InventoryItem) {
-    setCart((prev) => prev.filter((i) => i.itemid !== item.itemid));
-  }
-
-  async function handleDropCart() {
-    if (!cart.length) return;
-    if (!gameName) {
-      toast.error("Drop Queue", { description: "Game name is required!" });
-      return;
-    }
-    // Group by hash (realm+account)
-    const drops: Record<string, Partial<InventoryItem>[]> = {};
-    for (const item of cart) {
-      const hash = await api.md5(
-        realm.toLowerCase() + (item.account || "").toLowerCase(),
-      );
-      if (!drops[hash]) drops[hash] = [];
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { image, description, ...cleanItem } = item;
-      drops[hash].push(cleanItem);
-    }
-    for (const hash in drops) {
-      const GameInfo = {
-        hash,
-        profile: username,
-        action: "doDrop",
-        data: JSON.stringify({ gameName, gamePass, items: drops[hash] }),
-      };
-      console.debug("GameAction", JSON.stringify(GameInfo, null, 2));
-      await api.gameaction(GameInfo);
-    }
-    setCart([]);
-    setCartOpen(false);
-    toast.info("Drop Queue", { description: "Drop action sent!" });
+  function handleClearDropsFromInvo() {
+    const cart = useAppStore.getState().cart;
+    const droppedIds = new Set(cart.map((i) => i.itemid));
+    setInventory((prev) => prev.filter((item) => !droppedIds.has(item.itemid)));
+    fullInventoryRef.current = fullInventoryRef.current.filter(
+      (item) => !droppedIds.has(item.itemid),
+    );
   }
 
   return (
-    <div className="w-screen h-screen min-h-0 min-w-0 bg-gray-900 text-white flex flex-col overflow-hidden" style={{margin:0, padding:0}}>
+    <div
+      className="w-screen h-screen min-h-0 min-w-0 bg-gray-900 text-white flex flex-col overflow-hidden"
+      style={{ margin: 0, padding: 0 }}
+    >
       <Topbar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        cartCount={cart.length}
         onCartOpen={() => setCartOpen(true)}
         session={session}
         username={username}
@@ -632,7 +625,19 @@ export default function App() {
         loginError={loginError}
         setUsername={setUsername}
         onSearch={handleSearch}
+        onShowRecentDrops={() => setRecentDropsOpen(true)}
       />
+
+      <Drawer
+        open={recentDropsOpen && !!session}
+        onOpenChange={setRecentDropsOpen}
+        direction="right"
+      >
+        <DrawerContent className="w-screen max-w-screen h-full bg-gray-800 shadow-lg flex flex-col">
+          <RecentDrops username={username} />
+        </DrawerContent>
+      </Drawer>
+
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         <Sidebar
           realm={realm}
@@ -650,20 +655,16 @@ export default function App() {
         />
         <main className="flex-1 min-h-0 min-w-0 p-2 bg-gray-900 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full min-h-0 min-w-0">
-            <section
-              className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden"
-            >
+            <section className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
               <InventoryGrid
                 session={session}
                 inventory={visibleInventory}
                 loadingInventory={loadingInventory}
-                cart={cart}
-                handleSelectItem={handleSelectItem}
-                allVisibleSelected={allVisibleSelected}
-                handleToggleSelectAll={handleToggleSelectAll}
                 qualityFilter={qualityFilter}
                 setQualityFilter={setQualityFilter}
-                fetchInventory={async () => { resetAccountLoading(); }}
+                fetchInventory={async () => {
+                  resetAccountLoading();
+                }}
                 loadingAccounts={loadingAccounts}
                 hasMore={hasMore}
                 isFetchingMore={isFetchingMore}
@@ -674,14 +675,10 @@ export default function App() {
         </main>
       </div>
       <CartDrawer
+        api={api}
         cartOpen={cartOpen}
         setCartOpen={setCartOpen}
-        cart={cart}
-        handleRemoveFromCart={handleRemoveFromCart}
-        gameName={gameName}
-        gamePass={gamePass}
-        setGamePass={setGamePass}
-        handleDropCart={handleDropCart}
+        handleClearDropsFromInvo={handleClearDropsFromInvo}
       />
       <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">
         &copy; 2025 Lime Drop. All rights reserved.

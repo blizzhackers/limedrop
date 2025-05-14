@@ -7,20 +7,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { sdk } from "@/lib/sdk";
-import { renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
-import { RefreshCw, ArrowUp } from "lucide-react";
-import React, { useEffect } from "react";
+import { useAppStore } from "@/stores/useAppStore";
+import { ArrowUp, RefreshCw } from "lucide-react";
+import type React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
 interface InventoryGridProps {
   session: string | null;
   inventory: InventoryItem[];
   loadingInventory: boolean;
-  cart: InventoryItem[];
-  handleSelectItem: (item: InventoryItem) => void;
-  allVisibleSelected: boolean;
-  handleToggleSelectAll: () => void;
   qualityFilter: number | null;
   setQualityFilter: React.Dispatch<React.SetStateAction<number | null>>;
   fetchInventory: () => Promise<void>;
@@ -34,10 +32,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   session,
   inventory,
   loadingInventory,
-  cart,
-  handleSelectItem,
-  allVisibleSelected,
-  handleToggleSelectAll,
   qualityFilter,
   setQualityFilter,
   fetchInventory,
@@ -46,8 +40,16 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   hasMore,
   isFetchingMore,
 }) => {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  const [showBackToTop, setShowBackToTop] = React.useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const allVisibleSelected = useMemo(
+    () =>
+      inventory.length > 0 &&
+      inventory.every((item) =>
+        useAppStore.getState().cartItemIds.has(item.itemid),
+      ),
+    [inventory],
+  );
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -57,18 +59,37 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
       onLoadMore();
     }
   };
-  
+
+  const handleBackToTop = () => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  function handleToggleSelectAll() {
+    const cartItemIds = useAppStore.getState().cartItemIds;
+    if (allVisibleSelected) {
+      useAppStore.setState((state) => {
+        const cartItems = state.cart.filter(
+          (item) =>
+            !cartItemIds.has(item.itemid) ||
+            !inventory.some((i) => i.itemid === item.itemid),
+        );
+        return { ...state, cart: cartItems };
+      });
+    } else {
+      useAppStore.setState((state) => {
+        const toAdd = inventory.filter((i) => !cartItemIds.has(i.itemid));
+        return { ...state, cart: [...state.cart, ...toAdd] };
+      });
+    }
+  }
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
   });
-
-  const handleBackToTop = () => {
-    const el = scrollRef.current;
-    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   return (
     <section
@@ -157,61 +178,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 p-1">
               {inventory.map((item, idx) => {
-                const title = item.description
-                  ? item.description.split("$", 1)[0]
-                  : "";
-                let desc = item.description || "";
-                if (desc.startsWith(title)) desc = desc.slice(title.length);
-                const inCart = cart.some((i) => i.itemid === item.itemid);
-                
-                return (
-                  <div
-                    key={item.itemid || idx}
-                    className={
-                      `bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 ` +
-                      (inCart
-                        ? "ring-2 ring-green-400 bg-green-950"
-                        : "hover:ring-2 hover:ring-green-400")
-                    }
-                    style={{ minHeight: 160 }}
-                    onClick={() => handleSelectItem(item)}
-                    title={
-                      inCart ? "Remove from Drop List" : "Add to Drop List"
-                    }
-                  >
-                    {item.image && (
-                      <img
-                        src={`data:image/jpeg;base64,${item.image}`}
-                        alt={"item"}
-                        className="ld-item mb-2"
-                        style={{
-                          maxWidth: 80,
-                          maxHeight: 80,
-                          imageRendering: "crisp-edges",
-                        }}
-                      />
-                    )}
-                    <div className="comment-text w-full text-center pb-7">
-                      <div className="font-semibold text-base">
-                        {renderColorText(title)}
-                      </div>
-                      <div className="text-sm">{renderColorText(desc)}</div>
-                    </div>
-                    <div className="absolute bottom-2 left-0 w-full px-2 flex flex-row justify-between text-xs text-gray-400 items-center">
-                      <span>
-                        {item.account} / {item.character}
-                      </span>
-                      <span className="ml-2 text-gray-500 whitespace-nowrap">
-                        {item.itemid}
-                      </span>
-                    </div>
-                    {inCart && (
-                      <span className="absolute top-2 right-2 bg-green-600 text-xs px-2 py-0.5 rounded-full text-white">
-                        In Drop List
-                      </span>
-                    )}
-                  </div>
-                );
+                return <InventoryCard key={item.itemid || idx} item={item} />;
               })}
               {isFetchingMore && (
                 <div className="col-span-full flex justify-center py-4">

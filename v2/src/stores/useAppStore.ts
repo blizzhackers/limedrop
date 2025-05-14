@@ -1,5 +1,6 @@
+import type { InventoryItem } from "@/lib/utils";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, subscribeWithSelector } from "zustand/middleware";
 
 interface AppState {
   realm: string;
@@ -9,6 +10,8 @@ interface AppState {
   apiUrl: string;
   username: string;
   gameName: string;
+  cart: InventoryItem[];
+  cartItemIds: Set<string>;
 }
 
 interface AppActions {
@@ -19,6 +22,10 @@ interface AppActions {
   setApiUrl: (apiUrl: string) => void;
   setUsername: (username: string) => void;
   setGameName: (gameName: string) => void;
+  setCart: (cart: InventoryItem[]) => void;
+  addToCart: (item: InventoryItem) => void;
+  removeFromCart: (item: InventoryItem) => void;
+  clearCart: () => void;
 }
 
 export type AppStore = AppState & AppActions;
@@ -36,10 +43,27 @@ export const setUsername = (username: string) =>
   useAppStore.setState({ username });
 export const setGameName = (gameName: string) =>
   useAppStore.setState({ gameName });
+export const setCart = (cart: InventoryItem[]) =>
+  useAppStore.setState({ cart });
+export const addToCart = (item: InventoryItem) =>
+  useAppStore.setState((state) => {
+    if (state.cart.some((i) => i.itemid === item.itemid)) {
+      return { cart: state.cart };
+    }
+    return { cart: [...state.cart, item] };
+  });
+export const removeFromCart = (item: InventoryItem) =>
+  useAppStore.setState((state) => ({
+    cart: state.cart.filter((i) => i.itemid !== item.itemid),
+  }));
+export const clearCart = () => useAppStore.setState({ cart: [] });
 
-export const useAppStore = create<AppState>()(
+export const useCartItemIds = () =>
+  useAppStore((state) => new Set(state.cart.map((i) => i.itemid)));
+
+export const useAppStore = create(
   persist(
-    () => ({
+    subscribeWithSelector<AppState>(() => ({
       realm: "USEast",
       gameType: "Expansion",
       gameMode: "Softcore",
@@ -47,7 +71,9 @@ export const useAppStore = create<AppState>()(
       apiUrl: "http://localhost:8080",
       username: "",
       gameName: "",
-    }),
+      cart: [],
+      cartItemIds: new Set(),
+    })),
     {
       name: "limedrop-app",
       partialize: (state) => ({
@@ -61,4 +87,18 @@ export const useAppStore = create<AppState>()(
       }),
     },
   ),
+);
+
+useAppStore.subscribe(
+  (state) => state.cart,
+  (cart) => {
+    const newCartItemIds = new Set(cart.map((i) => i.itemid));
+    const currentCartItemIds = useAppStore.getState().cartItemIds;
+    if (
+      newCartItemIds.size !== currentCartItemIds.size ||
+      [...newCartItemIds].some((id) => !currentCartItemIds.has(id))
+    ) {
+      useAppStore.setState({ cartItemIds: newCartItemIds });
+    }
+  },
 );

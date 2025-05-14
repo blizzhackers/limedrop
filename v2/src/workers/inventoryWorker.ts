@@ -1,6 +1,6 @@
+import { D2BotAPI } from "@/lib/D2Bot";
 // Web Worker for background inventory loading
 import { type InventoryItem, extractItemInfo } from "@/lib/utils";
-import { D2BotAPI } from "@/lib/D2Bot";
 
 // Message types
 interface LoadAccountsMessage {
@@ -48,7 +48,11 @@ async function fetchAccountItems(
     const resp = await api.query("", realm, acc, charname);
     if (Array.isArray(resp)) {
       allResults = allResults.concat(resp);
-    } else if (resp && resp.status === "failed" && resp.body === "invalid session") {
+    } else if (
+      resp &&
+      resp.status === "failed" &&
+      resp.body === "invalid session"
+    ) {
       throw new Error("invalid session");
     }
   }
