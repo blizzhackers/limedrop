@@ -613,7 +613,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="w-screen h-screen min-h-0 min-w-0 bg-gray-900 text-white flex flex-col overflow-hidden" style={{margin:0, padding:0}}>
       <Topbar
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -633,7 +633,7 @@ export default function App() {
         setUsername={setUsername}
         onSearch={handleSearch}
       />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         <Sidebar
           realm={realm}
           gameType={gameType}
@@ -648,11 +648,10 @@ export default function App() {
           loadingAccounts={loadingAccounts}
           fetchAccounts={fetchAccounts}
         />
-        <main className="flex-1 p-2 bg-gray-900">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <main className="flex-1 min-h-0 min-w-0 p-2 bg-gray-900 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full min-h-0 min-w-0">
             <section
-              className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
-              style={{ minHeight: "80vh" }}
+              className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden"
             >
               <InventoryGrid
                 session={session}
@@ -684,7 +683,7 @@ export default function App() {
         setGamePass={setGamePass}
         handleDropCart={handleDropCart}
       />
-      <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto">
+      <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">
         &copy; 2025 Lime Drop. All rights reserved.
       </footer>
     </div>
