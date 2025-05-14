@@ -11,7 +11,7 @@ import type { InventoryItem } from "@/lib/utils";
 import { useAppStore } from "@/stores/useAppStore";
 import { ArrowUp, RefreshCw } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
@@ -42,14 +42,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const allVisibleSelected = useMemo(
-    () =>
-      inventory.length > 0 &&
-      inventory.every((item) =>
-        useAppStore.getState().cartItemIds.has(item.itemid),
-      ),
-    [inventory],
-  );
+  const [selectAll, setSelectAll] = useState(false);
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -67,7 +60,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
 
   function handleToggleSelectAll() {
     const cartItemIds = useAppStore.getState().cartItemIds;
-    if (allVisibleSelected) {
+    if (selectAll) {
       useAppStore.setState((state) => {
         const cartItems = state.cart.filter(
           (item) =>
@@ -76,11 +69,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
         );
         return { ...state, cart: cartItems };
       });
+      setSelectAll(false);
     } else {
       useAppStore.setState((state) => {
         const toAdd = inventory.filter((i) => !cartItemIds.has(i.itemid));
         return { ...state, cart: [...state.cart, ...toAdd] };
       });
+      setSelectAll(true);
     }
   }
 
@@ -151,7 +146,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
         <div className="flex items-center gap-2 mb-2">
           <Checkbox
             id="select-all"
-            checked={allVisibleSelected}
+            checked={selectAll}
             onCheckedChange={handleToggleSelectAll}
             className="data-[state=checked]:bg-lime-500 border-gray-600"
           />
@@ -159,7 +154,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
             htmlFor="select-all"
             className="text-sm select-none cursor-pointer"
           >
-            {allVisibleSelected ? "Deselect All" : "Select All"} (visible)
+            {selectAll ? "Deselect All" : "Select All"} (visible)
           </label>
         </div>
       )}
