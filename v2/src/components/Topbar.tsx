@@ -1,51 +1,55 @@
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
+import { mapApiItemToInventoryItem } from "@/lib/utils";
 import {
+  setApiUrl,
   setCartOpen,
+  setInventory,
+  setLoadingInventory,
   setPassword,
   setRecentDropsOpen,
+  setSearchResults,
+  setSearchTerm,
   setUsername,
   useAppStore,
 } from "@/stores/useAppStore";
 import { ChevronDown, CircleUser, History, ShoppingCart } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface TopbarProps {
-  searchTerm: string;
-  setSearchTerm: (v: string) => void;
-  onSearch?: (e: React.FormEvent<HTMLFormElement>) => void;
   session: string | null;
-  username: string;
   handleSignOut: () => void;
-  apiUrl: string;
-  setApiUrl: (v: string) => void;
   api: D2BotAPI;
   setSession: (value: React.SetStateAction<string | null>) => void;
   startPolling: () => void;
-  fetchAccounts: () => void;
+  fetchAccounts: (session: string) => Promise<void>;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
-  searchTerm,
-  setSearchTerm,
-  onSearch,
-  session,
-  username,
-  handleSignOut,
-  apiUrl,
-  setApiUrl,
   api,
+  session,
+  handleSignOut,
   setSession,
   fetchAccounts,
   startPolling,
 }) => {
+  const searchValid = useAppStore((s) => !s.searchTerm);
+  const apiUrl = useAppStore((s) => s.apiUrl);
+  const username = useAppStore((s) => s.username);
+  const searchTerm = useAppStore((s) => s.searchTerm);
   const password = useAppStore((s) => s.password);
   const cart = useAppStore((s) => s.cart);
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!searchValid) {
+      setSearchResults([]);
+    }
+  }, [searchValid]);
 
   const openCart = () => {
     setCartOpen(true);
@@ -56,18 +60,61 @@ export const Topbar: React.FC<TopbarProps> = ({
     setLoginError(null);
 
     try {
-      await api.login(username, password, apiUrl);
-      setSession(api.config.session || null);
+      const session = await api.login(username, password, apiUrl);
+      setSession(session || null);
       setLoginOpen(false);
       toast.success("Login successful!", {
         description: "Welcome to LimeDrop!",
       });
-      fetchAccounts();
+      await fetchAccounts(session);
 
       // Start polling
       startPolling();
     } catch (err: unknown) {
       setLoginError((err as Error).message || "Login failed");
+    }
+  }
+
+  async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const searchTerm = formData.get("searchTerm");
+
+    if (typeof searchTerm !== "string" || !searchTerm) {
+      setSearchTerm("");
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const { selectedAccount, selectedCharacter, realm } =
+        useAppStore.getState();
+      setLoadingInventory(true);
+      setSearchTerm(searchTerm);
+
+      const acc = selectedAccount === "Show All" ? "" : selectedAccount;
+      const char = selectedCharacter === "Show All" ? "" : selectedCharacter;
+      const response = await api.query(
+        searchTerm.toLocaleLowerCase(),
+        realm,
+        acc,
+        char,
+      );
+      if (Array.isArray(response)) {
+        const items = response.map((el) =>
+          mapApiItemToInventoryItem(el, realm),
+        );
+        const prevInvo = useAppStore.getState().inventory;
+        const existingIds = new Set(prevInvo.map((i) => i.itemid));
+        const newItems = items.filter((i) => !existingIds.has(i.itemid));
+        if (newItems.length > 0) {
+          setInventory(prevInvo.concat(newItems));
+        }
+        setSearchResults(items);
+      }
+    } catch (err) {
+      toast.error("Search failed", { description: String(err) });
+    } finally {
+      setLoadingInventory(false);
     }
   }
 
@@ -81,7 +128,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           <img src="/logo-text.png" alt="homepage" className="light-logo" />
         </span>
         {session && (
-          <form className="relative ml-6 w-64" onSubmit={onSearch}>
+          <form className="relative ml-6 w-64" onSubmit={handleSearch}>
             <Input
               id="searchTerm"
               name="searchTerm"

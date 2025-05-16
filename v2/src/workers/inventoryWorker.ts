@@ -1,6 +1,5 @@
 import { D2BotAPI } from "@/lib/D2Bot";
-// Web Worker for background inventory loading
-import { type InventoryItem, extractItemInfo } from "@/lib/utils";
+import { type InventoryItem, mapApiItemToInventoryItem } from "@/lib/utils";
 
 // Message types
 interface LoadAccountsMessage {
@@ -15,7 +14,7 @@ interface LoadAccountsMessage {
   apiUrl: string;
   session: string;
   username: string;
-  password: string; // Accept password from main thread
+  password: string;
 }
 
 interface ApiItemResponse {
@@ -28,7 +27,6 @@ interface ApiItemResponse {
   image: string;
 }
 
-// Helper to fetch items for an account using D2BotAPI
 async function fetchAccountItems(
   api: D2BotAPI,
   realm: string,
@@ -44,6 +42,7 @@ async function fetchAccountItems(
     sc: gameMode === "Softcore",
   };
   let allResults: ApiItemResponse[] = [];
+
   for (const charname of charList) {
     const resp = await api.query("", realm, acc, charname);
     if (Array.isArray(resp)) {
@@ -56,6 +55,7 @@ async function fetchAccountItems(
       throw new Error("invalid session");
     }
   }
+
   return allResults
     .filter(
       (item) =>
@@ -63,28 +63,17 @@ async function fetchAccountItems(
         item.lod === checks.lod &&
         item.sc === checks.sc,
     )
-    .map((el) => {
-      const [desc, id] = el.description.split("$");
-      const { quality, classid } = extractItemInfo(id, desc);
-      return {
-        ...el,
-        title: desc.split("\n")[0],
-        description: desc,
-        itemid: id,
-        realm: realm.toLowerCase(),
-        quality,
-        classid,
-      };
-    });
+    .map((el) => mapApiItemToInventoryItem(el, realm));
 }
 
 self.onmessage = async (e: MessageEvent) => {
-  self.postMessage("started");
+  self.postMessage({ type: "started" });
+
   const msg = e.data as LoadAccountsMessage;
+
   if (msg.type === "load-accounts") {
     const {
       accounts,
-      accountsMap,
       selectedCharacter,
       realm,
       gameClass,
@@ -93,18 +82,33 @@ self.onmessage = async (e: MessageEvent) => {
       apiUrl,
       session,
       username,
-      password, // Get password
+      password,
     } = msg;
-    // Create D2BotAPI instance in worker
+
+    if (
+      !session ||
+      !username ||
+      !password ||
+      !apiUrl ||
+      !realm ||
+      !accounts.length ||
+      !gameClass ||
+      !gameType ||
+      !gameMode
+    ) {
+      self.postMessage({ type: "error", error: "Missing required parameters" });
+      return;
+    }
+
     const api = new D2BotAPI();
     api.config.host = apiUrl;
     api.config.username = username;
     api.initSessionData(session, password);
-    // Set password for encryption/renewal
+
     for (const acc of accounts) {
       let charList: string[] = [];
       if (selectedCharacter === "Show All") {
-        charList = accountsMap[acc] || [];
+        charList = [""];
       } else {
         charList = [selectedCharacter];
       }
@@ -118,7 +122,6 @@ self.onmessage = async (e: MessageEvent) => {
           gameType,
           gameMode,
         );
-        // Post items for this account
         self.postMessage({ type: "account-items", account: acc, items });
       } catch (err) {
         self.postMessage({ type: "error", account: acc, error: String(err) });

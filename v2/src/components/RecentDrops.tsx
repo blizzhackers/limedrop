@@ -15,14 +15,13 @@ import {
 } from "./ui/drawer";
 
 interface RecentDropsProps {
-  username: string;
   session: string | null;
 }
 
-export const RecentDrops: React.FC<RecentDropsProps> = ({
-  username,
-  session,
-}) => {
+export const RecentDrops: React.FC<RecentDropsProps> = ({ session }) => {
+  const username = useAppStore((s) => s.username);
+  const recentDropsOpen = useAppStore((s) => s.recentDropsOpen);
+
   const [drops, setDrops] = useState<
     Array<{
       id?: number;
@@ -31,8 +30,6 @@ export const RecentDrops: React.FC<RecentDropsProps> = ({
       droppedAt: number;
     }>
   >([]);
-
-  const recentDropsOpen = useAppStore((s) => s.recentDropsOpen);
 
   useEffect(() => {
     if (username) getRecentDrops(username, 10).then(setDrops);

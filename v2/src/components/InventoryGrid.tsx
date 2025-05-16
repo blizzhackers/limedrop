@@ -7,74 +7,84 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { sdk } from "@/lib/sdk";
-import type { InventoryItem } from "@/lib/utils";
-import { useAppStore } from "@/stores/useAppStore";
-import { ArrowUp, RefreshCw } from "lucide-react";
+import { setQualityFilter, useAppStore } from "@/stores/useAppStore";
+import { ArrowUp, Loader2, RefreshCw } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
 interface InventoryGridProps {
   session: string | null;
-  inventory: InventoryItem[];
-  loadingInventory: boolean;
-  qualityFilter: number | null;
-  setQualityFilter: React.Dispatch<React.SetStateAction<number | null>>;
   fetchInventory: () => Promise<void>;
   loadingAccounts: boolean;
-  hasMore: boolean;
-  onLoadMore: () => void;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = ({
   session,
-  inventory,
-  loadingInventory,
-  qualityFilter,
-  setQualityFilter,
   fetchInventory,
   loadingAccounts,
-  onLoadMore,
-  hasMore,
 }) => {
+  const inventory = useAppStore((s) => s.inventory);
+  const loadingInventory = useAppStore((s) => s.loadingInventory);
+  const searchTerm = useAppStore((s) => s.searchTerm);
+  const searchResults = useAppStore((s) => s.searchResults);
+  const selectedAccount = useAppStore((s) => s.selectedAccount);
+  const selectedCharacter = useAppStore((s) => s.selectedCharacter);
+  const qualityFilter = useAppStore((s) => s.qualityFilter);
+  const fullyLoaded = useAppStore((s) => s.fullyLoaded);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
-  const loadMoreCooldownRef = useRef<NodeJS.Timeout | null>(null);
-  const [loadMoreCooldown, setLoadMoreCooldown] = useState(false);
-
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const triggerLoadMore = useCallback(() => {
-    if (loadMoreCooldown) return;
-    setLoadMoreCooldown(true);
-    onLoadMore();
-    loadMoreCooldownRef.current = setTimeout(() => {
-      setLoadMoreCooldown(false);
-    }, 1000);
-  }, [loadMoreCooldown, onLoadMore]);
-  
+  const filteredInventory = useMemo(() => {
+    return (searchTerm ? searchResults : inventory).filter((item) => {
+      if (selectedAccount !== "Show All" && item.account !== selectedAccount)
+        return false;
+      if (
+        selectedCharacter !== "Show All" &&
+        item.character !== selectedCharacter
+      )
+        return false;
+      if (qualityFilter !== null && item.quality !== qualityFilter)
+        return false;
+      return true;
+    });
+  }, [
+    inventory,
+    searchResults,
+    selectedAccount,
+    selectedCharacter,
+    qualityFilter,
+    searchTerm,
+  ]);
+
+  // Pagination setup: show 100 items per page
+  const PAGE_SIZE = 100;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(filteredInventory.length / PAGE_SIZE);
+  const pageItems = filteredInventory.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
+
+  // On scroll, update back-to-top visibility only
   const handleScroll = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const el = scrollRef.current;
-      if (!el || !hasMore) return;
-      setShowBackToTop(el.scrollTop > 300);
-
-      const scrollPercent = (el.scrollTop + el.clientHeight) / el.scrollHeight;
-      if (scrollPercent > 0.75 && !loadMoreCooldown) {
-        triggerLoadMore();
-      }
+      if (el) setShowBackToTop(el.scrollTop > 300);
     }, 100);
-  }, [hasMore, loadMoreCooldown, triggerLoadMore]);
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [hasMore, handleScroll]);
+  }, [handleScroll]);
 
   const handleBackToTop = () => {
     const el = scrollRef.current;
@@ -102,6 +112,11 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
     }
   }
 
+  function refreshInvo() {
+    setPage(1);
+    fetchInventory();
+  }
+
   return (
     <section
       className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
@@ -115,7 +130,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
               variant="ghost"
               size="icon"
               className="h-5 w-5"
-              onClick={fetchInventory}
+              onClick={refreshInvo}
               aria-label="Refresh Inventory"
             >
               <RefreshCw />
@@ -158,7 +173,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
           </Select>
         </div>
       </h2>
-      {session && inventory.length > 0 && (
+      {session && filteredInventory.length > 0 && (
         <div className="flex items-center gap-2 mb-2">
           <Checkbox
             id="select-all"
@@ -176,7 +191,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
       )}
       {!session ? (
         <div className="text-gray-400">Please login to view inventory.</div>
-      ) : loadingInventory || (loadingAccounts && !inventory.length) ? (
+      ) : loadingInventory ? (
+        <div
+          ref={scrollRef}
+          style={{ height: "86dvh", overflowY: "auto" }}
+          className="bg-gray-900 rounded p-2"
+        >
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 p-1">
+            {Array.from({ length: PAGE_SIZE }).map((_, idx) => (
+              <div
+                key={idx}
+                className="h-40 bg-gray-700 animate-pulse rounded"
+              />
+            ))}
+          </div>
+        </div>
+      ) : loadingAccounts && !filteredInventory.length ? (
         <div className="text-gray-400">Loading...</div>
       ) : (
         <div
@@ -188,20 +218,47 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
             <div className="text-gray-400">No items found.</div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 p-1">
-              {inventory.map((item, idx) => {
-                return <InventoryCard key={item.itemid || idx} item={item} />;
-              })}
-              {loadMoreCooldown && (
-                <div className="col-span-full flex justify-center py-4">
-                  <span className="animate-spin h-6 w-6 border-4 border-lime-500 border-t-transparent rounded-full inline-block"></span>
-                  <span className="ml-2 text-lime-400">Loading more...</span>
-                </div>
-              )}
+              {pageItems.map((item, idx) => (
+                <InventoryCard key={item.itemid || idx} item={item} />
+              ))}
             </div>
           )}
         </div>
       )}
-      {session && inventory.length > 0 && showBackToTop && (
+      {totalPages > 1 && !loadingInventory && (
+        <div className="flex justify-center gap-2 mt-2">
+          <Button
+            type="button"
+            onClick={() => {
+              setPage((p) => Math.max(p - 1, 1));
+              handleBackToTop();
+            }}
+            disabled={page === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-gray-400 self-center inline-flex items-center gap-1">
+            Page {page} of{" "}
+            {fullyLoaded || selectedAccount !== "Show All" ? (
+              totalPages
+            ) : (
+              <Loader2 className="w-4 h-4 animate-spin inline-block" />
+            )}
+          </span>
+          <Button
+            type="button"
+            variant="default"
+            onClick={() => {
+              setPage((p) => Math.min(p + 1, totalPages));
+              handleBackToTop();
+            }}
+            disabled={page === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
+      {session && filteredInventory.length > 0 && showBackToTop && (
         <button
           onClick={handleBackToTop}
           className="fixed bottom-24 right-8 z-50 bg-lime-600 hover:bg-lime-700 text-white rounded-full shadow-lg p-3 transition-all flex items-center justify-center"

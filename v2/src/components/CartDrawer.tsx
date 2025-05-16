@@ -12,6 +12,7 @@ import { addRecentDrop } from "@/lib/recentDropsDb";
 import type { InventoryItem } from "@/lib/utils";
 import {
   clearCart,
+  handleClearDropsFromInvo,
   removeFromCart,
   setCartOpen,
   setGameName,
@@ -25,13 +26,9 @@ import { Button } from "./ui/button";
 
 interface CartDrawerProps {
   api: D2BotAPI;
-  handleClearDropsFromInvo: () => void;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({
-  api,
-  handleClearDropsFromInvo,
-}) => {
+export const CartDrawer: React.FC<CartDrawerProps> = ({ api }) => {
   const realm = useAppStore((s) => s.realm);
   const username = useAppStore((s) => s.username);
   const gameName = useAppStore((s) => s.gameName);

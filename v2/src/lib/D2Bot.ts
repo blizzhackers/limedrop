@@ -291,12 +291,12 @@ export class D2BotAPI {
     return dec.decode(decrypted);
   }
 
-  async accounts(account?: string) {
-    const args = [];
-    if (account) args.push(account);
+  async accounts() {
+    // const args = [];
+    // if (account) args.push(account);
 
     try {
-      const response = await this.$get({ func: "accounts", args });
+      const response = await this.$get({ func: "accounts", args: [] });
 
       console.debug(JSON.stringify(response, null, 2));
       if (response.status === "success") {

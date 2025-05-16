@@ -1,20 +1,26 @@
-import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { CartDrawer } from "@/components/CartDrawer";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { RecentDrops } from "@/components/RecentDrops";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
-import { type ApiItemResponse, type ApiResponse, D2BotAPI } from "@/lib/D2Bot";
-import { type InventoryItem, deepEqual, extractItemInfo } from "@/lib/utils";
+import { D2BotAPI } from "@/lib/D2Bot";
 import {
-  clearCart,
-  setApiUrl,
-  setPassword,
+  appendUniqueItems, naturalSort
+} from "@/lib/utils";
+import {
+  type AccountDataCache,
+  setAccountDataCache,
+  setAccounts,
+  setFullyLoaded,
+  setInventory,
+  setLoadingInventory,
   useAppStore,
 } from "@/stores/useAppStore";
+import { useCallback } from "react";
 import { toast } from "sonner";
+import { shallow } from "zustand/shallow";
 
 declare global {
   interface Window {
@@ -22,33 +28,15 @@ declare global {
   }
 }
 
-const MIN_ITEM_COUNT = 100;
-
 export default function App() {
-  const realm = useAppStore((s) => s.realm);
-  const gameType = useAppStore((s) => s.gameType);
-  const gameMode = useAppStore((s) => s.gameMode);
-  const gameClass = useAppStore((s) => s.gameClass);
   const apiUrl = useAppStore((s) => s.apiUrl);
   const username = useAppStore((s) => s.username);
 
-  const [searchTerm, setSearchTerm] = useState("");
   const [session, setSession] = useState<string | null>(null);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
-  const [loadingInventory, setLoadingInventory] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
-  const [accounts, setAccounts] = useState<Record<string, string[]>>({});
-  const [selectedAccount, setSelectedAccount] = useState<string>("Show All");
-  const [selectedCharacter, setSelectedCharacter] =
-    useState<string>("Show All");
-  const [qualityFilter, setQualityFilter] = useState<number | null>(null);
-  const fullInventoryRef = useRef<InventoryItem[]>([]);
-  const [visibleCount, setVisibleCount] = useState(MIN_ITEM_COUNT);
   const pollingIntervalRef = useRef<number | null>(null);
   const pollingCounterRef = useRef<number>(0);
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
-  const [hasMore, setHasMore] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
   const [api] = useState(() => {
@@ -59,196 +47,34 @@ export default function App() {
     return apiInstance;
   });
 
-  const filteredInventory = useMemo(() => {
-    return (searchTerm ? searchResults : inventory).filter((item) => {
-      if (selectedAccount !== "Show All" && item.account !== selectedAccount)
-        return false;
-      if (
-        selectedCharacter !== "Show All" &&
-        item.character !== selectedCharacter
-      )
-        return false;
-      if (qualityFilter !== null && item.quality !== qualityFilter)
-        return false;
-      return true;
-    });
-  }, [
-    inventory,
-    searchResults,
-    selectedAccount,
-    selectedCharacter,
-    qualityFilter,
-    searchTerm,
-  ]);
-
-  const visibleInventory = useMemo(
-    () => filteredInventory.slice(0, visibleCount),
-    [visibleCount, filteredInventory],
-  );
-
-  useEffect(() => {
-    const pingApi = async () => {
-      try {
-        const res = await api.PING();
-        console.log(JSON.stringify(res, null, 2));
-        console.log("API is reachable");
-      } catch (err) {
-        console.error("API is unreachable:", err);
-      }
-    };
-    pingApi();
-
-    toast.success("Notification", { description: "Welcome to Lime Drop!" });
-
-    return () => {
-      stopPolling();
-    };
-  }, [api]);
-
-  useEffect(() => {
-    if (session) fetchAccounts();
-    // eslint-disable-next-line
-  }, [realm, gameType, gameMode, gameClass, session]);
-
-  useEffect(() => {
-    if (session) {
-      resetAccountLoading();
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current !== null) {
+      window.clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
-    // eslint-disable-next-line
-  }, [
-    accounts,
-    realm,
-    selectedAccount,
-    selectedCharacter,
-    session,
-    gameType,
-    gameMode,
-    gameClass,
-  ]);
+    pollingCounterRef.current = 0;
+  }, []);
 
-  useEffect(() => {
-    if (
-      selectedAccount !== "Show All" &&
-      !accounts[selectedAccount]?.includes(selectedCharacter)
-    ) {
-      setSelectedCharacter("Show All");
-    }
-  }, [selectedAccount, accounts, selectedCharacter]);
-
-  useEffect(() => {
-    if (session) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-    // eslint-disable-next-line
-  }, [session]);
-
-  useEffect(() => {
-    if (!session || accountsToLoad.length === 0) return;
-    fullInventoryRef.current = [];
-    setVisibleCount(MIN_ITEM_COUNT);
-
-    (async () => {
-      setLoadingInventory(true);
-      const acc = accountsToLoad[0];
-      const items = await loadAccount(acc);
-      setInventory(items);
-      setLoadingInventory(false);
-      fullInventoryRef.current = items;
-
-      // Start worker for the rest
-      if (accountsToLoad.length > 1) {
-        if (workerRef.current) workerRef.current.terminate();
-        const worker = new Worker(
-          new URL("./workers/inventoryWorker.ts", import.meta.url),
-          { type: "module" },
-        );
-        workerRef.current = worker;
-
-        worker.onmessage = (e: MessageEvent) => {
-          const msg = e.data;
-          if (msg.type === "account-items") {
-            fullInventoryRef.current = appendUniqueItems(
-              fullInventoryRef.current,
-              msg.items,
-            );
-            setHasMore(fullInventoryRef.current.length > visibleCount);
-          } else if (msg.type === "done") {
-            console.log(msg);
-            setHasMore(fullInventoryRef.current.length > visibleCount);
-          } else if (msg.type === "error") {
-            console.error(msg);
-          }
-        };
-
-        worker.postMessage({
-          type: "load-accounts",
-          accounts: accountsToLoad.slice(1),
-          accountsMap: accounts,
-          selectedCharacter,
-          realm,
-          gameClass,
-          gameType,
-          gameMode,
-          apiUrl,
-          session: api.config.session,
-          username,
-          password: useAppStore.getState().password,
-        });
-      }
-    })();
-    // eslint-disable-next-line
-  }, [
-    accountsToLoad,
-    session,
-    selectedCharacter,
-    realm,
-    gameClass,
-    gameType,
-    gameMode,
-    apiUrl,
-  ]);
-
-  useEffect(() => {
-    setHasMore(fullInventoryRef.current.length > visibleCount);
-  }, [visibleCount]);
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setSearchResults([]);
-      setVisibleCount(MIN_ITEM_COUNT);
-    }
-  }, [searchTerm]);
-
-  useEffect(() => {
-    if (hasMore) {
-      setInventory(fullInventoryRef.current.slice(0, visibleCount));
-    }
-  }, [hasMore, visibleCount]);
-
-  // Helper to append items without duplicates
-  function appendUniqueItems(prev: InventoryItem[], newItems: InventoryItem[]) {
-    const existingIds = new Set(prev.map((i) => i.itemid));
-    return prev.concat(newItems.filter((i) => !existingIds.has(i.itemid)));
-  }
-
-  function handleSignOut() {
+  const handleSignOut = useCallback(() => {
     workerRef.current?.terminate();
     setSession(null);
-    setPassword("");
-    setAccounts({});
-    setInventory([]);
-    clearCart();
-    setSelectedAccount("Show All");
-    setSelectedCharacter("Show All");
+    setAccountsToLoad([]);
+    useAppStore.setState({
+      password: "",
+      accounts: {},
+      accountDataCache: [],
+      inventory: [],
+      cart: [],
+      selectedAccount: "Show All",
+      selectedCharacter: "Show All",
+    });
     toast.success("Signed out successfully!");
 
     // Stop polling when signed out
     stopPolling();
-  }
+  }, [stopPolling]);
 
-  function startPolling() {
+  const startPolling = useCallback(() => {
     stopPolling();
 
     pollingIntervalRef.current = window.setInterval(async () => {
@@ -332,22 +158,17 @@ export default function App() {
         pollingCounterRef.current++;
       }
     }, 100);
-  }
+  }, [stopPolling, api, handleSignOut]);
 
-  function stopPolling() {
-    if (pollingIntervalRef.current !== null) {
-      window.clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
+  async function fetchAccounts(session: string) {
+    if (!session) {
+      console.warn("No session established");
+      return;
     }
-    pollingCounterRef.current = 0;
-  }
-
-  async function fetchAccounts() {
-    if (!session) return;
 
     try {
       setLoadingAccounts(true);
-      const response = await api.accounts(realm);
+      const response = await api.accounts();
 
       if (response.status === "failed") {
         console.error("Failed to fetch accounts:", response.body);
@@ -373,18 +194,24 @@ export default function App() {
       }
 
       accountsData.sort(naturalSort);
-      console.debug("Fetched accounts:", accountsData);
+      const accountsCache: AccountDataCache[] = [];
       const accountsMap: Record<string, string[]> = {};
+      const { gameClass, gameMode, gameType, realm } = useAppStore.getState();
 
       for (const account of accountsData) {
         const res = account.split("\\");
         if (!res || res.length < 3) continue;
 
-        if (!accountsMap[res[1]]) {
-          accountsMap[res[1]] = [];
+        const [realmKey, accountName, charName] = res;
+        const charkey = charName.split(".")[1];
+
+        if (realmKey !== realm) {
+          continue;
         }
 
-        const charkey = res[2].split(".")[1];
+        if (!accountsMap[accountName]) {
+          accountsMap[accountName] = [];
+        }
 
         // Check if character matches current filters
         const charCheck = {
@@ -404,13 +231,21 @@ export default function App() {
           charCheck.lod === checks.lod &&
           charCheck.sc === checks.sc
         ) {
-          accountsMap[res[1]].push(res[2]);
+          accountsMap[accountName].push(charName);
         }
+        
+        accountsCache.push({
+          realm,
+          accountName,
+          charName,
+          ladder: charCheck.ladder,
+          sc: charCheck.sc,
+          lod: charCheck.lod,
+        });
       }
 
-      setAccounts((prev) =>
-        deepEqual(prev, accountsMap) ? prev : accountsMap,
-      );
+      setAccounts(accountsMap);
+      setAccountDataCache(accountsCache);
     } catch (err) {
       console.error("Failed to fetch accounts:", err);
     } finally {
@@ -418,15 +253,9 @@ export default function App() {
     }
   }
 
-  // Natural sort helper for account names
-  function naturalSort(a: string, b: string) {
-    return a.localeCompare(b, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-  }
-
   function resetAccountLoading() {
+    const { selectedAccount, accounts } = useAppStore.getState();
+
     if (selectedAccount === "Show All") {
       const accs = Object.keys(accounts).sort(naturalSort);
       setAccountsToLoad(accs);
@@ -435,129 +264,147 @@ export default function App() {
     }
   }
 
-  // Load items for a single account (used for both UI and background loading)
-  async function loadAccount(acc: string): Promise<InventoryItem[]> {
-    let charList: string[] = [];
-    if (selectedCharacter === "Show All") {
-      charList = accounts[acc] || [];
-    } else {
-      charList = [selectedCharacter];
-    }
-    const queries: Promise<ApiResponse | ApiItemResponse[]>[] = [];
-    for (const charname of charList) {
-      queries.push(api.query("", realm, acc, charname));
-    }
-    const results = await Promise.all(queries);
-    let allResults: ApiItemResponse[] = [];
-    for (const resp of results) {
-      if (
-        resp &&
-        !Array.isArray(resp) &&
-        resp.status === "failed" &&
-        resp.body === "invalid session"
-      ) {
-        handleSignOut();
-        toast.error("Session Error", {
-          description: "Your session has expired, please log in again",
-        });
-        return [];
+  useEffect(() => {
+    const pingApi = async () => {
+      try {
+        const res = await api.PING();
+        console.log(JSON.stringify(res, null, 2));
+        console.log("API is reachable");
+      } catch (err) {
+        console.error("API is unreachable:", err);
       }
-      if (Array.isArray(resp)) {
-        allResults = allResults.concat(resp);
-      }
-    }
-    const checks = {
-      ladder: gameClass === "Ladder",
-      lod: gameType === "Expansion",
-      sc: gameMode === "Softcore",
     };
-    return allResults
-      .filter(
-        (item) =>
-          item.ladder === checks.ladder &&
-          item.lod === checks.lod &&
-          item.sc === checks.sc,
-      )
-      .map((el) => {
-        const [desc, id] = el.description.split("$");
-        const { quality, classid } = extractItemInfo(id, desc);
-        return {
-          ...el,
-          title: desc.split("\n")[0],
-          description: desc,
-          itemid: id,
-          realm: realm.toLowerCase(),
-          quality,
-          classid,
+    pingApi();
+
+    toast.success("Notification", { description: "Welcome to Lime Drop!" });
+
+    return () => {
+      stopPolling();
+    };
+  }, [api, stopPolling]);
+
+  useEffect(() => {
+    const accountsToLoadSub = useAppStore.subscribe(
+      (s) => [
+        s.gameType,
+        s.gameMode,
+        s.gameClass,
+        s.realm,
+        s.selectedAccount,
+        s.accountDataCache,
+      ],
+      ([gameType, gameMode, gameClass, realm, selectedAccount, accountDataCache]) => {
+        if (typeof accountDataCache === "string") return;
+        
+        const checks = {
+          ladder: gameClass === "Ladder",
+          lod: gameType === "Expansion",
+          sc: gameMode === "Softcore",
         };
-      });
-  }
 
-  function handleLoadMore() {
-    setVisibleCount((prev) => {
-      const next = prev + MIN_ITEM_COUNT;
-      return next;
-    });
-  }
+        const validAccounts = accountDataCache
+          .filter(
+            (el) =>
+              el.lod === checks.lod &&
+              el.sc === checks.sc &&
+              el.ladder === checks.ladder &&
+              el.realm === realm &&
+              (selectedAccount === "Show All" ||
+                selectedAccount === el.accountName),
+          )
+          .map((el) => el.accountName)
+          .sort(naturalSort);
+        const accountSet = new Set(validAccounts);
+        workerRef.current?.terminate();
+        setInventory([]);
+        setLoadingInventory(true);
+        setFullyLoaded(false);
+        setAccountsToLoad(Array.from(accountSet));
+      },
+      { equalityFn: shallow },
+    );
 
-  async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchTerm = formData.get("searchTerm");
-    if (typeof searchTerm !== "string" || !searchTerm) {
-      setSearchTerm("");
-      setSearchResults([]);
+    return () => {
+      accountsToLoadSub();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (session) {
+      startPolling();
+    } else {
+      handleSignOut();
+    }
+  }, [session, startPolling, handleSignOut]);
+
+  useEffect(() => {
+    if (!session || accountsToLoad.length === 0) {
+      setLoadingInventory(false);
+      setFullyLoaded(true);
       return;
     }
-    try {
-      setLoadingInventory(true);
-      setSearchTerm(searchTerm);
-      const acc = selectedAccount === "Show All" ? "" : selectedAccount;
-      const char = selectedCharacter === "Show All" ? "" : selectedCharacter;
-      const response = await api.query(
-        searchTerm.toLocaleLowerCase(),
-        realm,
-        acc,
-        char,
-      );
-      if (Array.isArray(response)) {
-        const items = response.map((el: ApiItemResponse) => {
-          const [desc, id] = el.description.split("$");
-          const { quality, classid } = extractItemInfo(id, desc);
-          return {
-            ...el,
-            title: desc.split("\n")[0],
-            description: desc,
-            itemid: id,
-            realm: realm.toLowerCase(),
-            quality,
-            classid,
-          };
-        });
-        const existingIds = new Set(
-          fullInventoryRef.current.map((i) => i.itemid),
-        );
-        const newItems = items.filter((i) => !existingIds.has(i.itemid));
-        if (newItems.length > 0) {
-          fullInventoryRef.current = fullInventoryRef.current.concat(newItems);
-        }
-        setSearchResults(items);
-      }
-    } catch (err) {
-      toast.error("Search failed", { description: String(err) });
-    } finally {
-      setLoadingInventory(false);
-    }
-  }
 
-  function handleClearDropsFromInvo() {
-    const cart = useAppStore.getState().cart;
-    const droppedIds = new Set(cart.map((i) => i.itemid));
-    setInventory((prev) => prev.filter((item) => !droppedIds.has(item.itemid)));
-    fullInventoryRef.current = fullInventoryRef.current.filter(
-      (item) => !droppedIds.has(item.itemid),
-    );
-  }
+    (async () => {
+      setLoadingInventory(true);
+
+      if (workerRef.current) {
+        workerRef.current?.terminate();
+      }
+
+      const worker = new Worker(
+        new URL("./workers/inventoryWorker.ts", import.meta.url),
+        { type: "module" },
+      );
+      workerRef.current = worker;
+
+      worker.onmessage = (e: MessageEvent) => {
+        const msg = e.data;
+        if (msg.type === "account-items") {
+          console.log(msg);
+          const prevInvo = useAppStore.getState().inventory;
+          const newInvo = appendUniqueItems(prevInvo, msg.items);
+          setInventory(newInvo);
+
+          if (prevInvo.length === 0) {
+            setLoadingInventory(false);
+          }
+        } else if (msg.type === "done") {
+          console.log(msg);
+          setFullyLoaded(true);
+        } else if (msg.type === "error") {
+          console.error(msg);
+        } else if (msg.type === "started") {
+          setFullyLoaded(false);
+        }
+      };
+
+      const {
+        accounts,
+        selectedCharacter,
+        realm,
+        gameClass,
+        gameType,
+        gameMode,
+        username,
+        password,
+      } = useAppStore.getState();
+
+      worker.postMessage({
+        type: "load-accounts",
+        session: api.config.session,
+        accounts: accountsToLoad,
+        accountsMap: accounts,
+        selectedCharacter,
+        realm,
+        gameClass,
+        gameType,
+        gameMode,
+        apiUrl,
+        username,
+        password,
+      });
+    })();
+  }, [api, accountsToLoad, session, apiUrl]);
 
   return (
     <div
@@ -565,34 +412,19 @@ export default function App() {
       style={{ margin: 0, padding: 0 }}
     >
       <Topbar
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        session={session}
-        username={username}
-        handleSignOut={handleSignOut}
-        apiUrl={apiUrl}
-        setApiUrl={setApiUrl}
-        onSearch={handleSearch}
         api={api}
+        session={session}
+        handleSignOut={handleSignOut}
         setSession={setSession}
         startPolling={startPolling}
         fetchAccounts={fetchAccounts}
       />
 
-      <RecentDrops username={username} session={session} />
+      <RecentDrops session={session} />
 
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         <Sidebar
-          realm={realm}
-          gameType={gameType}
-          gameMode={gameMode}
-          gameClass={gameClass}
           session={session}
-          accounts={accounts}
-          selectedAccount={selectedAccount}
-          setSelectedAccount={setSelectedAccount}
-          selectedCharacter={selectedCharacter}
-          setSelectedCharacter={setSelectedCharacter}
           loadingAccounts={loadingAccounts}
           fetchAccounts={fetchAccounts}
         />
@@ -601,26 +433,16 @@ export default function App() {
             <section className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
               <InventoryGrid
                 session={session}
-                inventory={visibleInventory}
-                loadingInventory={loadingInventory}
-                qualityFilter={qualityFilter}
-                setQualityFilter={setQualityFilter}
                 fetchInventory={async () => {
                   resetAccountLoading();
                 }}
                 loadingAccounts={loadingAccounts}
-                hasMore={hasMore}
-                // isFetchingMore={isFetchingMore}
-                onLoadMore={handleLoadMore}
               />
             </section>
           </div>
         </main>
       </div>
-      <CartDrawer
-        api={api}
-        handleClearDropsFromInvo={handleClearDropsFromInvo}
-      />
+      <CartDrawer api={api} />
       <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">
         &copy; 2025 Lime Drop. All rights reserved.
       </footer>

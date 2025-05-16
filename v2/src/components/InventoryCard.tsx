@@ -2,12 +2,13 @@ import { renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
 import { addToCart, removeFromCart, useAppStore } from "@/stores/useAppStore";
 import type React from "react";
+import { memo } from "react";
 
 interface InventoryCardProps {
   item: InventoryItem;
 }
 
-export const InventoryCard: React.FC<InventoryCardProps> = ({ item }) => {
+export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
   const inCart = useAppStore((s) => s.cartItemIds.has(item.itemid));
 
   const title = item.description ? item.description.split("$", 1)[0] : "";
@@ -65,4 +66,6 @@ export const InventoryCard: React.FC<InventoryCardProps> = ({ item }) => {
       )}
     </div>
   );
-};
+});
+
+InventoryCard.displayName = "InventoryCard";
