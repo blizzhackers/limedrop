@@ -32,6 +32,7 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
       }`}
       style={{ minHeight: 160 }}
       onClick={handleClick}
+      onKeyDown={() => {}}
       title={inCart ? "Remove from Drop List" : "Add to Drop List"}
     >
       {item.image && (
