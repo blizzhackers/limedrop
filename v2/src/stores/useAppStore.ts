@@ -73,11 +73,11 @@ export interface InventoryCacheEntry {
 }
 
 export type DropItem = {
-        id?: number;
-        items: InventoryItem[];
-        gameName: string;
-        droppedAt: number;
-      };
+  id?: number;
+  items: InventoryItem[];
+  gameName: string;
+  droppedAt: number;
+};
 
 export const useAppStore = create(
   persist(
@@ -295,7 +295,7 @@ export const clearInventoryCache = () => {
 
 export const updateCachedDrops = () => {
   const username = useAppStore.getState().username;
-  
+
   if (username) {
     getRecentDrops(username)
       .then((drops) => {

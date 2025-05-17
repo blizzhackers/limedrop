@@ -35,7 +35,7 @@ function encryptDropData(
   data: { items: InventoryItem[]; gameName: string },
   username: string,
 ): string {
-  const key = username + "-limedrop";
+  const key = `${username}-limedrop`;
   return AES.encrypt(JSON.stringify(data), key).toString();
 }
 
@@ -43,7 +43,7 @@ function decryptDropData(
   ciphertext: string,
   username: string,
 ): { items: InventoryItem[]; gameName: string } | null {
-  const key = username + "-limedrop";
+  const key = `${username}-limedrop`;
   try {
     const bytes = AES.decrypt(ciphertext, key);
     const json = bytes.toString(Utf8);

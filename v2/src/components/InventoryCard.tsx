@@ -25,12 +25,11 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
 
   return (
     <div
-      className={
-        `bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 ` +
-        (inCart
+      className={`bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 ${
+        inCart
           ? "ring-2 ring-green-400 bg-green-950"
-          : "hover:ring-2 hover:ring-green-400")
-      }
+          : "hover:ring-2 hover:ring-green-400"
+      }`}
       style={{ minHeight: 160 }}
       onClick={handleClick}
       title={inCart ? "Remove from Drop List" : "Add to Drop List"}

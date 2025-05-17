@@ -1,5 +1,9 @@
 import { renderColorText } from "@/lib/util";
-import { setRecentDropsOpen, updateCachedDrops, useAppStore } from "@/stores/useAppStore";
+import {
+  setRecentDropsOpen,
+  updateCachedDrops,
+  useAppStore,
+} from "@/stores/useAppStore";
 import { X } from "lucide-react";
 import type React from "react";
 import { memo, useEffect } from "react";
@@ -18,14 +22,12 @@ interface RecentDropsProps {
 }
 
 export const RecentDrops: React.FC<RecentDropsProps> = memo(({ session }) => {
-  const username = useAppStore((s) => s.username);
   const recentDropsOpen = useAppStore((s) => s.recentDropsOpen);
   const drops = useAppStore((s) => s.drops);
-  
 
   useEffect(() => {
     updateCachedDrops();
-  }, [username]);
+  }, []);
 
   return (
     <Drawer
@@ -81,7 +83,7 @@ export const RecentDrops: React.FC<RecentDropsProps> = memo(({ session }) => {
                             <div
                               key={item.itemid || idx}
                               className={
-                                `bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 ` +
+                                "bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 " +
                                 "hover:ring-2 hover:ring-green-400"
                               }
                               style={{ minHeight: 140 }}

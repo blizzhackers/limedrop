@@ -16,7 +16,8 @@ import {
   removeFromCart,
   setCartOpen,
   setGameName,
-  updateCachedDrops, useAppStore
+  updateCachedDrops,
+  useAppStore,
 } from "@/stores/useAppStore";
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
 import { memo, useState } from "react";

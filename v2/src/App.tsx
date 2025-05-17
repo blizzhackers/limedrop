@@ -121,7 +121,7 @@ export default function App() {
 
           if (body && Array.isArray(body)) {
             for (const message of body) {
-              if (message && message.body) {
+              if (message?.body) {
                 console.debug(message);
                 try {
                   const data = JSON.parse(message.body);
@@ -411,14 +411,9 @@ export default function App() {
         if (msg.type === "account-items") {
           console.log(msg);
 
-          const {
-            selectedCharacter,
-            realm,
-            gameType,
-            gameMode,
-            gameClass
-          } = useAppStore.getState();
-          
+          const { selectedCharacter, realm, gameType, gameMode, gameClass } =
+            useAppStore.getState();
+
           const currentFilters = {
             gameType,
             gameMode,

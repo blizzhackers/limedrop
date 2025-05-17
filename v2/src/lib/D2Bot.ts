@@ -176,7 +176,7 @@ export class D2BotAPI {
     let hex = "";
     for (let i = 0; i < bin.length; ++i) {
       let tmp = bin.charCodeAt(i).toString(16);
-      if (tmp.length === 1) tmp = "0" + tmp;
+      if (tmp.length === 1) tmp = `0${tmp}`;
       hex += tmp;
     }
     return hex;
@@ -251,10 +251,10 @@ export class D2BotAPI {
     const encryptedHex = hexResult.substring(96);
     // parse hex to Uint8Array
     const salt = new Uint8Array(
-      saltHex.match(/.{1,2}/g)!.map((b) => Number.parseInt(b, 16)),
+      saltHex.match(/.{1,2}/g)?.map((b) => Number.parseInt(b, 16)) ?? [],
     );
     const iv = new Uint8Array(
-      ivHex.match(/.{1,2}/g)!.map((b) => Number.parseInt(b, 16)),
+      ivHex.match(/.{1,2}/g)?.map((b) => Number.parseInt(b, 16)) ?? [],
     );
     // encryptedHex is hex, convert to base64, then to Uint8Array
     const encryptedBase64 = this.hexToBase64(encryptedHex);
@@ -412,7 +412,7 @@ export class D2BotAPI {
   }
 
   async registerEvent(type: string) {
-    const args = [type, this.config.host + "/api"];
+    const args = [type, `${this.config.host}/api`];
     return this.$get({ func: "registerEvent", args });
   }
 

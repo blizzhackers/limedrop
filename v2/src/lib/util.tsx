@@ -2,9 +2,9 @@
 export function renderColorText(str: string) {
   if (!str) return null;
   const parts: React.ReactNode[] = [];
-  let i = 0,
-    color = "",
-    buffer = "";
+  let i = 0;
+  let color = "";
+  let buffer = "";
   while (i < str.length) {
     if ((str[i] === "ÿ" || str[i] === "˙") && str[i + 1] === "c") {
       if (buffer)
