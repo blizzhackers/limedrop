@@ -23,19 +23,11 @@ interface TopbarProps {
   handleSignOut: () => void;
   api: D2BotAPI;
   setSession: (value: React.SetStateAction<string | null>) => void;
-  startPolling: () => void;
   fetchAccounts: (session: string) => Promise<void>;
 }
 
 export const Topbar: React.FC<TopbarProps> = memo(
-  ({
-    api,
-    session,
-    handleSignOut,
-    setSession,
-    fetchAccounts,
-    startPolling,
-  }) => {
+  ({ api, session, handleSignOut, setSession, fetchAccounts }) => {
     const searchValid = useAppStore((s) => !s.searchTerm);
     const apiUrl = useAppStore((s) => s.apiUrl);
     const username = useAppStore((s) => s.username);
@@ -70,9 +62,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
           description: "Welcome to LimeDrop!",
         });
         await fetchAccounts(session);
-
-        // Start polling
-        startPolling();
       } catch (err: unknown) {
         setLoginError((err as Error).message || "Login failed");
       }
@@ -143,7 +132,13 @@ export const Topbar: React.FC<TopbarProps> = memo(
                 }
               />
               <span className="absolute left-2 top-2.5 text-gray-400 pointer-events-none">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  role="img"
+                  aria-labelledby="searchIconTitle"
+                >
+                  <title id="searchIconTitle">Search Icon</title>
                   <path
                     d="M21 21l-4.35-4.35"
                     stroke="currentColor"
@@ -239,7 +234,10 @@ export const Topbar: React.FC<TopbarProps> = memo(
                     {loginError && (
                       <div className="text-red-400 text-sm">{loginError}</div>
                     )}
-                    <button type="submit" className="mt-2 bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold">
+                    <button
+                      type="submit"
+                      className="mt-2 bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold"
+                    >
                       Login
                     </button>
                   </form>

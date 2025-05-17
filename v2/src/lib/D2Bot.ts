@@ -184,8 +184,8 @@ export class D2BotAPI {
 
   // --- CryptoJS-compatible encrypt ---
   async encrypt(msg: string, pass?: string): Promise<string> {
-    pass = pass || this.password;
-    if (!pass) throw new Error("No password available for encryption");
+    const password = pass ?? this.password;
+    if (!password) throw new Error("No password available for encryption");
     const enc = new TextEncoder();
     // Use global crypto (window or self)
     const globalCrypto = (typeof window !== "undefined" ? window : self).crypto;
@@ -195,7 +195,7 @@ export class D2BotAPI {
     // PBKDF2-SHA1, 1000 iterations, 32-byte key
     const keyMaterial = await globalCrypto.subtle.importKey(
       "raw",
-      enc.encode(pass),
+      enc.encode(password),
       { name: "PBKDF2" },
       false,
       ["deriveKey"],
@@ -237,8 +237,8 @@ export class D2BotAPI {
 
   // --- CryptoJS-compatible decrypt ---
   async decrypt(transitmessage: string, pass?: string): Promise<string> {
-    pass = pass || this.password;
-    if (!pass) throw new Error("No password available for decryption");
+    const password = pass ?? this.password;
+    if (!password) throw new Error("No password available for decryption");
     const enc = new TextEncoder();
     const dec = new TextDecoder();
     // Use global crypto (window or self)

@@ -36,8 +36,6 @@ export default function App() {
 
   const [session, setSession] = useState<string | null>(null);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
-  const pollingIntervalRef = useRef<number | null>(null);
-  const pollingCounterRef = useRef<number>(0);
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
 
@@ -48,14 +46,6 @@ export default function App() {
 
     return apiInstance;
   });
-
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current !== null) {
-      window.clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    pollingCounterRef.current = 0;
-  }, []);
 
   const handleSignOut = useCallback(() => {
     workerRef.current?.terminate();
@@ -71,96 +61,7 @@ export default function App() {
       selectedCharacter: "Show All",
     });
     toast.success("Signed out successfully!");
-
-    // Stop polling when signed out
-    stopPolling();
-  }, [stopPolling]);
-
-  const startPolling = useCallback(() => {
-    stopPolling();
-
-    pollingIntervalRef.current = window.setInterval(async () => {
-      // Only poll every ~2 seconds (20 * 100ms)
-      if (pollingCounterRef.current > 20) {
-        pollingCounterRef.current = 0;
-
-        try {
-          const { status, body } = await api.poll();
-
-          // Handle failed responses with invalid session
-          if (status === "failed" && body === "invalid session") {
-            console.log(
-              "Polling detected invalid session, may need to log in again",
-            );
-
-            let sessionFailCount = window.sessionFailCount || 0;
-            sessionFailCount++;
-            window.sessionFailCount = sessionFailCount;
-
-            if (sessionFailCount > 3) {
-              console.error("Too many failed session attempts, logging out");
-              handleSignOut();
-              toast.error("Session Error", {
-                description: "Your session has expired, please log in again",
-              });
-              window.sessionFailCount = 0;
-            }
-            return;
-          }
-
-          // Reset the failure counter on success
-          window.sessionFailCount = 0;
-
-          // Handle empty response
-          if (
-            body === "empty" ||
-            (status === "success" && (body || body === "empty"))
-          ) {
-            return;
-          }
-
-          if (body && Array.isArray(body)) {
-            for (const message of body) {
-              if (message?.body) {
-                console.debug(message);
-                try {
-                  const data = JSON.parse(message.body);
-                  toast.info("Game Action", { description: data.data });
-                } catch (parseError) {
-                  console.error("Error parsing message:", parseError, message);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-
-          if (
-            error instanceof Error &&
-            error.message.includes("invalid session")
-          ) {
-            // Don't flood the console with repeated errors
-            console.log("Polling error with invalid session");
-
-            let sessionFailCount = window.sessionFailCount || 0;
-            sessionFailCount++;
-            window.sessionFailCount = sessionFailCount;
-
-            if (sessionFailCount > 3) {
-              console.error("Too many failed session attempts, logging out");
-              handleSignOut();
-              toast.error("Session Error", {
-                description: "Your session has expired, please log in again",
-              });
-              window.sessionFailCount = 0;
-            }
-          }
-        }
-      } else {
-        pollingCounterRef.current++;
-      }
-    }, 100);
-  }, [stopPolling, api, handleSignOut]);
+  }, []);
 
   async function fetchAccounts(session: string) {
     if (!session) {
@@ -279,11 +180,7 @@ export default function App() {
     pingApi();
 
     toast.success("Notification", { description: "Welcome to Lime Drop!" });
-
-    return () => {
-      stopPolling();
-    };
-  }, [api, stopPolling]);
+  }, [api]);
 
   useEffect(() => {
     const accountsToLoadSub = useAppStore.subscribe(
@@ -381,12 +278,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (session) {
-      startPolling();
-    } else {
+    if (!session) {
       handleSignOut();
     }
-  }, [session, startPolling, handleSignOut]);
+  }, [session, handleSignOut]);
 
   useEffect(() => {
     if (!session || accountsToLoad.length === 0) {
@@ -435,7 +330,7 @@ export default function App() {
               {},
             );
 
-            Object.entries(itemsByAccount).forEach(([account, items]) => {
+            for (const [account, items] of Object.entries(itemsByAccount)) {
               useAppStore.setState((state) => {
                 const cacheKey = `${account}:${realm}`;
                 return {
@@ -449,7 +344,7 @@ export default function App() {
                   },
                 };
               });
-            });
+            }
           }
 
           const prevInvo = useAppStore.getState().inventory;
@@ -510,7 +405,6 @@ export default function App() {
         session={session}
         handleSignOut={handleSignOut}
         setSession={setSession}
-        startPolling={startPolling}
         fetchAccounts={fetchAccounts}
       />
 
@@ -536,7 +430,7 @@ export default function App() {
           </div>
         </main>
       </div>
-      <CartDrawer api={api} />
+      <CartDrawer api={api} session={session} handleSignOut={handleSignOut} />
       <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">
         &copy; 2025 Lime Drop. All rights reserved.
       </footer>
