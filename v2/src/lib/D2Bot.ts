@@ -246,8 +246,8 @@ export class D2BotAPI {
     // base64ToHex
     const hexResult = this.base64ToHex(transitmessage);
     // salt: first 64 hex chars (32 bytes), iv: next 32 hex chars (16 bytes)
-    const saltHex = hexResult.substr(0, 64);
-    const ivHex = hexResult.substr(64, 32);
+    const saltHex = hexResult.substring(0, 64);
+    const ivHex = hexResult.substring(64, 32);
     const encryptedHex = hexResult.substring(96);
     // parse hex to Uint8Array
     const salt = new Uint8Array(
@@ -292,13 +292,9 @@ export class D2BotAPI {
   }
 
   async accounts() {
-    // const args = [];
-    // if (account) args.push(account);
-
     try {
       const response = await this.$get({ func: "accounts", args: [] });
 
-      console.debug(JSON.stringify(response, null, 2));
       if (response.status === "success") {
         return { ...response, body: JSON.parse(response.body) as string[] };
       }

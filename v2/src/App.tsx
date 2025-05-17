@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { CartDrawer } from "@/components/CartDrawer";
 import { InventoryGrid } from "@/components/InventoryGrid";
@@ -7,7 +7,9 @@ import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { D2BotAPI } from "@/lib/D2Bot";
 import {
-  appendUniqueItems, naturalSort
+  type InventoryItem,
+  appendUniqueItems,
+  naturalSort,
 } from "@/lib/utils";
 import {
   type AccountDataCache,
@@ -233,7 +235,7 @@ export default function App() {
         ) {
           accountsMap[accountName].push(charName);
         }
-        
+
         accountsCache.push({
           realm,
           accountName,
@@ -293,9 +295,16 @@ export default function App() {
         s.selectedAccount,
         s.accountDataCache,
       ],
-      ([gameType, gameMode, gameClass, realm, selectedAccount, accountDataCache]) => {
+      ([
+        gameType,
+        gameMode,
+        gameClass,
+        realm,
+        selectedAccount,
+        accountDataCache,
+      ]) => {
         if (typeof accountDataCache === "string") return;
-        
+
         const checks = {
           ladder: gameClass === "Ladder",
           lod: gameType === "Expansion",
@@ -316,8 +325,50 @@ export default function App() {
           .sort(naturalSort);
         const accountSet = new Set(validAccounts);
         workerRef.current?.terminate();
-        setInventory([]);
-        setLoadingInventory(true);
+
+        const { selectedCharacter, inventoryCache } = useAppStore.getState();
+        const cachedItems: InventoryItem[] = [];
+        const currentFilters = {
+          gameType,
+          gameMode,
+          gameClass,
+          realm,
+          selectedCharacter,
+        };
+
+        for (const account of accountSet) {
+          const cacheKey = `${account}:${realm}`;
+          const cached = inventoryCache[cacheKey];
+
+          const isCacheValid =
+            cached &&
+            Date.now() - cached.timestamp < 5 * 60 * 1000 &&
+            JSON.stringify(cached.filters) === JSON.stringify(currentFilters);
+
+          if (isCacheValid) {
+            console.log(`Using cached data for ${account}`);
+            accountSet.delete(account);
+            cachedItems.push(...cached.items);
+          } else {
+            console.log(`Need to load data for ${account}`);
+          }
+        }
+
+        if (cachedItems.length > 0) {
+          React.startTransition(() => {
+            setInventory(cachedItems);
+          });
+          setLoadingInventory(false);
+
+          if (accountSet.size === 0) {
+            setFullyLoaded(true);
+            return;
+          }
+        } else {
+          setLoadingInventory(true);
+          setInventory([]);
+        }
+
         setFullyLoaded(false);
         setAccountsToLoad(Array.from(accountSet));
       },
@@ -345,8 +396,6 @@ export default function App() {
     }
 
     (async () => {
-      setLoadingInventory(true);
-
       if (workerRef.current) {
         workerRef.current?.terminate();
       }
@@ -361,15 +410,65 @@ export default function App() {
         const msg = e.data;
         if (msg.type === "account-items") {
           console.log(msg);
+
+          const {
+            selectedCharacter,
+            realm,
+            gameType,
+            gameMode,
+            gameClass
+          } = useAppStore.getState();
+          
+          const currentFilters = {
+            gameType,
+            gameMode,
+            gameClass,
+            realm,
+            selectedCharacter,
+          };
+
+          if (msg.items.length > 0) {
+            // Group items by account
+            const itemsByAccount = msg.items.reduce(
+              (acc: Record<string, InventoryItem[]>, item: InventoryItem) => {
+                if (!acc[item.account]) {
+                  acc[item.account] = [];
+                }
+                acc[item.account].push(item);
+                return acc;
+              },
+              {},
+            );
+
+            Object.entries(itemsByAccount).forEach(([account, items]) => {
+              useAppStore.setState((state) => {
+                const cacheKey = `${account}:${realm}`;
+                return {
+                  inventoryCache: {
+                    ...state.inventoryCache,
+                    [cacheKey]: {
+                      items: items as InventoryItem[],
+                      timestamp: Date.now(),
+                      filters: currentFilters,
+                    },
+                  },
+                };
+              });
+            });
+          }
+
           const prevInvo = useAppStore.getState().inventory;
           const newInvo = appendUniqueItems(prevInvo, msg.items);
-          setInventory(newInvo);
+          React.startTransition(() => {
+            setInventory(newInvo);
+          });
 
           if (prevInvo.length === 0) {
             setLoadingInventory(false);
           }
         } else if (msg.type === "done") {
           console.log(msg);
+          setLoadingInventory(false);
           setFullyLoaded(true);
         } else if (msg.type === "error") {
           console.error(msg);

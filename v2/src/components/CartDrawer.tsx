@@ -16,10 +16,10 @@ import {
   removeFromCart,
   setCartOpen,
   setGameName,
-  useAppStore,
+  updateCachedDrops, useAppStore
 } from "@/stores/useAppStore";
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type React from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -28,7 +28,7 @@ interface CartDrawerProps {
   api: D2BotAPI;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({ api }) => {
+export const CartDrawer: React.FC<CartDrawerProps> = memo(({ api }) => {
   const realm = useAppStore((s) => s.realm);
   const username = useAppStore((s) => s.username);
   const gameName = useAppStore((s) => s.gameName);
@@ -75,6 +75,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ api }) => {
         gameName,
         username,
       });
+      updateCachedDrops();
     } catch (err) {
       console.error("Failed to store recent drop", err);
     }
@@ -192,4 +193,4 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ api }) => {
       </DrawerContent>
     </Drawer>
   );
-};
+});

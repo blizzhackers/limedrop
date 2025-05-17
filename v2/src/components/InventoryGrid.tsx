@@ -10,17 +10,17 @@ import { sdk } from "@/lib/sdk";
 import { setQualityFilter, useAppStore } from "@/stores/useAppStore";
 import { ArrowUp, Loader2, RefreshCw } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
 interface InventoryGridProps {
   session: string | null;
-  fetchInventory: () => Promise<void>;
   loadingAccounts: boolean;
+  fetchInventory: () => Promise<void>;
 }
 
-export const InventoryGrid: React.FC<InventoryGridProps> = ({
+export const InventoryGrid: React.FC<InventoryGridProps> = memo(({
   session,
   fetchInventory,
   loadingAccounts,
@@ -41,15 +41,18 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
 
   const filteredInventory = useMemo(() => {
     return (searchTerm ? searchResults : inventory).filter((item) => {
-      if (selectedAccount !== "Show All" && item.account !== selectedAccount)
+      if (selectedAccount !== "Show All" && item.account !== selectedAccount) {
         return false;
+      }
       if (
         selectedCharacter !== "Show All" &&
-        item.character !== selectedCharacter
-      )
+        item.character !== selectedCharacter.split(".")[0]
+      ) {
         return false;
-      if (qualityFilter !== null && item.quality !== qualityFilter)
+      }
+      if (qualityFilter !== null && item.quality !== qualityFilter) {
         return false;
+      }
       return true;
     });
   }, [
@@ -270,4 +273,4 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
       )}
     </section>
   );
-};
+});

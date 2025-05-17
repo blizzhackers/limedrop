@@ -1,3 +1,4 @@
+import { getRecentDrops } from "@/lib/recentDropsDb";
 import type { InventoryItem } from "@/lib/utils";
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
@@ -25,6 +26,8 @@ interface AppState {
   qualityFilter: number | null;
   accountDataCache: AccountDataCache[];
   accounts: Record<string, string[]>;
+  inventoryCache: Record<string, InventoryCacheEntry>;
+  drops: DropItem[];
 }
 
 interface AppActions {
@@ -57,6 +60,25 @@ export type AccountDataCache = {
   lod: boolean;
 };
 
+export interface InventoryCacheEntry {
+  items: InventoryItem[];
+  timestamp: number;
+  filters: {
+    gameType: string;
+    gameMode: string;
+    gameClass: string;
+    realm: string;
+    selectedCharacter: string;
+  };
+}
+
+export type DropItem = {
+        id?: number;
+        items: InventoryItem[];
+        gameName: string;
+        droppedAt: number;
+      };
+
 export const useAppStore = create(
   persist(
     subscribeWithSelector<AppState>(() => ({
@@ -82,6 +104,8 @@ export const useAppStore = create(
       qualityFilter: null,
       accounts: {},
       accountDataCache: [],
+      inventoryCache: {},
+      drops: [],
     })),
     {
       name: "limedrop-app",
@@ -202,6 +226,10 @@ export const setAccounts = (accounts: Record<string, string[]>) => {
   useAppStore.setState({ accounts });
 };
 
+export const setDrops = (drops: DropItem[]) => {
+  useAppStore.setState({ drops });
+};
+
 export function handleClearDropsFromInvo() {
   const cart = useAppStore.getState().cart;
   const droppedIds = new Set(cart.map((i) => i.itemid));
@@ -209,6 +237,75 @@ export function handleClearDropsFromInvo() {
   const newInvo = prevInvo.filter((item) => !droppedIds.has(item.itemid));
   setInventory(newInvo);
 }
+
+export const cacheAccountItems = (account: string, items: InventoryItem[]) => {
+  useAppStore.setState((state) => {
+    const filters = {
+      gameType: state.gameType,
+      gameMode: state.gameMode,
+      gameClass: state.gameClass,
+      realm: state.realm,
+      selectedCharacter: state.selectedCharacter,
+    };
+
+    // Cache key is account:realm
+    const cacheKey = `${account}:${state.realm}`;
+
+    return {
+      inventoryCache: {
+        ...state.inventoryCache,
+        [cacheKey]: {
+          items,
+          timestamp: Date.now(),
+          filters,
+        },
+      },
+    };
+  });
+};
+
+export const getItemsFromCache = (
+  account: string,
+  realm: string,
+): InventoryItem[] | null => {
+  const state = useAppStore.getState();
+  const cacheKey = `${account}:${realm}`;
+  const cacheEntry = state.inventoryCache[cacheKey];
+  if (!cacheEntry) return null;
+  if (Date.now() - cacheEntry.timestamp > 5 * 60 * 1000) return null;
+
+  const currentFilters = {
+    gameType: state.gameType,
+    gameMode: state.gameMode,
+    gameClass: state.gameClass,
+    realm,
+    selectedCharacter: state.selectedCharacter,
+  };
+
+  if (JSON.stringify(currentFilters) !== JSON.stringify(cacheEntry.filters)) {
+    return null;
+  }
+
+  return cacheEntry.items;
+};
+
+export const clearInventoryCache = () => {
+  useAppStore.setState({ inventoryCache: {} });
+};
+
+export const updateCachedDrops = () => {
+  const username = useAppStore.getState().username;
+  
+  if (username) {
+    getRecentDrops(username)
+      .then((drops) => {
+        useAppStore.setState({ drops });
+      })
+      .catch((err) => {
+        console.error("Failed to fetch recent drops", err);
+      });
+  }
+};
 
 useAppStore.subscribe(
   (state) => state.cart,

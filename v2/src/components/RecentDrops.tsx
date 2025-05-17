@@ -1,10 +1,8 @@
-import { getRecentDrops } from "@/lib/recentDropsDb";
 import { renderColorText } from "@/lib/util";
-import type { InventoryItem } from "@/lib/utils";
-import { setRecentDropsOpen, useAppStore } from "@/stores/useAppStore";
+import { setRecentDropsOpen, updateCachedDrops, useAppStore } from "@/stores/useAppStore";
 import { X } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { memo, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
   Drawer,
@@ -13,33 +11,27 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "./ui/drawer";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface RecentDropsProps {
   session: string | null;
 }
 
-export const RecentDrops: React.FC<RecentDropsProps> = ({ session }) => {
+export const RecentDrops: React.FC<RecentDropsProps> = memo(({ session }) => {
   const username = useAppStore((s) => s.username);
   const recentDropsOpen = useAppStore((s) => s.recentDropsOpen);
-
-  const [drops, setDrops] = useState<
-    Array<{
-      id?: number;
-      items: InventoryItem[];
-      gameName: string;
-      droppedAt: number;
-    }>
-  >([]);
+  const drops = useAppStore((s) => s.drops);
+  
 
   useEffect(() => {
-    if (username) getRecentDrops(username, 10).then(setDrops);
+    updateCachedDrops();
   }, [username]);
 
   return (
     <Drawer
       open={recentDropsOpen && !!session}
       onOpenChange={setRecentDropsOpen}
-      direction="right"
+      direction="bottom"
     >
       <DrawerContent className="w-screen max-w-screen h-full bg-gray-800 shadow-lg flex flex-col">
         <div className="bg-gray-800 rounded p-4">
@@ -58,78 +50,80 @@ export const RecentDrops: React.FC<RecentDropsProps> = ({ session }) => {
               </Button>
             </DrawerClose>
           </DrawerHeader>
-          {drops.length === 0 ? (
-            <div className="text-gray-400">No recent drops.</div>
-          ) : (
-            <ul className="divide-y divide-gray-700">
-              {drops.map((drop) => (
-                <li key={drop.id} className="py-2">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className="text-white">
-                      <span className="font-semibold">Game:</span>{" "}
-                      {drop.gameName}
+          <ScrollArea className="flex-1 h-[calc(80vh-100px)]">
+            {drops.length === 0 ? (
+              <div className="text-gray-400">No recent drops.</div>
+            ) : (
+              <ul className="divide-y divide-gray-700 pr-3">
+                {drops.map((drop) => (
+                  <li key={drop.id} className="py-2">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                      <div className="text-white">
+                        <span className="font-semibold">Game:</span>{" "}
+                        {drop.gameName}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1 md:mt-0">
+                        {new Date(drop.droppedAt).toLocaleString()}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400 mt-1 md:mt-0">
-                      {new Date(drop.droppedAt).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="text-sm mt-2">
-                    <span className="font-semibold text-white">Items:</span>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                      {drop.items.map((item, idx) => {
-                        const title = item.description
-                          ? item.description.split("$", 1)[0]
-                          : "";
-                        let desc = item.description || "";
-                        if (desc.startsWith(title))
-                          desc = desc.slice(title.length);
+                    <div className="text-sm mt-2">
+                      <span className="font-semibold text-white">Items:</span>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        {drop.items.map((item, idx) => {
+                          const title = item.description
+                            ? item.description.split("$", 1)[0]
+                            : "";
+                          let desc = item.description || "";
+                          if (desc.startsWith(title))
+                            desc = desc.slice(title.length);
 
-                        return (
-                          <div
-                            key={item.itemid || idx}
-                            className={
-                              `bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 ` +
-                              "hover:ring-2 hover:ring-green-400"
-                            }
-                            style={{ minHeight: 140 }}
-                          >
-                            {item.image && (
-                              <img
-                                src={`data:image/jpeg;base64,${item.image}`}
-                                alt={"item"}
-                                className="ld-item mb-2"
-                                style={{
-                                  maxWidth: 80,
-                                  maxHeight: 80,
-                                  imageRendering: "crisp-edges",
-                                }}
-                              />
-                            )}
-                            <div className="comment-text w-full text-center">
-                              <div className="font-semibold text-xs">
-                                {renderColorText(title)}
-                              </div>
-                              <div className="text-sm">
-                                {renderColorText(desc)}
-                              </div>
-                              <div>
-                                {item.account} / {item.character}
-                              </div>
-                              <div className=" text-gray-500 whitespace-nowrap">
-                                {item.itemid}
+                          return (
+                            <div
+                              key={item.itemid || idx}
+                              className={
+                                `bg-gray-700 rounded p-2 flex flex-col items-center shadow-filter relative cursor-pointer transition-all duration-100 ` +
+                                "hover:ring-2 hover:ring-green-400"
+                              }
+                              style={{ minHeight: 140 }}
+                            >
+                              {item.image && (
+                                <img
+                                  src={`data:image/jpeg;base64,${item.image}`}
+                                  alt={"item"}
+                                  className="ld-item mb-2"
+                                  style={{
+                                    maxWidth: 80,
+                                    maxHeight: 80,
+                                    imageRendering: "crisp-edges",
+                                  }}
+                                />
+                              )}
+                              <div className="comment-text w-full text-center">
+                                <div className="font-semibold text-xs">
+                                  {renderColorText(title)}
+                                </div>
+                                <div className="text-sm">
+                                  {renderColorText(desc)}
+                                </div>
+                                <div>
+                                  {item.account} / {item.character}
+                                </div>
+                                <div className=" text-gray-500 whitespace-nowrap">
+                                  {item.itemid}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
         </div>
       </DrawerContent>
     </Drawer>
   );
-};
+});

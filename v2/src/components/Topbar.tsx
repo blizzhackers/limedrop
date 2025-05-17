@@ -14,8 +14,8 @@ import {
   useAppStore,
 } from "@/stores/useAppStore";
 import { ChevronDown, CircleUser, History, ShoppingCart } from "lucide-react";
-import type React from "react";
-import { useEffect, useState } from "react";
+import React from "react";
+import { memo, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface TopbarProps {
@@ -27,7 +27,7 @@ interface TopbarProps {
   fetchAccounts: (session: string) => Promise<void>;
 }
 
-export const Topbar: React.FC<TopbarProps> = ({
+export const Topbar: React.FC<TopbarProps> = memo(({
   api,
   session,
   handleSignOut,
@@ -47,7 +47,9 @@ export const Topbar: React.FC<TopbarProps> = ({
 
   useEffect(() => {
     if (!searchValid) {
-      setSearchResults([]);
+      React.startTransition(() => {
+        setSearchResults([]);
+      })
     }
   }, [searchValid]);
 
@@ -243,4 +245,4 @@ export const Topbar: React.FC<TopbarProps> = ({
       </div>
     </header>
   );
-};
+});

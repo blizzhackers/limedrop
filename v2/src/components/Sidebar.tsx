@@ -23,7 +23,7 @@ import {
 } from "@/stores/useAppStore";
 import { RefreshCw } from "lucide-react";
 import type React from "react";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Button } from "./ui/button";
 
 interface SidebarProps {
@@ -32,7 +32,7 @@ interface SidebarProps {
   fetchAccounts: (session: string) => Promise<void>;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar: React.FC<SidebarProps> = memo(({
   session,
   loadingAccounts,
   fetchAccounts,
@@ -220,4 +220,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
     </aside>
   );
-};
+});
