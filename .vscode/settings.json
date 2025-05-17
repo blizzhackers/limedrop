@@ -2,9 +2,7 @@
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
-  "editor.rulers": [
-    120
-  ],
+  "editor.rulers": [120],
   "search.exclude": {
     "package-lock.json": true
   },
@@ -18,5 +16,5 @@
     "source.organizeImports.biome": "explicit",
     "source.removeUnusedImports": "always",
     "quickfix.biome": "explicit"
-  },
+  }
 }
