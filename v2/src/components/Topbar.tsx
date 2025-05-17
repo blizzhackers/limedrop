@@ -13,9 +13,8 @@ import {
   setUsername,
   useAppStore,
 } from "@/stores/useAppStore";
-import { ChevronDown, CircleUser, History, ShoppingCart } from "lucide-react";
-import React from "react";
-import { memo, useEffect, useState } from "react";
+import { ChevronDown, CircleUser, History, Search, ShoppingCart, X } from "lucide-react";
+import React, { memo, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface TopbarProps {
@@ -37,6 +36,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
     const [loginOpen, setLoginOpen] = useState(false);
     const [loginError, setLoginError] = useState<string | null>(null);
+    const [showMobileSearch, setShowMobileSearch] = useState(false);
 
     useEffect(() => {
       if (!searchValid) {
@@ -111,64 +111,85 @@ export const Topbar: React.FC<TopbarProps> = memo(
     }
 
     return (
-      <header className="flex items-center justify-between px-4 py-2 bg-gray-800 shadow">
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <b className="logo-icon p-l-10">
-            <img src="/logo-icon.png" alt="homepage" className="light-logo" />
+      <header className="flex items-center justify-between px-2 md:px-4 py-2 bg-gray-800 shadow relative">
+        {/* Logo section - added pl-12 for mobile to accommodate menu icon */}
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 pl-12 md:pl-0">
+          <b className="logo-icon hidden md:block">
+            <img src="/logo-icon.png" alt="homepage" className="h-8 w-8 md:h-auto md:w-auto" />
           </b>
-          <span className="logo-text">
+          <span className="logo-text hidden md:block">
             <img src="/logo-text.png" alt="homepage" className="light-logo" />
           </span>
-          {session && (
-            <form className="relative ml-6 w-64" onSubmit={handleSearch}>
+          <span className="logo-text md:hidden">
+            <img src="/logo-text.png" alt="homepage" className="light-logo h-6 w-24 object-scale-down" />
+          </span>
+        </div>
+
+        {/* Search section - desktop */}
+        {session && !showMobileSearch && (
+          <form className="relative hidden md:block ml-6 w-64" onSubmit={handleSearch}>
+            <Input
+              id="searchTerm"
+              name="searchTerm"
+              type="text"
+              className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
+              placeholder="Search & enter"
+              onChange={(e) => e.target.value === "" && searchTerm && setSearchTerm("")}
+            />
+            <span className="absolute left-2 top-2.5 text-gray-400 pointer-events-none">
+              <Search className="w-5 h-5" />
+            </span>
+          </form>
+        )}
+
+        {/* Mobile search overlay */}
+        {showMobileSearch && (
+          <div className="absolute inset-0 z-50 bg-gray-800 px-2 py-2 flex items-center md:hidden">
+            <form className="flex-1 relative" onSubmit={handleSearch}>
               <Input
                 id="searchTerm"
                 name="searchTerm"
                 type="text"
                 className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
                 placeholder="Search & enter"
-                onChange={(e) =>
-                  e.target.value === "" && searchTerm && setSearchTerm("")
-                }
+                autoFocus
+                onChange={(e) => e.target.value === "" && searchTerm && setSearchTerm("")}
               />
               <span className="absolute left-2 top-2.5 text-gray-400 pointer-events-none">
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  role="img"
-                  aria-labelledby="searchIconTitle"
-                >
-                  <title id="searchIconTitle">Search Icon</title>
-                  <path
-                    d="M21 21l-4.35-4.35"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle
-                    cx="11"
-                    cy="11"
-                    r="8"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                </svg>
+                <Search className="w-5 h-5" />
               </span>
             </form>
-          )}
-        </div>
-        <div className="flex items-center gap-4 flex-1 justify-end">
-          {session && (
             <button
               type="button"
-              className="relative p-2 hover:bg-gray-700 rounded"
-              onClick={() => setRecentDropsOpen(true)}
-              title="Show Recent Drops"
+              className="ml-2 p-2 hover:bg-gray-700 rounded"
+              onClick={() => setShowMobileSearch(false)}
             >
-              <History className="w-6 h-6 text-lime-400" />
+              <X className="w-6 h-6" />
             </button>
+          </div>
+        )}
+
+        {/* Right section */}
+        <div className="flex items-center gap-2 md:gap-4">
+          {session && (
+            <>
+              {/* Mobile search button */}
+              <button
+                type="button"
+                className="md:hidden p-2 hover:bg-gray-700 rounded"
+                onClick={() => setShowMobileSearch(true)}
+              >
+                <Search className="w-6 h-6 text-lime-400" />
+              </button>
+              <button
+                type="button"
+                className="p-2 hover:bg-gray-700 rounded"
+                onClick={() => setRecentDropsOpen(true)}
+                title="Show Recent Drops"
+              >
+                <History className="w-6 h-6 text-lime-400" />
+              </button>
+            </>
           )}
           <button
             type="button"
@@ -185,11 +206,11 @@ export const Topbar: React.FC<TopbarProps> = memo(
           <div className="relative">
             <button
               type="button"
-              className="flex items-center gap-2 p-2 hover:bg-gray-700 rounded"
+              className="flex items-center gap-1 md:gap-2 p-2 hover:bg-gray-700 rounded"
               onClick={() => setLoginOpen(!loginOpen)}
             >
               <CircleUser className="h-8 w-8 rounded-full" />
-              <span>{session ? username : "User"}</span>
+              <span className="hidden md:inline">{session ? username : "User"}</span>
               <ChevronDown className="w-4 h-4" />
             </button>
             {loginOpen && (

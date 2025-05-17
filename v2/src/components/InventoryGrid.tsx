@@ -125,30 +125,34 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
         style={{ minHeight: "80vh" }}
       >
-        <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span>Inventory</span>
+        {/* Mobile and desktop-friendly header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex items-center justify-between md:justify-start gap-2">
+            <h2 className="text-xl font-bold">Inventory</h2>
             {session && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5"
+                className="h-8 w-8 md:h-5 md:w-5"
                 onClick={refreshInvo}
                 aria-label="Refresh Inventory"
               >
-                <RefreshCw />
+                <RefreshCw className="h-5 w-5" />
               </Button>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-4 mb-0 justify-end">
-            <span className="font-semibold">Quality:</span>
+
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm md:text-base whitespace-nowrap">
+              Quality:
+            </span>
             <Select
               value={qualityFilter !== null ? String(qualityFilter) : "all"}
               onValueChange={(v) =>
                 setQualityFilter(v === "all" ? null : Number(v))
               }
             >
-              <SelectTrigger className="w-40 bg-gray-900 border border-gray-700 text-white">
+              <SelectTrigger className="w-full md:w-40 bg-gray-900 border border-gray-700 text-white">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent className="bg-gray-900 border border-gray-700 text-white">
@@ -177,7 +181,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
               </SelectContent>
             </Select>
           </div>
-        </h2>
+        </div>
+
         {session && filteredInventory.length > 0 && (
           <div className="flex items-center gap-2 mb-2">
             <Checkbox
@@ -202,9 +207,10 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             style={{ height: "86dvh", overflowY: "auto" }}
             className="bg-gray-900 rounded p-2"
           >
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-1">
               {Array.from({ length: PAGE_SIZE }).map((_, idx) => (
                 <div
+                  // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
                   key={idx}
                   className="h-40 bg-gray-700 animate-pulse rounded"
                 />
@@ -222,7 +228,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             {inventory.length === 0 ? (
               <div className="text-gray-400">No items found.</div>
             ) : (
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 p-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-1">
                 {pageItems.map((item, idx) => (
                   <InventoryCard key={item.itemid || idx} item={item} />
                 ))}

@@ -21,10 +21,12 @@ import {
   setSelectedCharacter,
   useAppStore,
 } from "@/stores/useAppStore";
-import { RefreshCw } from "lucide-react";
+import { MenuIcon, RefreshCw, XIcon } from "lucide-react";
 import type React from "react";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { Button } from "./ui/button";
+import { DialogTitle } from "./ui/dialog";
+import { Drawer, DrawerClose, DrawerContent, DrawerHeader } from "./ui/drawer";
 
 interface SidebarProps {
   session: string | null;
@@ -41,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
     const selectedAccount = useAppStore((s) => s.selectedAccount);
     const selectedCharacter = useAppStore((s) => s.selectedCharacter);
     const accountsCache = useAppStore((s) => s.accountDataCache);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     const filteredAccounts = useMemo(() => {
       const checks = {
@@ -86,8 +89,8 @@ export const Sidebar: React.FC<SidebarProps> = memo(
       }
     };
 
-    return (
-      <aside className="w-64 bg-gray-800 p-4 flex flex-col gap-4">
+    const sidebarContent = (
+      <>
         <div>
           <div className="font-semibold mb-2">Game Type</div>
           <RadioGroup
@@ -98,6 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
             {GAME_TYPES.map((type) => (
               <label
                 key={type}
+                htmlFor={type}
                 className={`flex items-center gap-2 cursor-pointer px-3 py-1 rounded transition-colors ${gameType === type ? "bg-lime-500 text-black font-bold shadow" : "bg-gray-700 text-white hover:bg-lime-700/40"}`}
               >
                 <RadioGroupItem value={type} id={type} className="hidden" />
@@ -116,9 +120,10 @@ export const Sidebar: React.FC<SidebarProps> = memo(
             {GAME_MODES.map((mode) => (
               <label
                 key={mode}
+                htmlFor={mode}
                 className={`flex items-center gap-2 cursor-pointer px-3 py-1 rounded transition-colors ${gameMode === mode ? "bg-lime-500 text-black font-bold shadow" : "bg-gray-700 text-white hover:bg-lime-700/40"}`}
               >
-                <RadioGroupItem value={mode} className="hidden" />
+                <RadioGroupItem id={mode} value={mode} className="hidden" />
                 <span>{mode}</span>
               </label>
             ))}
@@ -134,9 +139,10 @@ export const Sidebar: React.FC<SidebarProps> = memo(
             {GAME_CLASSES.map((cls) => (
               <label
                 key={cls}
+                htmlFor={cls}
                 className={`flex items-center gap-2 cursor-pointer px-3 py-1 rounded transition-colors ${gameClass === cls ? "bg-lime-500 text-black font-bold shadow" : "bg-gray-700 text-white hover:bg-lime-700/40"}`}
               >
-                <RadioGroupItem value={cls} className="hidden" />
+                <RadioGroupItem id={cls} value={cls} className="hidden" />
                 <span>{cls}</span>
               </label>
             ))}
@@ -215,7 +221,38 @@ export const Sidebar: React.FC<SidebarProps> = memo(
             </div>
           </>
         )}
-      </aside>
+      </>
+    );
+
+    return (
+      <>
+        <Button
+          className="md:hidden fixed top-3 left-2 z-40 bg-gray-900 text-white rounded p-2 shadow-lg focus:outline-none"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open sidebar"
+          size="icon"
+        >
+          <MenuIcon className="h-5 w-5" />
+        </Button>
+
+        <aside className="hidden md:flex w-64 bg-gray-800 p-4 flex-col gap-4 min-h-0 min-w-0">
+          {sidebarContent}
+        </aside>
+        
+        <Drawer direction="left" open={mobileOpen} onOpenChange={setMobileOpen}>
+          <DrawerContent className="bg-gray-800 p-4 text-white flex flex-col gap-4">
+            <DrawerHeader className="absolute top-0 right-0">
+              <DialogTitle className="hidden">Sidebar</DialogTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" aria-label="Close sidebar">
+                  <XIcon className="h-5 w-5 text-white" />
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+            {sidebarContent}
+          </DrawerContent>
+        </Drawer>
+      </>
     );
   },
 );

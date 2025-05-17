@@ -70,7 +70,7 @@ export const RecentDrops: React.FC<RecentDropsProps> = memo(({ session }) => {
                     </div>
                     <div className="text-sm mt-2">
                       <span className="font-semibold text-white">Items:</span>
-                      <div className="grid grid-cols-3 gap-2 mt-1">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1">
                         {drop.items.map((item, idx) => {
                           const title = item.description
                             ? item.description.split("$", 1)[0]
