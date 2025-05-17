@@ -23,7 +23,7 @@ import {
   ShoppingCart,
   X,
 } from "lucide-react";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface TopbarProps {
@@ -46,6 +46,8 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const [loginOpen, setLoginOpen] = useState(false);
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     const form = useForm({
       defaultValues: {
@@ -84,6 +86,28 @@ export const Topbar: React.FC<TopbarProps> = memo(
         });
       }
     }, [searchValid]);
+
+    useEffect(() => {
+      function handleClickOutside(event: MouseEvent) {
+        if (
+          loginOpen &&
+          dropdownRef.current &&
+          buttonRef.current &&
+          !dropdownRef.current.contains(event.target as Node) &&
+          !buttonRef.current.contains(event.target as Node)
+        ) {
+          setLoginOpen(false);
+        }
+      }
+
+      if (loginOpen) {
+        document.addEventListener("mousedown", handleClickOutside);
+      }
+
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [loginOpen]);
 
     const openCart = () => {
       setCartOpen(true);
@@ -237,6 +261,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
           </button>
           <div className="relative">
             <button
+              ref={buttonRef}
               type="button"
               className="flex items-center gap-1 md:gap-2 p-2 hover:bg-gray-700 rounded"
               onClick={() => setLoginOpen(!loginOpen)}
@@ -249,7 +274,10 @@ export const Topbar: React.FC<TopbarProps> = memo(
             </button>
 
             {loginOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded shadow-lg z-10">
+              <div
+                ref={dropdownRef}
+                className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded shadow-lg z-10"
+              >
                 {session ? (
                   <div className="flex flex-col gap-2 p-4">
                     <div className="text-green-400 mb-2">
@@ -305,6 +333,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                       {(field) => (
                         <div>
                           <input
+                            autoComplete="off"
                             className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
                             placeholder="Username"
                             id={field.name}
@@ -331,6 +360,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                             className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
                             type="password"
                             placeholder="Password"
+                            autoComplete="off"
                             id={field.name}
                             name={field.name}
                             value={field.state.value}
