@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
 import { addRecentDrop } from "@/lib/recentDropsDb";
+import { FieldInfo } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
 import {
   clearCart,
@@ -19,6 +20,7 @@ import {
   updateCachedDrops,
   useAppStore,
 } from "@/stores/useAppStore";
+import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
@@ -39,11 +41,63 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
     const cart = useAppStore((s) => s.cart);
     const cartOpen = useAppStore((s) => s.cartOpen);
 
-    const [gamePass, setGamePass] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const pollingIntervalRef = useRef<number | null>(null);
     const pollingCounterRef = useRef(0);
     const pollingTimeoutRef = useRef<number | null>(null);
+
+    const form = useForm({
+      defaultValues: {
+        gameName: gameName,
+        gamePass: "",
+      },
+      onSubmit: async ({ value }) => {
+        if (!cart.length) return;
+        
+        // Group by hash (realm+account)
+        const drops: Record<string, Partial<InventoryItem>[]> = {};
+        for (const item of cart) {
+          const hash = await api.md5(
+            realm.toLowerCase() + (item.account || "").toLowerCase(),
+          );
+          if (!drops[hash]) drops[hash] = [];
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { image, description, ...cleanItem } = item;
+          drops[hash].push(cleanItem);
+        }
+
+        startPolling();
+
+        for (const hash in drops) {
+          const GameInfo = {
+            hash,
+            profile: username,
+            action: "doDrop",
+            data: JSON.stringify({ gameName: value.gameName, gamePass: value.gamePass, items: drops[hash] }),
+          };
+          await api.gameaction(GameInfo);
+        }
+        
+        try {
+          await addRecentDrop({
+            items: cart,
+            gameName: value.gameName,
+            username,
+          });
+          updateCachedDrops();
+        } catch (err) {
+          console.error("Failed to store recent drop", err);
+        }
+        
+        // Update the global state with the game name
+        setGameName(value.gameName);
+        
+        handleClearDropsFromInvo();
+        clearCart();
+        setCartOpen(false);
+        toast.info("Drop Queue", { description: "Drop action sent!" });
+      },
+    });
 
     const stopPolling = useCallback(() => {
       if (pollingIntervalRef.current !== null) {
@@ -165,51 +219,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
       removeFromCart(item);
     }
 
-    async function handleDropCart() {
-      if (!cart.length) return;
-      if (!gameName) {
-        toast.error("Drop Queue", { description: "Game name is required!" });
-        return;
-      }
-      // Group by hash (realm+account)
-      const drops: Record<string, Partial<InventoryItem>[]> = {};
-      for (const item of cart) {
-        const hash = await api.md5(
-          realm.toLowerCase() + (item.account || "").toLowerCase(),
-        );
-        if (!drops[hash]) drops[hash] = [];
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { image, description, ...cleanItem } = item;
-        drops[hash].push(cleanItem);
-      }
-
-      startPolling();
-
-      for (const hash in drops) {
-        const GameInfo = {
-          hash,
-          profile: username,
-          action: "doDrop",
-          data: JSON.stringify({ gameName, gamePass, items: drops[hash] }),
-        };
-        await api.gameaction(GameInfo);
-      }
-      try {
-        await addRecentDrop({
-          items: cart,
-          gameName,
-          username,
-        });
-        updateCachedDrops();
-      } catch (err) {
-        console.error("Failed to store recent drop", err);
-      }
-      handleClearDropsFromInvo();
-      clearCart();
-      setCartOpen(false);
-      toast.info("Drop Queue", { description: "Drop action sent!" });
-    }
-
     return (
       <Drawer direction="right" open={cartOpen} onOpenChange={setCartOpen}>
         <DrawerContent className="w-96 max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col">
@@ -231,43 +240,81 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
             className="flex flex-col flex-1"
             onSubmit={(e) => {
               e.preventDefault();
-              handleDropCart();
+              form.handleSubmit();
             }}
           >
             <div className="mb-4 flex flex-col gap-2">
-              <Input
-                type="text"
-                autoComplete="off"
-                className="p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                placeholder="Game Name"
-                value={gameName}
-                onChange={(e) => setGameName(e.target.value)}
-              />
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="off"
-                  className="p-2 rounded bg-gray-900 border border-gray-700 text-white pr-10"
-                  placeholder="Game Password (optional)"
-                  value={gamePass}
-                  onChange={(e) => setGamePass(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1.5 text-gray-400 hover:text-white"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+              <form.Field
+                name="gameName"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) return "Game name is required";
+                    if (value.length > 15) return "Game name must be 15 characters or less";
+                    if (!/^[a-zA-Z0-9-_]*$/.test(value)) return "Game name can only contain letters and numbers";
+                    return undefined;
+                  }
+                }}
+              >
+                {(field) => (
+                  <div>
+                    <Input
+                      type="text"
+                      autoComplete="off"
+                      className="p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                      placeholder="Game Name"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      maxLength={15}
+                    />
+                    <FieldInfo field={field} />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field
+                name="gamePass"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value.length > 15) return "Password must be 15 characters or less";
+                    if (value && !/^[a-zA-Z0-9]*$/.test(value)) return "Password can only contain letters and numbers";
+                    return undefined;
+                  }
+                }}
+              >
+                {(field) => (
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="off"
+                      className="p-2 rounded bg-gray-900 border border-gray-700 text-white pr-10"
+                      placeholder="Game Password (optional)"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      maxLength={15}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1.5 text-gray-400 hover:text-white"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                    <FieldInfo field={field} />
+                  </div>
+                )}
+              </form.Field>
             </div>
+
             <div className="flex-1 overflow-y-auto">
+              {/* Cart items section - unchanged */}
               {cart.length === 0 ? (
                 <div className="text-gray-400">No items in drop list.</div>
               ) : (
@@ -305,14 +352,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
                 ))
               )}
             </div>
+
             <DrawerFooter className="mt-4 p-0">
-              <button
-                className="bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold disabled:opacity-50"
-                disabled={cart.length === 0}
-                type="submit"
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting, cart.length]}
               >
-                Drop Items
-              </button>
+                {([canSubmit, isSubmitting, cartLength]) => (
+                  <button
+                    className="bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold disabled:opacity-50"
+                    disabled={!!(!canSubmit || cartLength === 0 || isSubmitting)}
+                    type="submit"
+                  >
+                    {isSubmitting ? "Processing..." : "Drop Items"}
+                  </button>
+                )}
+              </form.Subscribe>
             </DrawerFooter>
           </form>
         </DrawerContent>

@@ -1,3 +1,5 @@
+import type { AnyFieldApi } from "@tanstack/react-form";
+
 // Helper to render Diablo color codes as spans
 export function renderColorText(str: string) {
   if (!str) return null;
@@ -44,4 +46,15 @@ export function renderColorText(str: string) {
       </span>,
     );
   return parts;
+}
+
+export function FieldInfo({ field }: { field: AnyFieldApi }) {
+  return (
+    <>
+      {field.state.meta.isTouched && !field.state.meta.isValid ? (
+        <div className="text-red-400 text-xs mt-1">{field.state.meta.errors.join(', ')}</div>
+      ) : null}
+      {field.state.meta.isValidating ? <div className="text-gray-400 text-xs mt-1">Validating...</div> : null}
+    </>
+  )
 }

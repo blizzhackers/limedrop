@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
+import { FieldInfo } from "@/lib/util";
 import { mapApiItemToInventoryItem } from "@/lib/utils";
 import {
   setApiUrl,
@@ -13,6 +14,7 @@ import {
   setUsername,
   useAppStore,
 } from "@/stores/useAppStore";
+import { useForm } from "@tanstack/react-form";
 import { ChevronDown, CircleUser, History, Search, ShoppingCart, X } from "lucide-react";
 import React, { memo, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -38,6 +40,32 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
 
+    const form = useForm({
+      defaultValues: {
+        apiUrl: apiUrl,
+        username: username,
+        password: password,
+      },
+      onSubmit: async ({ value }) => {
+        try {
+          const session = await api.login(value.username, value.password, value.apiUrl);
+          setSession(session || null);
+          setLoginOpen(false);
+          
+          setApiUrl(value.apiUrl);
+          setUsername(value.username);
+          setPassword(value.password);
+          
+          toast.success("Login successful!", {
+            description: "Welcome to LimeDrop!",
+          });
+          await fetchAccounts(session);
+        } catch (err: unknown) {
+          setLoginError((err as Error).message || "Login failed");
+        }
+      },
+    });
+
     useEffect(() => {
       if (!searchValid) {
         React.startTransition(() => {
@@ -49,23 +77,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const openCart = () => {
       setCartOpen(true);
     };
-
-    async function handleLogin(e: React.FormEvent) {
-      e.preventDefault();
-      setLoginError(null);
-
-      try {
-        const session = await api.login(username, password, apiUrl);
-        setSession(session || null);
-        setLoginOpen(false);
-        toast.success("Login successful!", {
-          description: "Welcome to LimeDrop!",
-        });
-        await fetchAccounts(session);
-      } catch (err: unknown) {
-        setLoginError((err as Error).message || "Login failed");
-      }
-    }
 
     async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
       e.preventDefault();
@@ -112,7 +123,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
     return (
       <header className="flex items-center justify-between px-2 md:px-4 py-2 bg-gray-800 shadow relative">
-        {/* Logo section - added pl-12 for mobile to accommodate menu icon */}
         <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 pl-12 md:pl-0">
           <b className="logo-icon hidden md:block">
             <img src="/logo-icon.png" alt="homepage" className="h-8 w-8 md:h-auto md:w-auto" />
@@ -125,7 +135,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
           </span>
         </div>
 
-        {/* Search section - desktop */}
         {session && !showMobileSearch && (
           <form className="relative hidden md:block ml-6 w-64" onSubmit={handleSearch}>
             <Input
@@ -142,7 +151,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
           </form>
         )}
 
-        {/* Mobile search overlay */}
         {showMobileSearch && (
           <div className="absolute inset-0 z-50 bg-gray-800 px-2 py-2 flex items-center md:hidden">
             <form className="flex-1 relative" onSubmit={handleSearch}>
@@ -169,11 +177,9 @@ export const Topbar: React.FC<TopbarProps> = memo(
           </div>
         )}
 
-        {/* Right section */}
         <div className="flex items-center gap-2 md:gap-4">
           {session && (
             <>
-              {/* Mobile search button */}
               <button
                 type="button"
                 className="md:hidden p-2 hover:bg-gray-700 rounded"
@@ -213,6 +219,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
               <span className="hidden md:inline">{session ? username : "User"}</span>
               <ChevronDown className="w-4 h-4" />
             </button>
+            
             {loginOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded shadow-lg z-10">
                 {session ? (
@@ -230,38 +237,98 @@ export const Topbar: React.FC<TopbarProps> = memo(
                   </div>
                 ) : (
                   <form
-                    className="flex flex-col gap-2 p-4"
-                    onSubmit={handleLogin}
-                  >
-                    <input
-                      className="p-2 rounded bg-gray-900 border border-gray-700"
-                      placeholder="API URL"
-                      value={apiUrl}
-                      onChange={(e) => setApiUrl(e.target.value)}
-                    />
-                    <input
-                      className="p-2 rounded bg-gray-900 border border-gray-700"
-                      placeholder="Username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <input
-                      className="p-2 rounded bg-gray-900 border border-gray-700"
-                      placeholder="Password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    {loginError && (
-                      <div className="text-red-400 text-sm">{loginError}</div>
-                    )}
-                    <button
-                      type="submit"
-                      className="mt-2 bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold"
-                    >
-                      Login
-                    </button>
-                  </form>
+            className="flex flex-col gap-2 p-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <form.Field
+              name="apiUrl"
+              validators={{
+                onChange: ({ value }) => !value ? "API URL is required" : undefined,
+              }}
+            >
+              {(field) => (
+                <div>
+                  <input
+                    className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
+                    placeholder="API URL"
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            </form.Field>
+            
+            <form.Field
+              name="username"
+              validators={{
+                onChange: ({ value }) => !value ? "Username is required" : undefined,
+              }}
+            >
+              {(field) => (
+                <div>
+                  <input
+                    className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
+                    placeholder="Username"
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            </form.Field>
+            
+            <form.Field
+              name="password"
+              validators={{
+                onChange: ({ value }) => !value ? "Password is required" : undefined,
+              }}
+            >
+              {(field) => (
+                <div>
+                  <input
+                    className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
+                    type="password"
+                    placeholder="Password"
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            </form.Field>
+            
+            {loginError && (
+              <div className="text-red-400 text-sm">{loginError}</div>
+            )}
+            
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <button
+                  type="submit"
+                  className="mt-2 bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold disabled:opacity-50"
+                  disabled={!canSubmit}
+                >
+                  {isSubmitting ? "Logging in..." : "Login"}
+                </button>
+              )}
+            </form.Subscribe>
+          </form>
                 )}
               </div>
             )}
