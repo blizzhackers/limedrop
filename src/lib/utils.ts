@@ -24,6 +24,10 @@ export interface InventoryItem {
   realm: string;
   classid: number;
   quality: number;
+  itemType: number;
+  itemClass: number;
+  runeword: boolean;
+  ethereal: boolean;
 }
 
 // Deep equality helper for objects/arrays
@@ -55,8 +59,31 @@ export function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 export function extractItemInfo(itemid: string, desc: string) {
-  //unit.gid ":" + unit.classid + ":" + unit.location + ":" + unit.x + ":" + unit.y + ":" + unit.ethereal;
-  const [gid, classid, loc, x, y, eth] = itemid.split(":");
+  /**
+    // From Mulelogger.logItem
+    + unit.gid + ":"
+      + unit.classid + ":"
+      + unit.location + ":"
+      + unit.x + ":"
+      + unit.y + ":"
+      + (unit.getFlag(sdk.items.flags.Ethereal) ? "1" : "0") + ":"
+      + (unit.getFlag(sdk.items.flags.Runeword) ? "1" : "0") + ":"
+      + unit.itemType + ":"
+      + unit.quality + ":"
+      + unit.itemclass + ":"
+   */
+  const [
+    gid,
+    classid,
+    loc,
+    x,
+    y,
+    ethFlag,
+    rwFlag,
+    itemType,
+    itemQuality,
+    itemClass,
+  ] = itemid.split(":");
   const codeToQuality = {
     [sdk.colors.White]: sdk.items.quality.Normal,
     [sdk.colors.Blue]: sdk.items.quality.Magic,
@@ -74,18 +101,23 @@ export function extractItemInfo(itemid: string, desc: string) {
     loc,
     x,
     y,
-    eth: !!eth,
+    ethereal: ethFlag === "1",
+    runeword: rwFlag === "1",
     quality: (() => {
+      if (itemQuality) {
+        return Number(itemQuality);
+      }
       const code = desc.slice(0, 3);
       if (code === sdk.colors.Gray && desc.includes("Superior")) {
         return sdk.items.quality.Superior;
       }
       const quality = codeToQuality[code];
-      // console.debug(code, desc.split("\n")[0]);
       return quality ?? -1;
     })(),
-    rune: desc.slice(0, 3) === sdk.colors.Orange,
-    quest: Object.values(sdk.items.quest).includes(Number(classid)),
+    // rune: desc.slice(0, 3) === sdk.colors.Orange,
+    // quest: Object.values(sdk.items.quest).includes(Number(classid)),
+    itemType: Number(itemType),
+    itemClass: Number(itemClass),
   };
 }
 
@@ -111,7 +143,8 @@ export function mapApiItemToInventoryItem(
   realm: string,
 ): InventoryItem {
   const [desc, id] = el.description.split("$");
-  const { quality, classid } = extractItemInfo(id, desc);
+  const { quality, classid, itemClass, itemType, runeword, ethereal } =
+    extractItemInfo(id, desc);
 
   return {
     ...el,
@@ -121,6 +154,10 @@ export function mapApiItemToInventoryItem(
     realm: realm.toLowerCase(),
     quality,
     classid,
+    itemClass,
+    itemType,
+    runeword,
+    ethereal,
   };
 }
 
