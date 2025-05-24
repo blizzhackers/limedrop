@@ -179,6 +179,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       [],
     );
 
+    const filtersActive =
+      qualityFilter !== null ||
+      itemClassFilter !== null ||
+      itemTypeFilter.size > 0 ||
+      etherealFilter !== null ||
+      runewordFilter !== null;
+
     return (
       <section
         className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
@@ -219,6 +226,12 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     : "text-gray-400 group-hover:text-lime-400"
                 }`}
               />
+              {!showAdvancedFilters && filtersActive && (
+                <span
+                  className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-lime-400 border-2 border-gray-800 shadow"
+                  title="Filters active"
+                />
+              )}
             </Button>
           </div>
         </div>
