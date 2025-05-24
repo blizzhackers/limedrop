@@ -189,7 +189,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
           {session && !showMobileSearch && (
             <form
-              className="relative hidden md:block ml-1 max-w-lg w-full"
+              className="relative hidden md:block ml-1 max-w-lg xl:max-w-4xl w-full"
               onSubmit={handleSearch}
             >
               <Input
