@@ -24,15 +24,63 @@ import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
+import { FixedSizeList } from "react-window";
+import type { ListChildComponentProps } from "react-window";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
 
 interface CartDrawerProps {
   api: D2BotAPI;
   session: string | null;
   handleSignOut: () => void;
 }
+
+const CartItemRow = memo(({ index, style, data }: ListChildComponentProps) => {
+  const item = data.cart[index];
+  const handleRemoveFromCart = data.handleRemoveFromCart;
+  const title = item.description ? item.description.split("$", 1)[0] : "";
+  let desc = item.description || "";
+  if (desc.startsWith(title)) desc = desc.slice(title.length);
+  return (
+    <div key={item.itemid || index} style={style}>
+      <div className="bg-gray-700 h-[96%] rounded p-2 mb-2 flex flex-row items-center">
+        {item.image && (
+          <img
+            src={`data:image/jpeg;base64,${item.image}`}
+            alt={"item"}
+            className="ld-item mr-2"
+            style={{
+              maxWidth: 48,
+              maxHeight: 48,
+              imageRendering: "crisp-edges",
+            }}
+          />
+        )}
+        <div className="flex-1">
+          <div className="w-full text-left pb-1">
+            <div className="font-semibold text-sm line-clamp-4 overflow-hidden text-ellipsis">
+              {renderColorText(title)}
+            </div>
+            <div className="text-xs line-clamp-2 overflow-hidden text-ellipsis">
+              {renderColorText(desc)}
+            </div>
+          </div>
+          <div className="text-xs text-gray-400">
+            {item.account} / {item.character} / {item.itemid}
+          </div>
+        </div>
+        <button
+          className="ml-2 text-red-400 hover:text-red-600"
+          onClick={() => handleRemoveFromCart(item)}
+          title="Remove"
+          type="button"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+});
 
 export const CartDrawer: React.FC<CartDrawerProps> = memo(
   ({ api, session, handleSignOut }) => {
@@ -229,7 +277,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
 
     return (
       <Drawer direction="right" open={cartOpen} onOpenChange={setCartOpen}>
-        <DrawerContent className="w-96 max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col">
+        <DrawerContent
+          aria-describedby="cart-drawer"
+          className="min-w-lg max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col"
+        >
           <DrawerHeader className="flex items-center justify-between mb-4 p-0">
             <DrawerTitle className="text-2xl text-white font-bold">
               Drop List
@@ -328,61 +379,26 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
             </div>
 
             <div className="flex-1 overflow-hidden">
-              <ScrollArea className="flex-1 h-[calc(100vh-250px)]">
-                {cart.length === 0 ? (
-                  <div className="text-gray-400">No items in drop list.</div>
-                ) : (
-                  cart.map((item, idx) => {
-                    const title = item.description
-                      ? item.description.split("$", 1)[0]
-                      : "";
-                    let desc = item.description || "";
-                    if (desc.startsWith(title)) desc = desc.slice(title.length);
-
-                    return (
-                      <div
-                        key={item.itemid || idx}
-                        className="bg-gray-700 rounded p-2 mb-2 flex flex-row items-center"
-                      >
-                        {item.image && (
-                          <img
-                            src={`data:image/jpeg;base64,${item.image}`}
-                            alt={"item"}
-                            className="ld-item mr-2"
-                            style={{
-                              maxWidth: 48,
-                              maxHeight: 48,
-                              imageRendering: "crisp-edges",
-                            }}
-                          />
-                        )}
-                        <div className="flex-1">
-                          <div className="w-full text-left pb-1">
-                            <div className="font-semibold text-sm line-clamp-2 overflow-hidden text-ellipsis">
-                              {renderColorText(title)}
-                            </div>
-
-                            <div className="text-xs line-clamp-1 overflow-hidden text-ellipsis">
-                              {renderColorText(desc)}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {item.account} / {item.character} / {item.itemid}
-                          </div>
-                        </div>
-                        <button
-                          className="ml-2 text-red-400 hover:text-red-600"
-                          onClick={() => handleRemoveFromCart(item)}
-                          title="Remove"
-                          type="button"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    );
-                  })
-                )}
-              </ScrollArea>
+              {cart.length === 0 ? (
+                <div className="text-gray-400">No items in drop list.</div>
+              ) : (
+                <div className="h-full flex flex-col gap-y-2">
+                  <FixedSizeList
+                    height={
+                      typeof window !== "undefined"
+                        ? window.innerHeight - 250
+                        : 400
+                    }
+                    itemCount={cart.length}
+                    itemSize={120}
+                    width="100%"
+                    itemData={{ cart, handleRemoveFromCart }}
+                    overscanCount={6}
+                  >
+                    {CartItemRow}
+                  </FixedSizeList>
+                </div>
+              )}
             </div>
 
             <DrawerFooter className="mt-4 p-0">
