@@ -56,7 +56,7 @@ export const RecentDrops: React.FC<RecentDropsProps> = memo(({ session }) => {
             {drops.length === 0 ? (
               <div className="text-gray-400">No recent drops.</div>
             ) : (
-              <ul className="divide-y divide-gray-700 pr-3">
+              <ul className="divide-y divide-gray-700 ml-1 pr-3">
                 {drops.map((drop) => (
                   <li key={drop.id} className="py-2">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
