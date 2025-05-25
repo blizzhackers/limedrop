@@ -269,13 +269,20 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
               type="button"
               variant={showAdvancedFilters ? "default" : "outline"}
               size="icon"
-              className={`ml-2 transition-colors ${
+              className={`relative ml-2 transition-colors ${
                 showAdvancedFilters
                   ? "bg-lime-700 hover:bg-lime-600"
                   : "hover:bg-gray-700"
               }`}
               onClick={toggleAdvancedFilter}
               aria-label={showAdvancedFilters ? "Hide Filters" : "Show Filters"}
+              title={
+                !showAdvancedFilters && filtersActive
+                  ? "Filters are active"
+                  : showAdvancedFilters
+                    ? "Hide Filters"
+                    : "Show Filters"
+              }
             >
               <Filter
                 className={`transition-colors ${

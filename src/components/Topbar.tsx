@@ -180,7 +180,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
           session={session}
         />
         <header className="flex items-center justify-between px-2 md:px-4 py-2 bg-gray-800 shadow relative">
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 pl-12 md:pl-0">
+          <div className="flex items-center gap-2 flex-shrink-0 pl-12 md:pl-0">
             <b className="logo-icon hidden md:block">
               <img
                 src="/logo-icon.png"
