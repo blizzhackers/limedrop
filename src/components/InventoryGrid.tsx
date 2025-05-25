@@ -10,11 +10,12 @@ import { getItemPacks } from "@/lib/itemPacksDb";
 import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
 import { setPacks, setQualityFilter, useAppStore } from "@/stores/useAppStore";
-import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
+import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 interface InventoryGridProps {
   session: string | null;
@@ -46,6 +47,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     );
     const [etherealFilter, setEtherealFilter] = useState<null | boolean>(null);
     const [runewordFilter, setRunewordFilter] = useState<null | boolean>(null);
+    const [socketFilter, setSocketFilter] = useState<number | null>(null);
     const [activeItemPackId, setActiveItemPackId] = useState<number | null>(
       null,
     );
@@ -147,6 +149,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         if (runewordFilter !== null && item.runeword !== runewordFilter) {
           return false;
         }
+        if (socketFilter !== null && item.sockets !== socketFilter) {
+          return false;
+        }
         return true;
       });
     }, [
@@ -163,6 +168,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       activeItemPackId,
       itemPacks,
       itemPackMultiplier,
+      socketFilter,
     ]);
 
     const PAGE_SIZE = 100;
@@ -416,7 +422,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Runeword */}
                 <div className="flex flex-col">
                   <label
                     htmlFor="runeword-select"
@@ -449,6 +454,41 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex flex-col flex-1">
+                  <label
+                    htmlFor="sockets-input"
+                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                  >
+                    Sockets
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="sockets-input"
+                      type="number"
+                      className="bg-gray-900 text-white"
+                      min={0}
+                      max={6}
+                      value={socketFilter ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSocketFilter(val === "" ? null : Number(val));
+                      }}
+                      placeholder="Sockets"
+                    />
+                    {socketFilter !== null && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => setSocketFilter(null)}
+                        title="Clear Sockets Filter"
+                      >
+                        <X />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex flex-col mt-6">
@@ -474,6 +514,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   ))}
               </div>
             </div>
+
             <div className="mt-2 flex items-center gap-2">
               <label
                 htmlFor="item-pack-select"

@@ -28,6 +28,9 @@ export interface InventoryItem {
   itemClass: number;
   runeword: boolean;
   ethereal: boolean;
+  sockets: number;
+  gfx: string;
+  color: string;
 }
 
 // Deep equality helper for objects/arrays
@@ -71,6 +74,9 @@ export function extractItemInfo(itemid: string, desc: string) {
       + unit.itemType + ":"
       + unit.quality + ":"
       + unit.itemclass + ":"
+      + sock.length + ":"
+      + unit.gfx + ":"
+      + color + ":"
    */
   const [
     gid,
@@ -83,6 +89,9 @@ export function extractItemInfo(itemid: string, desc: string) {
     itemType,
     itemQuality,
     itemClass,
+    sockets,
+    gfx,
+    color,
   ] = itemid.split(":");
   const codeToQuality = {
     [sdk.colors.White]: sdk.items.quality.Normal,
@@ -114,10 +123,17 @@ export function extractItemInfo(itemid: string, desc: string) {
       const quality = codeToQuality[code];
       return quality ?? -1;
     })(),
-    // rune: desc.slice(0, 3) === sdk.colors.Orange,
-    // quest: Object.values(sdk.items.quest).includes(Number(classid)),
     itemType: Number(itemType),
     itemClass: Number(itemClass),
+    sockets: (() => {
+      if (sockets) {
+        return Number(sockets);
+      }
+      const match = desc.match(/Socketed \((\d+)\)/);
+      return match ? Number(match[1]) : 0;
+    })(),
+    gfx,
+    color,
   };
 }
 
@@ -143,8 +159,17 @@ export function mapApiItemToInventoryItem(
   realm: string,
 ): InventoryItem {
   const [desc, id] = el.description.split("$");
-  const { quality, classid, itemClass, itemType, runeword, ethereal } =
-    extractItemInfo(id, desc);
+  const {
+    quality,
+    classid,
+    itemClass,
+    itemType,
+    runeword,
+    ethereal,
+    sockets,
+    gfx,
+    color,
+  } = extractItemInfo(id, desc);
 
   return {
     ...el,
@@ -158,6 +183,9 @@ export function mapApiItemToInventoryItem(
     itemType,
     runeword,
     ethereal,
+    sockets,
+    gfx,
+    color,
   };
 }
 
