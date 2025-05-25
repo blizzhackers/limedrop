@@ -200,14 +200,16 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           const cartItems = state.cart.filter(
             (item) =>
               !cartItemIds.has(item.itemid) ||
-              !inventory.some((i) => i.itemid === item.itemid),
+              !filteredInventory.some((i) => i.itemid === item.itemid),
           );
           return { ...state, cart: cartItems };
         });
         setSelectAll(false);
       } else {
         useAppStore.setState((state) => {
-          const toAdd = inventory.filter((i) => !cartItemIds.has(i.itemid));
+          const toAdd = filteredInventory.filter(
+            (i) => !cartItemIds.has(i.itemid),
+          );
           return { ...state, cart: [...state.cart, ...toAdd] };
         });
         setSelectAll(true);
