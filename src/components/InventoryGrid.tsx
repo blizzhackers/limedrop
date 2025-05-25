@@ -6,11 +6,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getItemPacks } from "@/lib/itemPacksDb";
 import { sdk } from "@/lib/sdk";
-import { setQualityFilter, useAppStore } from "@/stores/useAppStore";
+import { naturalSort } from "@/lib/utils";
+import { setPacks, setQualityFilter, useAppStore } from "@/stores/useAppStore";
 import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
+import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
 
 interface InventoryGridProps {
@@ -18,28 +21,6 @@ interface InventoryGridProps {
   loadingAccounts: boolean;
   fetchInventory: () => Promise<void>;
 }
-
-const ItemTypeCheckbox: React.FC<{
-  name: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}> = memo(
-  ({ name, checked, onChange }) => (
-    <label
-      htmlFor={name}
-      className="flex items-center gap-1 text-xs xl:text-base cursor-pointer select-none"
-    >
-      <Checkbox
-        id={name}
-        checked={checked}
-        onCheckedChange={onChange}
-        className="border-gray-600"
-      />
-      {name}
-    </label>
-  ),
-  (prev, next) => prev.checked === next.checked && prev.name === next.name,
-);
 
 export const InventoryGrid: React.FC<InventoryGridProps> = memo(
   ({ session, fetchInventory, loadingAccounts }) => {
@@ -51,6 +32,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const selectedCharacter = useAppStore((s) => s.selectedCharacter);
     const qualityFilter = useAppStore((s) => s.qualityFilter);
     const fullyLoaded = useAppStore((s) => s.fullyLoaded);
+    const itemPacks = useAppStore((s) => s.packs);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showBackToTop, setShowBackToTop] = useState(false);
@@ -64,9 +46,80 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     );
     const [etherealFilter, setEtherealFilter] = useState<null | boolean>(null);
     const [runewordFilter, setRunewordFilter] = useState<null | boolean>(null);
+    const [activeItemPackId, setActiveItemPackId] = useState<number | null>(
+      null,
+    );
+    const [itemPackMultiplier, setItemPackMultiplier] = useState(1);
+
+    useEffect(() => {
+      if (!session) return;
+      getItemPacks(useAppStore.getState().username).then((packs) =>
+        setPacks(packs.filter((p) => typeof p.id === "number")),
+      );
+    }, [session]);
 
     const filteredInventory = useMemo(() => {
-      return (searchTerm ? searchResults : inventory).filter((item) => {
+      const base = searchTerm ? searchResults : inventory;
+      if (activeItemPackId && itemPacks.length) {
+        const pack = itemPacks.find((p) => p.id === activeItemPackId);
+        if (pack) {
+          let result: typeof base = [];
+          const usedIds = new Set();
+          for (let m = 0; m < itemPackMultiplier; ++m) {
+            for (const f of pack.filters) {
+              let matches = base.filter((item) => {
+                if (usedIds.has(item.itemid)) return false;
+                if (f.name !== undefined && !item.title.match(f.name)) {
+                  return false;
+                }
+                if (f.itemType !== undefined) {
+                  if (Array.isArray(f.itemType)) {
+                    if (!f.itemType.includes(item.itemType)) return false;
+                  } else {
+                    if (item.itemType !== f.itemType) return false;
+                  }
+                }
+                if (f.quality !== undefined && item.quality !== f.quality) {
+                  return false;
+                }
+                if (
+                  f.itemClass !== undefined &&
+                  item.itemClass !== f.itemClass
+                ) {
+                  return false;
+                }
+                if (f.ethereal !== undefined && item.ethereal !== f.ethereal) {
+                  return false;
+                }
+                if (f.runeword !== undefined && item.runeword !== f.runeword) {
+                  return false;
+                }
+                if (f.stats !== undefined && Array.isArray(f.stats)) {
+                  try {
+                    return f.stats.every((stat) =>
+                      item.description.match(stat),
+                    );
+                  } catch (e) {
+                    console.error(e);
+                    return false;
+                  }
+                }
+                return true;
+              });
+              if (f.count !== undefined) {
+                matches = matches.slice(0, f.count);
+              }
+              result = result.concat(matches);
+
+              for (const el of result) {
+                usedIds.add(el.itemid);
+              }
+            }
+          }
+          return result;
+        }
+      }
+      return base.filter((item) => {
         if (
           selectedAccount !== "Show All" &&
           item.account !== selectedAccount
@@ -99,14 +152,17 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     }, [
       inventory,
       searchResults,
+      searchTerm,
       selectedAccount,
       selectedCharacter,
       qualityFilter,
-      searchTerm,
       itemClassFilter,
       itemTypeFilter,
       etherealFilter,
       runewordFilter,
+      activeItemPackId,
+      itemPacks,
+      itemPackMultiplier,
     ]);
 
     const PAGE_SIZE = 100;
@@ -397,15 +453,71 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                 id="item-type-select"
                 className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2"
               >
-                {Object.entries(sdk.items.type).map(([name, val]) => (
-                  <ItemTypeCheckbox
-                    key={val}
-                    name={name}
-                    checked={itemTypeFilter.has(Number(val))}
-                    onChange={handleItemTypeChange(Number(val))}
-                  />
-                ))}
+                {Object.entries(sdk.items.type)
+                  .sort(([a], [b]) => naturalSort(a, b))
+                  .map(([name, val]) => (
+                    <ItemTypeCheckbox
+                      key={val}
+                      name={name}
+                      checked={itemTypeFilter.has(Number(val))}
+                      onChange={handleItemTypeChange(Number(val))}
+                    />
+                  ))}
               </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <label
+                htmlFor="item-pack-select"
+                className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+              >
+                Item Pack
+              </label>
+              <Select
+                value={
+                  activeItemPackId !== null ? String(activeItemPackId) : "none"
+                }
+                onValueChange={(v) =>
+                  setActiveItemPackId(v !== "none" ? Number(v) : null)
+                }
+              >
+                <SelectTrigger
+                  id="item-pack-select"
+                  className="w-full bg-gray-900 border border-gray-700 text-white"
+                >
+                  <SelectValue placeholder="-- No Pack --" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No Pack --</SelectItem>
+                  {itemPacks.map((pack) => (
+                    <SelectItem key={pack.id} value={String(pack.id)}>
+                      {pack.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {activeItemPackId !== null && (
+                <div className="flex items-center gap-1 ml-2">
+                  <label
+                    htmlFor="item-pack-multiplier"
+                    className="text-xs text-gray-300"
+                  >
+                    x
+                  </label>
+                  <input
+                    id="item-pack-multiplier"
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={itemPackMultiplier}
+                    onChange={(e) =>
+                      setItemPackMultiplier(
+                        Math.max(1, Math.min(20, Number(e.target.value) || 1)),
+                      )
+                    }
+                    className="w-12 px-1 py-0.5 rounded bg-gray-900 border border-gray-700 text-white text-center text-xs"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}

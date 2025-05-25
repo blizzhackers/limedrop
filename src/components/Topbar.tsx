@@ -19,6 +19,7 @@ import {
   ChevronDown,
   CircleUser,
   History,
+  PackagePlus,
   Search,
   ShoppingCart,
   SwitchCamera,
@@ -27,6 +28,7 @@ import {
 import React, { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConvertNLDialog } from "./ConvertNLDialog";
+import ItemPacksDialog from "./ItemPacksDialog";
 
 interface TopbarProps {
   session: string | null;
@@ -49,6 +51,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
     const [convertNLOpen, setConvertNLOpen] = useState(false);
+    const [itemPacksOpen, setItemPacksOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -65,6 +68,11 @@ export const Topbar: React.FC<TopbarProps> = memo(
             value.password,
             value.apiUrl,
           );
+
+          const validate = await api.validate(value.username, session);
+          if (!validate) {
+            throw new Error("Failed to validate session");
+          }
           setSession(session || null);
           setLoginOpen(false);
 
@@ -166,6 +174,11 @@ export const Topbar: React.FC<TopbarProps> = memo(
           open={convertNLOpen}
           onOpenChange={setConvertNLOpen}
         />
+        <ItemPacksDialog
+          open={itemPacksOpen}
+          onOpenChange={setItemPacksOpen}
+          session={session}
+        />
         <header className="flex items-center justify-between px-2 md:px-4 py-2 bg-gray-800 shadow relative">
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 pl-12 md:pl-0">
             <b className="logo-icon hidden md:block">
@@ -253,6 +266,14 @@ export const Topbar: React.FC<TopbarProps> = memo(
                   title="Show Recent Drops"
                 >
                   <History className="w-6 h-6 text-lime-400" />
+                </button>
+                <button
+                  type="button"
+                  className="p-2 hover:bg-gray-700 rounded"
+                  onClick={() => setItemPacksOpen(true)}
+                  title="Manage Item Packs"
+                >
+                  <PackagePlus className="w-6 h-6 text-lime-400" />
                 </button>
               </>
             )}

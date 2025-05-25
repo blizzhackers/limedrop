@@ -1,3 +1,4 @@
+import type { ItemPack } from "@/lib/itemPacksDb";
 import { getRecentDrops } from "@/lib/recentDropsDb";
 import type { InventoryItem } from "@/lib/utils";
 import { create } from "zustand";
@@ -28,6 +29,7 @@ interface AppState {
   accounts: Record<string, string[]>;
   inventoryCache: Record<string, InventoryCacheEntry>;
   drops: DropItem[];
+  packs: ItemPack[];
 }
 
 interface AppActions {
@@ -106,6 +108,7 @@ export const useAppStore = create(
       accountDataCache: [],
       inventoryCache: {},
       drops: [],
+      packs: [],
     })),
     {
       name: "limedrop-app",
@@ -228,6 +231,10 @@ export const setAccounts = (accounts: Record<string, string[]>) => {
 
 export const setDrops = (drops: DropItem[]) => {
   useAppStore.setState({ drops });
+};
+
+export const setPacks = (packs: ItemPack[]) => {
+  useAppStore.setState({ packs });
 };
 
 export function handleClearDropsFromInvo() {

@@ -1,33 +1,15 @@
 import AES from "crypto-js/aes";
 import Utf8 from "crypto-js/enc-utf8";
+import { openLimeDropDb } from "./openLimeDropDb";
 import type { InventoryItem } from "./utils";
 
-const DB_NAME = "limedrop-db";
 const STORE_NAME = "recentDrops";
-const DB_VERSION = 1;
 
 export interface RecentDrop {
   id?: number;
   username: string;
   encrypted: string;
   droppedAt: number;
-}
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, {
-          keyPath: "id",
-          autoIncrement: true,
-        });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
 }
 
 // Encrypt drop data (items and gameName) with a key derived from username
@@ -58,7 +40,7 @@ export async function addRecentDrop({
   gameName,
   username,
 }: { items: InventoryItem[]; gameName: string; username: string }) {
-  const db = await openDb();
+  const db = await openLimeDropDb();
   const encrypted = encryptDropData({ items, gameName }, username);
   return new Promise<number>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -80,7 +62,7 @@ export async function getRecentDrops(
     droppedAt: number;
   }>
 > {
-  const db = await openDb();
+  const db = await openLimeDropDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
