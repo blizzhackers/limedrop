@@ -414,9 +414,10 @@ const ItemPacksDialog: React.FC<ItemPacksDialogProps> = ({
                 <Select
                   name="pack-select"
                   value={selectedPackId !== null ? String(selectedPackId) : ""}
-                  onValueChange={(v) =>
-                    setSelectedPackId(v !== "none" ? Number(v) : null)
-                  }
+                  onValueChange={(v) => {
+                    setSelectedPackId(v !== "none" ? Number(v) : null);
+                    v === "none" && resetForm();
+                  }}
                 >
                   <SelectTrigger className="w-full bg-gray-900 border border-gray-700 text-white">
                     <SelectValue placeholder="Choose a pack to edit" />
