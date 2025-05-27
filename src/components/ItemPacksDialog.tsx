@@ -12,6 +12,7 @@ import { Edit2Icon, Trash2Icon, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { create } from "zustand";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -24,19 +25,21 @@ import {
   SelectValue,
 } from "./ui/select";
 
-interface ItemPacksDialogProps {
+interface ItemPacksDialogStore {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  session: string | null;
+  setOpen: (open: boolean) => void;
 }
 
-const ItemPacksDialog: React.FC<ItemPacksDialogProps> = ({
-  open,
-  onOpenChange,
-  session,
-}) => {
+export const useItemPacksDialogStore = create<ItemPacksDialogStore>((set) => ({
+  open: false,
+  setOpen: (open) => set({ open }),
+}));
+
+const ItemPacksDialog: React.FC = () => {
   const username = useAppStore((s) => s.username);
   const packs = useAppStore((s) => s.packs);
+  const session = useAppStore((s) => s.session);
+  const open = useItemPacksDialogStore((s) => s.open);
 
   const [label, setLabel] = useState("");
   const [filters, setFilters] = useState<ItemPackFilter[]>([]);
@@ -364,7 +367,10 @@ const ItemPacksDialog: React.FC<ItemPacksDialogProps> = ({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog
+        open={open}
+        onOpenChange={useItemPacksDialogStore.getState().setOpen}
+      >
         <DialogContent className="w-full min-w-[90dvw] max-w-2xl md:max-w-3xl bg-gray-700 p-2 md:p-6 max-h-[90vh] flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-white text-base md:text-xl">

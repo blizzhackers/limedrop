@@ -30,6 +30,7 @@ interface AppState {
   inventoryCache: Record<string, InventoryCacheEntry>;
   drops: DropItem[];
   packs: ItemPack[];
+  session: string | null;
 }
 
 interface AppActions {
@@ -109,6 +110,7 @@ export const useAppStore = create(
       inventoryCache: {},
       drops: [],
       packs: [],
+      session: null,
     })),
     {
       name: "limedrop-app",
@@ -235,6 +237,10 @@ export const setDrops = (drops: DropItem[]) => {
 
 export const setPacks = (packs: ItemPack[]) => {
   useAppStore.setState({ packs });
+};
+
+export const setSession = (session: string | null) => {
+  useAppStore.setState({ session });
 };
 
 export function handleClearDropsFromInvo() {

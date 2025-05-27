@@ -11,6 +11,7 @@ import {
   setRecentDropsOpen,
   setSearchResults,
   setSearchTerm,
+  setSession,
   setUsername,
   useAppStore,
 } from "@/stores/useAppStore";
@@ -27,31 +28,28 @@ import {
 } from "lucide-react";
 import React, { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ConvertNLDialog } from "./ConvertNLDialog";
-import ItemPacksDialog from "./ItemPacksDialog";
+import { ConvertNLDialog, useConvertNLDialogStore } from "./ConvertNLDialog";
+import { useItemPacksDialogStore } from "./ItemPacksDialog";
 
 interface TopbarProps {
-  session: string | null;
-  handleSignOut: () => void;
   api: D2BotAPI;
-  setSession: (value: React.SetStateAction<string | null>) => void;
+  handleSignOut: () => void;
   fetchAccounts: (session: string) => Promise<void>;
 }
 
 export const Topbar: React.FC<TopbarProps> = memo(
-  ({ api, session, handleSignOut, setSession, fetchAccounts }) => {
+  ({ api, handleSignOut, fetchAccounts }) => {
     const searchValid = useAppStore((s) => !s.searchTerm);
     const apiUrl = useAppStore((s) => s.apiUrl);
     const username = useAppStore((s) => s.username);
     const searchTerm = useAppStore((s) => s.searchTerm);
     const password = useAppStore((s) => s.password);
     const cart = useAppStore((s) => s.cart);
+    const session = useAppStore((s) => s.session);
 
     const [loginOpen, setLoginOpen] = useState(false);
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
-    const [convertNLOpen, setConvertNLOpen] = useState(false);
-    const [itemPacksOpen, setItemPacksOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -169,16 +167,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
     return (
       <>
-        <ConvertNLDialog
-          api={api}
-          open={convertNLOpen}
-          onOpenChange={setConvertNLOpen}
-        />
-        <ItemPacksDialog
-          open={itemPacksOpen}
-          onOpenChange={setItemPacksOpen}
-          session={session}
-        />
+        <ConvertNLDialog api={api} />
         <header className="flex items-center justify-between px-2 md:px-4 py-2 bg-gray-800 shadow relative">
           <div className="flex items-center gap-2 flex-shrink-0 pl-12 md:pl-0">
             <b className="logo-icon hidden md:block">
@@ -270,7 +259,9 @@ export const Topbar: React.FC<TopbarProps> = memo(
                 <button
                   type="button"
                   className="p-2 hover:bg-gray-700 rounded"
-                  onClick={() => setItemPacksOpen(true)}
+                  onClick={() =>
+                    useItemPacksDialogStore.getState().setOpen(true)
+                  }
                   title="Manage Item Packs"
                 >
                   <PackagePlus className="w-6 h-6 text-lime-400" />
@@ -316,7 +307,9 @@ export const Topbar: React.FC<TopbarProps> = memo(
                       <button
                         type="button"
                         className="bg-gray-700 hover:bg-gray-600 text-white rounded p-2 font-semibold flex items-center justify-center gap-2"
-                        onClick={() => setConvertNLOpen(true)}
+                        onClick={() =>
+                          useConvertNLDialogStore.getState().setOpen(true)
+                        }
                       >
                         <SwitchCamera className="w-4 h-4" />
                         Convert Ladder to NL

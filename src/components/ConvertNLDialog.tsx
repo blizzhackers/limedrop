@@ -11,14 +11,23 @@ import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { FixedSizeList } from "react-window";
 import { toast } from "sonner";
+import { create } from "zustand";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 
 interface ConvertNLDialogProps {
   api: D2BotAPI;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
+
+interface ConvertNLDialogStore {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+export const useConvertNLDialogStore = create<ConvertNLDialogStore>((set) => ({
+  open: false,
+  setOpen: (open) => set({ open }),
+}));
 
 interface AccountGroup {
   accountName: string;
@@ -228,14 +237,12 @@ const AccountGroup = memo(
 
 AccountGroup.displayName = "AccountGroup";
 
-export function ConvertNLDialog({
-  api,
-  open,
-  onOpenChange,
-}: ConvertNLDialogProps) {
+export function ConvertNLDialog({ api }: ConvertNLDialogProps) {
   const username = useAppStore((s) => s.username);
   const realm = useAppStore((s) => s.realm);
   const accountDataCache = useAppStore((s) => s.accountDataCache);
+  const open = useConvertNLDialogStore((s) => s.open);
+
   const [filterText, setFilterText] = useState("");
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(
     new Set(),
@@ -404,12 +411,15 @@ export function ConvertNLDialog({
       });
     } finally {
       setIsSubmitting(false);
-      onOpenChange(false);
+      useConvertNLDialogStore.getState().setOpen(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={useConvertNLDialogStore.getState().setOpen}
+    >
       <DialogContent className="bg-gray-900 border border-gray-700 text-white max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Convert Ladder to Non-Ladder</DialogTitle>

@@ -17,13 +17,10 @@ import {
 } from "./ui/drawer";
 import { ScrollArea } from "./ui/scroll-area";
 
-interface RecentDropsProps {
-  session: string | null;
-}
-
-export const RecentDrops: React.FC<RecentDropsProps> = memo(({ session }) => {
+export const RecentDrops: React.FC = memo(() => {
   const recentDropsOpen = useAppStore((s) => s.recentDropsOpen);
   const drops = useAppStore((s) => s.drops);
+  const session = useAppStore((s) => s.session);
 
   useEffect(() => {
     updateCachedDrops();

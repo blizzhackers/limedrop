@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { CartDrawer } from "@/components/CartDrawer";
 import { InventoryGrid } from "@/components/InventoryGrid";
-import { RecentDrops } from "@/components/RecentDrops";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { D2BotAPI } from "@/lib/D2Bot";
@@ -33,8 +32,8 @@ declare global {
 export default function App() {
   const apiUrl = useAppStore((s) => s.apiUrl);
   const username = useAppStore((s) => s.username);
+  const session = useAppStore((s) => s.session);
 
-  const [session, setSession] = useState<string | null>(null);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
@@ -49,7 +48,6 @@ export default function App() {
 
   const handleSignOut = useCallback(() => {
     workerRef.current?.terminate();
-    setSession(null);
     setAccountsToLoad([]);
     useAppStore.setState({
       password: "",
@@ -59,6 +57,7 @@ export default function App() {
       cart: [],
       selectedAccount: "Show All",
       selectedCharacter: "Show All",
+      session: null,
     });
     toast.success("Signed out successfully!");
   }, []);
@@ -402,13 +401,9 @@ export default function App() {
     >
       <Topbar
         api={api}
-        session={session}
         handleSignOut={handleSignOut}
-        setSession={setSession}
         fetchAccounts={fetchAccounts}
       />
-
-      <RecentDrops session={session} />
 
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         <Sidebar
