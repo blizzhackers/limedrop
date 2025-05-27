@@ -106,6 +106,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     return false;
                   }
                 }
+                if (f.sockets !== undefined && item.sockets !== f.sockets) {
+                  return false;
+                }
                 return true;
               });
               if (f.count !== undefined) {
