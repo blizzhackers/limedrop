@@ -613,7 +613,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             style={{ height: "86dvh", overflowY: "auto" }}
             className="bg-gray-900 rounded p-2"
           >
-            {inventory.length === 0 ? (
+            {filteredInventory.length === 0 ? (
               <div className="text-gray-400">No items found.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 p-1">
