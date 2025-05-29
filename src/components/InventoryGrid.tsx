@@ -258,8 +258,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
         style={{ minHeight: "80vh" }}
       >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <div className="flex items-center justify-between md:justify-start gap-2">
+        <div className="flex flex-row items-center justify-between gap-4 mb-4">
+          <div className="flex items-center justify-start gap-2">
             <h2 className="text-xl font-bold">Inventory</h2>
             {session && (
               <Button

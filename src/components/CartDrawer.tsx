@@ -58,7 +58,7 @@ const CartItemRow = memo(({ index, style, data }: ListChildComponentProps) => {
         )}
         <div className="flex-1">
           <div className="w-full text-left pb-1">
-            <div className="font-semibold text-sm line-clamp-4 overflow-hidden text-ellipsis">
+            <div className="font-semibold text-xs md:text-sm line-clamp-4 overflow-hidden text-ellipsis">
               {renderColorText(title)}
             </div>
             <div className="text-xs line-clamp-2 overflow-hidden text-ellipsis">
@@ -279,7 +279,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
       <Drawer direction="right" open={cartOpen} onOpenChange={setCartOpen}>
         <DrawerContent
           aria-describedby="cart-drawer"
-          className="min-w-lg max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col"
+          className="md:min-w-lg max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col"
         >
           <DrawerHeader className="flex items-center justify-between mb-4 p-0">
             <DrawerTitle className="text-2xl text-white font-bold">
