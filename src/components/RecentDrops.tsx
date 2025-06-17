@@ -3,7 +3,7 @@ import {
   setRecentDropsOpen,
   updateCachedDrops,
   useAppStore,
-} from "@/stores/useAppStore";
+} from "@/stores/appStore";
 import { X } from "lucide-react";
 import type React from "react";
 import { memo, useEffect } from "react";

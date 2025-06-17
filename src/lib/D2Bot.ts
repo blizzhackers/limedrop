@@ -144,7 +144,6 @@ export class D2BotAPI {
 
     // Get challenge, matching the original JS code flow
     const msg = await this.challenge();
-    console.debug(JSON.stringify(msg, null, 2));
     if (msg.status !== "success") {
       this.password = undefined;
       this.config.session = undefined;
@@ -353,7 +352,6 @@ export class D2BotAPI {
   async poll() {
     try {
       const response = await this.$get({ func: "poll", args: [] });
-      console.debug(JSON.stringify(response, null, 2));
       if (response.status === "success") {
         if (response.body === "empty") {
           // Return empty response object

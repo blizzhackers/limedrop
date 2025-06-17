@@ -6,28 +6,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { D2BotAPI } from "@/lib/D2Bot";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStore } from "@/stores/appStore";
+import { useConvertNLDialogStore } from "@/stores/convertNLDialogStore";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { FixedSizeList } from "react-window";
 import { toast } from "sonner";
-import { create } from "zustand";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 
 interface ConvertNLDialogProps {
   api: D2BotAPI;
 }
-
-interface ConvertNLDialogStore {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
-
-export const useConvertNLDialogStore = create<ConvertNLDialogStore>((set) => ({
-  open: false,
-  setOpen: (open) => set({ open }),
-}));
 
 interface AccountGroup {
   accountName: string;
@@ -254,7 +244,7 @@ export function ConvertNLDialog({ api }: ConvertNLDialogProps) {
 
   const accountGroups = useMemo(() => {
     const ladderCharacters = accountDataCache.filter(
-      (acc) => !acc.ladder && acc.realm === realm,
+      (acc) => acc.ladder && acc.realm === realm,
     );
 
     const filtered = filterText

@@ -9,7 +9,7 @@ import {
 import { getItemPacks } from "@/lib/itemPacksDb";
 import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
-import { setPacks, setQualityFilter, useAppStore } from "@/stores/useAppStore";
+import { setPacks, setQualityFilter, useAppStore } from "@/stores/appStore";
 import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";

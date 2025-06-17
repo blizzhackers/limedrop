@@ -249,6 +249,14 @@ export function handleClearDropsFromInvo() {
   const prevInvo = useAppStore.getState().inventory;
   const newInvo = prevInvo.filter((item) => !droppedIds.has(item.itemid));
   setInventory(newInvo);
+
+  const prevSearchResults = useAppStore.getState().searchResults;
+  if (prevSearchResults.length > 0) {
+    const newSearchResults = prevSearchResults.filter(
+      (item) => !droppedIds.has(item.itemid),
+    );
+    setSearchResults(newSearchResults);
+  }
 }
 
 export const cacheAccountItems = (account: string, items: InventoryItem[]) => {

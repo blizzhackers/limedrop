@@ -20,7 +20,7 @@ import {
   setSelectedAccount,
   setSelectedCharacter,
   useAppStore,
-} from "@/stores/useAppStore";
+} from "@/stores/appStore";
 import { MenuIcon, RefreshCw, XIcon } from "lucide-react";
 import type React from "react";
 import { memo, useMemo, useState } from "react";

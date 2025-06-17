@@ -1,6 +1,6 @@
 import { renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
-import { addToCart, removeFromCart, useAppStore } from "@/stores/useAppStore";
+import { addToCart, removeFromCart, useAppStore } from "@/stores/appStore";
 import type React from "react";
 import { memo } from "react";
 

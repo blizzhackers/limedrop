@@ -7,12 +7,12 @@ import {
 } from "@/lib/itemPacksDb";
 import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
-import { setPacks, useAppStore } from "@/stores/useAppStore";
+import { setPacks, useAppStore } from "@/stores/appStore";
+import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import { Edit2Icon, Trash2Icon, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { create } from "zustand";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -24,16 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-
-interface ItemPacksDialogStore {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
-
-export const useItemPacksDialogStore = create<ItemPacksDialogStore>((set) => ({
-  open: false,
-  setOpen: (open) => set({ open }),
-}));
 
 const ItemPacksDialog: React.FC = () => {
   const username = useAppStore((s) => s.username);

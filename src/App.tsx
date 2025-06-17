@@ -18,7 +18,7 @@ import {
   setInventory,
   setLoadingInventory,
   useAppStore,
-} from "@/stores/useAppStore";
+} from "@/stores/appStore";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { shallow } from "zustand/shallow";

@@ -19,7 +19,7 @@ import {
   setGameName,
   updateCachedDrops,
   useAppStore,
-} from "@/stores/useAppStore";
+} from "@/stores/appStore";
 import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -118,17 +118,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
         startPolling();
 
         for (const hash in drops) {
-          const GameInfo = {
-            hash,
-            profile: username,
-            action: "doDrop",
-            data: JSON.stringify({
-              gameName: value.gameName,
-              gamePass: value.gamePass,
-              items: drops[hash],
-            }),
-          };
-          await api.gameaction(GameInfo);
+          try {
+            const GameInfo = {
+              hash,
+              profile: username,
+              action: "doDrop",
+              data: JSON.stringify({
+                gameName: value.gameName,
+                gamePass: value.gamePass,
+                items: drops[hash],
+              }),
+            };
+            await api.gameaction(GameInfo);
+          } catch (err) {
+            console.error("Failed to send drop action", err);
+            toast.error("Drop Error", {
+              description: "Failed to send drop action, please try again.",
+            });
+          }
         }
 
         try {
