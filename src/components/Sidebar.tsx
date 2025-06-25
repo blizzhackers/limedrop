@@ -170,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-5 w-5"
+                  className="h-5 w-5 hover:text-lime-500"
                   onClick={() => fetchAccounts(session)}
                 >
                   <RefreshCw />

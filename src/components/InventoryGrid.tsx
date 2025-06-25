@@ -10,11 +10,23 @@ import { getItemPacks } from "@/lib/itemPacksDb";
 import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
 import { setPacks, setQualityFilter, useAppStore } from "@/stores/appStore";
-import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
+import {
+  ArrowUp,
+  ChevronsUpDown,
+  Filter,
+  Loader2,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InventoryCard } from "./InventoryCard";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
 import { Input } from "./ui/input";
 
 interface InventoryGridProps {
@@ -265,7 +277,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 md:h-5 md:w-5"
+                className="h-8 w-8 md:h-5 md:w-5 hover:text-lime-500"
                 onClick={refreshInvo}
                 aria-label="Refresh Inventory"
               >
@@ -311,7 +323,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         </div>
         {showAdvancedFilters && (
           <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col">
                   <label
@@ -360,6 +372,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
                 <div className="flex flex-col">
                   <label
                     htmlFor="item-class-select"
@@ -392,6 +407,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </Select>
                 </div>
               </div>
+
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col">
                   <label
@@ -425,6 +441,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
                 <div className="flex flex-col">
                   <label
                     htmlFor="runeword-select"
@@ -457,7 +476,10 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col flex-1">
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col">
                   <label
                     htmlFor="sockets-input"
                     className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
@@ -494,28 +516,43 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                 </div>
               </div>
             </div>
+
             <div className="flex flex-col mt-6">
-              <label
-                htmlFor="item-type-select"
-                className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-              >
-                Item Type
-              </label>
-              <div
-                id="item-type-select"
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2"
-              >
-                {Object.entries(sdk.items.type)
-                  .sort(([a], [b]) => naturalSort(a, b))
-                  .map(([name, val]) => (
-                    <ItemTypeCheckbox
-                      key={val}
-                      name={name}
-                      checked={itemTypeFilter.has(Number(val))}
-                      onChange={handleItemTypeChange(Number(val))}
-                    />
-                  ))}
-              </div>
+              <Collapsible defaultOpen>
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="item-type-select"
+                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                  >
+                    Item Type
+                  </label>
+
+                  <CollapsibleTrigger
+                    className="flex items-center gap-1 text-gray-400 hover:text-gray-300 cursor-pointer"
+                    aria-label="Toggle Item Types"
+                  >
+                    <ChevronsUpDown className="w-4 h-4" />
+                  </CollapsibleTrigger>
+                </div>
+
+                <CollapsibleContent>
+                  <div
+                    id="item-type-select"
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2"
+                  >
+                    {Object.entries(sdk.items.type)
+                      .sort(([a], [b]) => naturalSort(a, b))
+                      .map(([name, val]) => (
+                        <ItemTypeCheckbox
+                          key={val}
+                          name={name}
+                          checked={itemTypeFilter.has(Number(val))}
+                          onChange={handleItemTypeChange(Number(val))}
+                        />
+                      ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
             <div className="mt-2 flex items-center gap-2">
@@ -619,7 +656,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             {filteredInventory.length === 0 ? (
               <div className="text-gray-400">No items found.</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 p-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-1">
                 {pageItems.map((item, idx) => (
                   <InventoryCard key={item.itemid || idx} item={item} />
                 ))}

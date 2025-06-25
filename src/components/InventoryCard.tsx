@@ -56,7 +56,7 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
           {item.account} / {item.character}
         </span>
         <span className="ml-2 text-gray-500 whitespace-nowrap">
-          {item.itemid}
+          {item.itemid.split(":")[0]}
         </span>
       </div>
       {inCart && (

@@ -29,6 +29,9 @@ export interface ApiItemResponse {
 
 interface GameActionData {
   hash: string;
+  profile: string;
+  action: string;
+  data: string;
   [key: string]: unknown;
 }
 
