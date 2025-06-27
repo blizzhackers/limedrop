@@ -1,33 +1,11 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { getItemPacks } from "@/lib/itemPacksDb";
-import { sdk } from "@/lib/sdk";
-import { naturalSort } from "@/lib/utils";
-import { setPacks, setQualityFilter, useAppStore } from "@/stores/appStore";
-import {
-  ArrowUp,
-  ChevronsUpDown,
-  Filter,
-  Loader2,
-  RefreshCw,
-  X,
-} from "lucide-react";
+import { setPacks, useAppStore } from "@/stores/appStore";
+import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AdvancedFilters } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
-import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
-import { Input } from "./ui/input";
 
 interface InventoryGridProps {
   session: string | null;
@@ -247,17 +225,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       setShowAdvancedFilters((v) => !v);
     }
 
-    const handleItemTypeChange = useCallback(
-      (val: number) => (checked: boolean) => {
-        setItemTypeFilter((prev) => {
-          const next = new Set(prev);
-          checked ? next.add(val) : next.delete(val);
-          return next;
-        });
-      },
-      [],
-    );
-
     const filtersActive =
       qualityFilter !== null ||
       itemClassFilter !== null ||
@@ -322,294 +289,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           </div>
         </div>
         {showAdvancedFilters && (
-          <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col">
-                  <label
-                    htmlFor="quality-select"
-                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                  >
-                    Quality
-                  </label>
-                  <Select
-                    value={
-                      qualityFilter !== null ? String(qualityFilter) : "all"
-                    }
-                    onValueChange={(v) =>
-                      setQualityFilter(v === "all" ? null : Number(v))
-                    }
-                  >
-                    <SelectTrigger
-                      id="quality-select"
-                      className="w-full bg-gray-900 border border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border border-gray-700 text-white">
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Normal)}>
-                        Normal
-                      </SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Superior)}>
-                        Superior
-                      </SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Magic)}>
-                        Magic
-                      </SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Rare)}>
-                        Rare
-                      </SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Set)}>
-                        Set
-                      </SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Unique)}>
-                        Unique
-                      </SelectItem>
-                      <SelectItem value={String(sdk.items.quality.Crafted)}>
-                        Crafted
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col">
-                  <label
-                    htmlFor="item-class-select"
-                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                  >
-                    Item Class
-                  </label>
-                  <Select
-                    value={
-                      itemClassFilter !== null ? String(itemClassFilter) : "all"
-                    }
-                    onValueChange={(v) =>
-                      setItemClassFilter(v === "all" ? null : Number(v))
-                    }
-                  >
-                    <SelectTrigger
-                      id="item-class-select"
-                      className="w-full bg-gray-900 border border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Item Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Classes</SelectItem>
-                      {Object.entries(sdk.items.class).map(([name, val]) => (
-                        <SelectItem key={val} value={String(val)}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col">
-                  <label
-                    htmlFor="ethereal-select"
-                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                  >
-                    Ethereal
-                  </label>
-                  <Select
-                    value={
-                      etherealFilter === null
-                        ? "all"
-                        : etherealFilter
-                          ? "yes"
-                          : "no"
-                    }
-                    onValueChange={(v) =>
-                      setEtherealFilter(v === "all" ? null : v === "yes")
-                    }
-                  >
-                    <SelectTrigger
-                      id="ethereal-select"
-                      className="w-full bg-gray-900 border border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Ethereal" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any</SelectItem>
-                      <SelectItem value="yes">Ethereal</SelectItem>
-                      <SelectItem value="no">Non-Eth</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col">
-                  <label
-                    htmlFor="runeword-select"
-                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                  >
-                    Runeword
-                  </label>
-                  <Select
-                    value={
-                      runewordFilter === null
-                        ? "all"
-                        : runewordFilter
-                          ? "yes"
-                          : "no"
-                    }
-                    onValueChange={(v) =>
-                      setRunewordFilter(v === "all" ? null : v === "yes")
-                    }
-                  >
-                    <SelectTrigger
-                      id="runeword-select"
-                      className="w-full bg-gray-900 border border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Runeword" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any</SelectItem>
-                      <SelectItem value="yes">Runeword</SelectItem>
-                      <SelectItem value="no">Non-RW</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col">
-                  <label
-                    htmlFor="sockets-input"
-                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                  >
-                    Sockets
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="sockets-input"
-                      type="number"
-                      className="bg-gray-900 text-white"
-                      min={0}
-                      max={6}
-                      value={socketFilter ?? ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSocketFilter(val === "" ? null : Number(val));
-                      }}
-                      placeholder="Sockets"
-                    />
-                    {socketFilter !== null && (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => setSocketFilter(null)}
-                        title="Clear Sockets Filter"
-                      >
-                        <X />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col mt-6">
-              <Collapsible defaultOpen>
-                <div className="flex items-center justify-between">
-                  <label
-                    htmlFor="item-type-select"
-                    className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                  >
-                    Item Type
-                  </label>
-
-                  <CollapsibleTrigger
-                    className="flex items-center gap-1 text-gray-400 hover:text-gray-300 cursor-pointer"
-                    aria-label="Toggle Item Types"
-                  >
-                    <ChevronsUpDown className="w-4 h-4" />
-                  </CollapsibleTrigger>
-                </div>
-
-                <CollapsibleContent>
-                  <div
-                    id="item-type-select"
-                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2"
-                  >
-                    {Object.entries(sdk.items.type)
-                      .sort(([a], [b]) => naturalSort(a, b))
-                      .map(([name, val]) => (
-                        <ItemTypeCheckbox
-                          key={val}
-                          name={name}
-                          checked={itemTypeFilter.has(Number(val))}
-                          onChange={handleItemTypeChange(Number(val))}
-                        />
-                      ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
-
-            <div className="mt-2 flex items-center gap-2">
-              <label
-                htmlFor="item-pack-select"
-                className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-              >
-                Item Pack
-              </label>
-              <Select
-                value={
-                  activeItemPackId !== null ? String(activeItemPackId) : "none"
-                }
-                onValueChange={(v) =>
-                  setActiveItemPackId(v !== "none" ? Number(v) : null)
-                }
-              >
-                <SelectTrigger
-                  id="item-pack-select"
-                  className="w-full bg-gray-900 border border-gray-700 text-white"
-                >
-                  <SelectValue placeholder="-- No Pack --" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">-- No Pack --</SelectItem>
-                  {itemPacks.map((pack) => (
-                    <SelectItem key={pack.id} value={String(pack.id)}>
-                      {pack.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {activeItemPackId !== null && (
-                <div className="flex items-center gap-1 ml-2">
-                  <label
-                    htmlFor="item-pack-multiplier"
-                    className="text-xs text-gray-300"
-                  >
-                    x
-                  </label>
-                  <input
-                    id="item-pack-multiplier"
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={itemPackMultiplier}
-                    onChange={(e) =>
-                      setItemPackMultiplier(
-                        Math.max(1, Math.min(20, Number(e.target.value) || 1)),
-                      )
-                    }
-                    className="w-12 px-1 py-0.5 rounded bg-gray-900 border border-gray-700 text-white text-center text-xs"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          <AdvancedFilters
+            itemClassFilter={itemClassFilter}
+            setItemClassFilter={setItemClassFilter}
+            itemTypeFilter={itemTypeFilter}
+            setItemTypeFilter={setItemTypeFilter}
+            etherealFilter={etherealFilter}
+            setEtherealFilter={setEtherealFilter}
+            runewordFilter={runewordFilter}
+            setRunewordFilter={setRunewordFilter}
+            socketFilter={socketFilter}
+            setSocketFilter={setSocketFilter}
+            activeItemPackId={activeItemPackId}
+            setActiveItemPackId={setActiveItemPackId}
+            itemPackMultiplier={itemPackMultiplier}
+            setItemPackMultiplier={setItemPackMultiplier}
+          />
         )}
         {session && filteredInventory.length > 0 && (
           <div className="flex items-center gap-2 mb-2">
