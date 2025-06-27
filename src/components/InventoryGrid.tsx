@@ -24,6 +24,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const qualityFilter = useAppStore((s) => s.qualityFilter);
     const fullyLoaded = useAppStore((s) => s.fullyLoaded);
     const itemPacks = useAppStore((s) => s.packs);
+    const gameType = useAppStore((s) => s.gameType);
+    const gameMode = useAppStore((s) => s.gameMode);
+    const gameClass = useAppStore((s) => s.gameClass);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showBackToTop, setShowBackToTop] = useState(false);
@@ -115,6 +118,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         }
       }
       return base.filter((item) => {
+        if (gameType === "Classic" && item.lod) return false;
+        if (gameMode === "Hardcore" && item.sc) return false;
+        if (gameClass === "Ladder" && !item.ladder) return false;
         if (
           selectedAccount !== "Show All" &&
           item.account !== selectedAccount
@@ -162,6 +168,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       itemPacks,
       itemPackMultiplier,
       socketFilter,
+      gameType,
+      gameMode,
+      gameClass,
     ]);
 
     const PAGE_SIZE = 100;
