@@ -1,3 +1,4 @@
+import { NTIPAliasStat } from "@/lib/NTItemAlias";
 import {
   type ItemPackFilter,
   addItemPack,
@@ -9,9 +10,9 @@ import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
-import { Edit2Icon, Trash2Icon, X } from "lucide-react";
+import { Edit2Icon, Plus, Search, Trash2Icon, X } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 import { Button } from "./ui/button";
@@ -47,6 +48,35 @@ const ItemPacksDialog: React.FC = () => {
   const [editStatIdx, setEditStatIdx] = useState<number | null>(null);
   const [statEditIdx, setStatEditIdx] = useState<number | null>(null);
 
+  // V2 Item filters
+  const [ilvlFilter, setIlvlFilter] = useState<number | null>(null);
+  const [ilvlComparison, setIlvlComparison] = useState<"gte" | "lte" | "eq">(
+    "gte",
+  );
+  const [levelReqFilter, setLevelReqFilter] = useState<number | null>(null);
+  const [levelReqComparison, setLevelReqComparison] = useState<
+    "gte" | "lte" | "eq"
+  >("lte");
+  const [itemCodeFilter, setItemCodeFilter] = useState("");
+  const [statFilters, setStatFilters] = useState<
+    Array<{
+      id: string;
+      stat: string;
+      comparison: "gte" | "lte" | "eq";
+      value: number;
+    }>
+  >([]);
+  const [statSearch, setStatSearch] = useState("");
+  const [newStatFilter, setNewStatFilter] = useState<{
+    stat: string;
+    comparison: "gte" | "lte" | "eq";
+    value: string;
+  }>({
+    stat: "",
+    comparison: "gte",
+    value: "",
+  });
+
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
@@ -72,6 +102,34 @@ const ItemPacksDialog: React.FC = () => {
       });
     },
     [],
+  );
+
+  const availableStats = useMemo(() => {
+    return Object.keys(NTIPAliasStat)
+      .filter((name) => name.toLowerCase().includes(statSearch.toLowerCase()))
+      .sort((a, b) => naturalSort(a, b));
+  }, [statSearch]);
+
+  const handleAddStatFilter = useCallback(() => {
+    if (!newStatFilter.stat || newStatFilter.value === "") return;
+
+    const filter = {
+      id: `${Date.now()}-${Math.random()}`,
+      stat: newStatFilter.stat,
+      comparison: newStatFilter.comparison,
+      value: Number(newStatFilter.value),
+    };
+
+    setStatFilters([...statFilters, filter]);
+    setNewStatFilter({ stat: "", comparison: "gte", value: "" });
+    setStatSearch("");
+  }, [newStatFilter, statFilters]);
+
+  const handleRemoveStatFilter = useCallback(
+    (id: string) => {
+      setStatFilters(statFilters.filter((f) => f.id !== id));
+    },
+    [statFilters],
   );
 
   useEffect(() => {
@@ -100,6 +158,13 @@ const ItemPacksDialog: React.FC = () => {
     setRunewordFilter(null);
     setSockets(null);
     setCount(null);
+    // V2 filters
+    setIlvlFilter(null);
+    setIlvlComparison("gte");
+    setLevelReqFilter(null);
+    setLevelReqComparison("lte");
+    setItemCodeFilter("");
+    setStatFilters([]);
   };
 
   const handleAddStat = () => {
@@ -149,6 +214,23 @@ const ItemPacksDialog: React.FC = () => {
     if (sockets !== null) filter.sockets = sockets;
     if (count !== null) filter.count = count;
     if (stats.length > 0) filter.stats = [...stats];
+    // V2 filters
+    if (ilvlFilter !== null) {
+      filter.ilvl = ilvlFilter;
+      filter.ilvlComparison = ilvlComparison;
+    }
+    if (levelReqFilter !== null) {
+      filter.levelReq = levelReqFilter;
+      filter.levelReqComparison = levelReqComparison;
+    }
+    if (itemCodeFilter.trim()) filter.itemCode = itemCodeFilter.trim();
+    if (statFilters.length > 0) {
+      filter.statFilters = statFilters.map(({ stat, comparison, value }) => ({
+        stat,
+        comparison,
+        value,
+      }));
+    }
     return filter;
   };
 
@@ -196,6 +278,18 @@ const ItemPacksDialog: React.FC = () => {
     setSockets(f.sockets ?? null);
     setCount(f.count ?? null);
     setStats(f.stats ?? []);
+    // V2 filters
+    setIlvlFilter(f.ilvl ?? null);
+    setIlvlComparison(f.ilvlComparison ?? "gte");
+    setLevelReqFilter(f.levelReq ?? null);
+    setLevelReqComparison(f.levelReqComparison ?? "lte");
+    setItemCodeFilter(f.itemCode ?? "");
+    setStatFilters(
+      (f.statFilters ?? []).map((sf, i) => ({
+        id: `${Date.now()}-${i}`,
+        ...sf,
+      })),
+    );
     setEditFilterIdx(idx);
   };
 
@@ -726,6 +820,282 @@ const ItemPacksDialog: React.FC = () => {
                       onChange={handleCountChange}
                       placeholder="Count"
                     />
+                  </div>
+                </div>
+
+                {/* V2 Item Filters */}
+                <div className="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-gray-600">
+                  <h3 className="text-sm font-semibold text-lime-400 mb-3">
+                    V2 Item Filters (Enhanced Data)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col">
+                      <label
+                        htmlFor="ilvl-filter"
+                        className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                      >
+                        Item Level
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={ilvlComparison}
+                          onValueChange={(v) =>
+                            setIlvlComparison(v as "gte" | "lte" | "eq")
+                          }
+                        >
+                          <SelectTrigger className="w-16 bg-gray-900 border border-gray-700 text-white px-2">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gte">≥</SelectItem>
+                            <SelectItem value="lte">≤</SelectItem>
+                            <SelectItem value="eq">=</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="ilvl-filter"
+                          type="number"
+                          className="bg-gray-900 text-white flex-1"
+                          min={0}
+                          max={99}
+                          value={ilvlFilter ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setIlvlFilter(val === "" ? null : Number(val));
+                          }}
+                          placeholder="ilvl"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <label
+                        htmlFor="levelreq-filter"
+                        className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                      >
+                        Level Requirement
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={levelReqComparison}
+                          onValueChange={(v) =>
+                            setLevelReqComparison(v as "gte" | "lte" | "eq")
+                          }
+                        >
+                          <SelectTrigger className="w-16 bg-gray-900 border border-gray-700 text-white px-2">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gte">≥</SelectItem>
+                            <SelectItem value="lte">≤</SelectItem>
+                            <SelectItem value="eq">=</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="levelreq-filter"
+                          type="number"
+                          className="bg-gray-900 text-white flex-1"
+                          min={0}
+                          max={99}
+                          value={levelReqFilter ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLevelReqFilter(val === "" ? null : Number(val));
+                          }}
+                          placeholder="lvl req"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col md:col-span-2">
+                      <label
+                        htmlFor="itemcode-filter"
+                        className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                      >
+                        Item Code
+                      </label>
+                      <Input
+                        id="itemcode-filter"
+                        type="text"
+                        className="bg-gray-900 text-white"
+                        value={itemCodeFilter}
+                        onChange={(e) => setItemCodeFilter(e.target.value)}
+                        placeholder="e.g. umc, amu"
+                      />
+                    </div>
+
+                    {/* Stat Filters */}
+                    <div className="flex flex-col md:col-span-2 mt-4">
+                      <div className="text-xs xl:text-base mb-1 text-gray-300 font-semibold">
+                        Item Stats{" "}
+                        {statFilters.length > 0 && `(${statFilters.length})`}
+                      </div>
+
+                      {/* Active Stat Filters */}
+                      {statFilters.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          {statFilters.map((filter) => (
+                            <div
+                              key={filter.id}
+                              className="flex items-center gap-2 bg-gray-800 p-2 rounded border border-gray-700"
+                            >
+                              <span className="text-sm text-gray-300 flex-1">
+                                <span className="font-semibold text-lime-400">
+                                  {filter.stat}
+                                </span>{" "}
+                                <span className="text-gray-400">
+                                  {filter.comparison === "gte"
+                                    ? "≥"
+                                    : filter.comparison === "lte"
+                                      ? "≤"
+                                      : "="}
+                                </span>{" "}
+                                <span className="font-mono">
+                                  {filter.value}
+                                </span>
+                              </span>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 hover:text-red-400"
+                                onClick={() =>
+                                  handleRemoveStatFilter(filter.id)
+                                }
+                                title="Remove stat filter"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add New Stat Filter */}
+                      <div className="bg-gray-800 p-3 rounded border border-gray-700">
+                        <div className="flex flex-col gap-2">
+                          {/* Stat Search/Select */}
+                          <div className="flex flex-col gap-1">
+                            <label
+                              htmlFor="stat-search-input-pack"
+                              className="text-xs text-gray-400"
+                            >
+                              Stat Name
+                            </label>
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <Input
+                                id="stat-search-input-pack"
+                                type="text"
+                                placeholder="Search stats (e.g., fireresist, strength)..."
+                                value={newStatFilter.stat}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setStatSearch(value);
+                                  setNewStatFilter({
+                                    ...newStatFilter,
+                                    stat: value,
+                                  });
+                                }}
+                                className="pl-8 bg-gray-900 border-gray-700 text-white text-sm"
+                              />
+                            </div>
+                            {statSearch &&
+                              availableStats.length > 0 &&
+                              newStatFilter.stat === statSearch && (
+                                <div className="max-h-40 overflow-y-auto bg-gray-900 border border-gray-700 rounded">
+                                  {availableStats.slice(0, 10).map((stat) => (
+                                    <button
+                                      key={stat}
+                                      type="button"
+                                      onClick={() => {
+                                        setNewStatFilter({
+                                          ...newStatFilter,
+                                          stat,
+                                        });
+                                        setStatSearch("");
+                                      }}
+                                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-700 text-gray-300 hover:text-white"
+                                    >
+                                      {stat}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                          </div>
+
+                          {/* Comparison and Value */}
+                          <div className="flex items-end gap-2">
+                            <div className="flex flex-col gap-1 flex-1">
+                              <label
+                                htmlFor="stat-comparison-select-pack"
+                                className="text-xs text-gray-400"
+                              >
+                                Comparison
+                              </label>
+                              <Select
+                                value={newStatFilter.comparison}
+                                onValueChange={(v) =>
+                                  setNewStatFilter({
+                                    ...newStatFilter,
+                                    comparison: v as "gte" | "lte" | "eq",
+                                  })
+                                }
+                              >
+                                <SelectTrigger
+                                  id="stat-comparison-select-pack"
+                                  className="bg-gray-900 border-gray-700 text-white"
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="gte">
+                                    ≥ (Greater or Equal)
+                                  </SelectItem>
+                                  <SelectItem value="lte">
+                                    ≤ (Less or Equal)
+                                  </SelectItem>
+                                  <SelectItem value="eq">= (Equal)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="flex flex-col gap-1 flex-1">
+                              <label
+                                htmlFor="stat-value-input-pack"
+                                className="text-xs text-gray-400"
+                              >
+                                Value
+                              </label>
+                              <Input
+                                id="stat-value-input-pack"
+                                type="number"
+                                placeholder="Value"
+                                value={newStatFilter.value}
+                                onChange={(e) =>
+                                  setNewStatFilter({
+                                    ...newStatFilter,
+                                    value: e.target.value,
+                                  })
+                                }
+                                className="bg-gray-900 border-gray-700 text-white"
+                              />
+                            </div>
+
+                            <Button
+                              type="button"
+                              onClick={handleAddStatFilter}
+                              disabled={
+                                !newStatFilter.stat ||
+                                newStatFilter.value === ""
+                              }
+                              className="bg-lime-600 hover:bg-lime-700 text-white"
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
