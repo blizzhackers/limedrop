@@ -5,8 +5,6 @@ import {
   getItemPacks,
   updateItemPack,
 } from "@/lib/itemPacksDb";
-import { sdk } from "@/lib/sdk";
-import { naturalSort } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import { useForm } from "@tanstack/react-form";
@@ -14,7 +12,16 @@ import { Edit2Icon, Trash2Icon, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
+import {
+  EtherealFilterField,
+  ItemClassFilterField,
+  ItemCodeFilterField,
+  ItemTypesSelector,
+  NumericFilterWithComparison,
+  QualityFilterField,
+  RunewordFilterField,
+  SocketsFilterField,
+} from "./FilterFields";
 import { type StatFilter, StatFilterBuilder } from "./StatFilterBuilder";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -145,16 +152,6 @@ const ItemPacksDialog: React.FC = () => {
       }
     }
   }, [selectedPackId, packs, filterForm, packForm]);
-
-  const handleItemTypeChange = useCallback(
-    (val: number) => (checked: boolean) => {
-      const current = filterForm.getFieldValue("itemTypeFilter");
-      const next = new Set(current);
-      checked ? next.add(val) : next.delete(val);
-      filterForm.setFieldValue("itemTypeFilter", next);
-    },
-    [filterForm],
-  );
 
   useEffect(() => {
     if (open && session) {
@@ -296,17 +293,14 @@ const ItemPacksDialog: React.FC = () => {
   };
 
   const handleQualityChange = useCallback(
-    (v: string) => {
-      filterForm.setFieldValue("qualityFilter", v === "all" ? null : Number(v));
+    (value: number | null) => {
+      filterForm.setFieldValue("qualityFilter", value);
     },
     [filterForm],
   );
   const handleItemClassChange = useCallback(
-    (v: string) => {
-      filterForm.setFieldValue(
-        "itemClassFilter",
-        v === "all" ? null : Number(v),
-      );
+    (value: number | null) => {
+      filterForm.setFieldValue("itemClassFilter", value);
     },
     [filterForm],
   );
@@ -329,20 +323,14 @@ const ItemPacksDialog: React.FC = () => {
     [filterForm],
   );
   const handleEtherealChange = useCallback(
-    (v: string) => {
-      filterForm.setFieldValue(
-        "etherealFilter",
-        v === "all" ? null : v === "yes",
-      );
+    (value: boolean | null) => {
+      filterForm.setFieldValue("etherealFilter", value);
     },
     [filterForm],
   );
   const handleRunewordChange = useCallback(
-    (v: string) => {
-      filterForm.setFieldValue(
-        "runewordFilter",
-        v === "all" ? null : v === "yes",
-      );
+    (value: boolean | null) => {
+      filterForm.setFieldValue("runewordFilter", value);
     },
     [filterForm],
   );
@@ -675,167 +663,46 @@ const ItemPacksDialog: React.FC = () => {
                 <div className="flex flex-col gap-4">
                   <filterForm.Field name="qualityFilter">
                     {(field) => (
-                      <div className="flex flex-col">
-                        <label
-                          htmlFor="quality-select"
-                          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                        >
-                          Quality
-                        </label>
-                        <Select
-                          value={
-                            field.state.value !== null
-                              ? String(field.state.value)
-                              : "all"
-                          }
-                          onValueChange={handleQualityChange}
-                        >
-                          <SelectTrigger
-                            id="quality-select"
-                            className="w-full bg-gray-900 border border-gray-700 text-white"
-                          >
-                            <SelectValue placeholder="All" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-gray-900 border border-gray-700 text-white">
-                            <SelectItem value="all">All</SelectItem>
-                            {Object.entries(sdk.items.quality).map(
-                              ([label, value]) => (
-                                <SelectItem key={value} value={String(value)}>
-                                  {label}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <QualityFilterField
+                        value={field.state.value}
+                        onValueChange={handleQualityChange}
+                      />
                     )}
                   </filterForm.Field>
                   <filterForm.Field name="itemClassFilter">
                     {(field) => (
-                      <div className="flex flex-col">
-                        <label
-                          htmlFor="item-class-select"
-                          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                        >
-                          Item Class
-                        </label>
-                        <Select
-                          value={
-                            field.state.value !== null
-                              ? String(field.state.value)
-                              : "all"
-                          }
-                          onValueChange={handleItemClassChange}
-                        >
-                          <SelectTrigger
-                            id="item-class-select"
-                            className="w-full bg-gray-900 border border-gray-700 text-white"
-                          >
-                            <SelectValue placeholder="Item Class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Classes</SelectItem>
-                            {Object.entries(sdk.items.class).map(
-                              ([label, value]) => (
-                                <SelectItem key={value} value={String(value)}>
-                                  {label}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <ItemClassFilterField
+                        value={field.state.value}
+                        onValueChange={handleItemClassChange}
+                      />
                     )}
                   </filterForm.Field>
                 </div>
                 <div className="flex flex-col gap-4">
                   <filterForm.Field name="etherealFilter">
                     {(field) => (
-                      <div className="flex flex-col">
-                        <label
-                          htmlFor="ethereal-select"
-                          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                        >
-                          Ethereal
-                        </label>
-                        <Select
-                          value={
-                            field.state.value === null
-                              ? "all"
-                              : field.state.value
-                                ? "yes"
-                                : "no"
-                          }
-                          onValueChange={handleEtherealChange}
-                        >
-                          <SelectTrigger
-                            id="ethereal-select"
-                            className="w-full bg-gray-900 border border-gray-700 text-white"
-                          >
-                            <SelectValue placeholder="Ethereal" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Any</SelectItem>
-                            <SelectItem value="yes">Ethereal</SelectItem>
-                            <SelectItem value="no">Non-Eth</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <EtherealFilterField
+                        value={field.state.value}
+                        onValueChange={handleEtherealChange}
+                      />
                     )}
                   </filterForm.Field>
                   <filterForm.Field name="runewordFilter">
                     {(field) => (
-                      <div className="flex flex-col">
-                        <label
-                          htmlFor="runeword-select"
-                          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                        >
-                          Runeword
-                        </label>
-                        <Select
-                          value={
-                            field.state.value === null
-                              ? "all"
-                              : field.state.value
-                                ? "yes"
-                                : "no"
-                          }
-                          onValueChange={handleRunewordChange}
-                        >
-                          <SelectTrigger
-                            id="runeword-select"
-                            className="w-full bg-gray-900 border border-gray-700 text-white"
-                          >
-                            <SelectValue placeholder="Runeword" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Any</SelectItem>
-                            <SelectItem value="yes">Runeword</SelectItem>
-                            <SelectItem value="no">Non-RW</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <RunewordFilterField
+                        value={field.state.value}
+                        onValueChange={handleRunewordChange}
+                      />
                     )}
                   </filterForm.Field>
                 </div>
                 <div className="col-span-1 md:col-span-2 flex flex-row gap-4">
                   <filterForm.Field name="sockets">
                     {(field) => (
-                      <div className="flex flex-col flex-1">
-                        <label
-                          htmlFor="sockets-input"
-                          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                        >
-                          Sockets
-                        </label>
-                        <Input
-                          id="sockets-input"
-                          type="number"
-                          className="bg-gray-900 text-white"
-                          min={0}
-                          value={field.state.value ?? ""}
+                      <div className="flex-1">
+                        <SocketsFilterField
+                          value={field.state.value}
                           onChange={handleSocketsChange}
-                          placeholder="Sockets"
                         />
                       </div>
                     )}
@@ -870,135 +737,69 @@ const ItemPacksDialog: React.FC = () => {
                     V2 Item Filters (Enhanced Data)
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <filterForm.Field name="ilvlFilter">
-                      {(field) => (
-                        <div className="flex flex-col">
-                          <label
-                            htmlFor="ilvl-filter"
-                            className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                          >
-                            Item Level
-                          </label>
-                          <div className="flex items-center gap-1">
-                            <filterForm.Field name="ilvlComparison">
-                              {(compField) => (
-                                <Select
-                                  value={compField.state.value}
-                                  onValueChange={(v) =>
-                                    filterForm.setFieldValue(
-                                      "ilvlComparison",
-                                      v as "gte" | "lte" | "eq",
-                                    )
-                                  }
-                                >
-                                  <SelectTrigger className="w-16 bg-gray-900 border border-gray-700 text-white px-2">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="gte">≥</SelectItem>
-                                    <SelectItem value="lte">≤</SelectItem>
-                                    <SelectItem value="eq">=</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </filterForm.Field>
-                            <Input
-                              id="ilvl-filter"
-                              type="number"
-                              className="bg-gray-900 text-white flex-1"
-                              min={0}
-                              max={99}
-                              value={field.state.value ?? ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                filterForm.setFieldValue(
-                                  "ilvlFilter",
-                                  val === "" ? null : Number(val),
-                                );
-                              }}
-                              placeholder="ilvl"
-                            />
-                          </div>
-                        </div>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        ilvlFilter: state.values.ilvlFilter,
+                        ilvlComparison: state.values.ilvlComparison,
+                      })}
+                    >
+                      {({ ilvlFilter, ilvlComparison }) => (
+                        <NumericFilterWithComparison
+                          id="ilvl-filter"
+                          label="Item Level"
+                          value={ilvlFilter}
+                          comparison={ilvlComparison}
+                          onValueChange={(val) =>
+                            filterForm.setFieldValue("ilvlFilter", val)
+                          }
+                          onComparisonChange={(val) =>
+                            filterForm.setFieldValue("ilvlComparison", val)
+                          }
+                          placeholder="ilvl"
+                        />
                       )}
-                    </filterForm.Field>
-                    <filterForm.Field name="levelReqFilter">
-                      {(field) => (
-                        <div className="flex flex-col">
-                          <label
-                            htmlFor="levelreq-filter"
-                            className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                          >
-                            Level Requirement
-                          </label>
-                          <div className="flex items-center gap-1">
-                            <filterForm.Field name="levelReqComparison">
-                              {(compField) => (
-                                <Select
-                                  value={compField.state.value}
-                                  onValueChange={(v) =>
-                                    filterForm.setFieldValue(
-                                      "levelReqComparison",
-                                      v as "gte" | "lte" | "eq",
-                                    )
-                                  }
-                                >
-                                  <SelectTrigger className="w-16 bg-gray-900 border border-gray-700 text-white px-2">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="gte">≥</SelectItem>
-                                    <SelectItem value="lte">≤</SelectItem>
-                                    <SelectItem value="eq">=</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </filterForm.Field>
-                            <Input
-                              id="levelreq-filter"
-                              type="number"
-                              className="bg-gray-900 text-white flex-1"
-                              min={0}
-                              max={99}
-                              value={field.state.value ?? ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                filterForm.setFieldValue(
-                                  "levelReqFilter",
-                                  val === "" ? null : Number(val),
-                                );
-                              }}
-                              placeholder="lvl req"
-                            />
-                          </div>
-                        </div>
+                    </filterForm.Subscribe>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        levelReqFilter: state.values.levelReqFilter,
+                        levelReqComparison: state.values.levelReqComparison,
+                      })}
+                    >
+                      {({ levelReqFilter, levelReqComparison }) => (
+                        <NumericFilterWithComparison
+                          id="levelreq-filter"
+                          label="Level Requirement"
+                          value={levelReqFilter}
+                          comparison={levelReqComparison}
+                          onValueChange={(val) =>
+                            filterForm.setFieldValue("levelReqFilter", val)
+                          }
+                          onComparisonChange={(val) =>
+                            filterForm.setFieldValue("levelReqComparison", val)
+                          }
+                          placeholder="lvl req"
+                        />
                       )}
-                    </filterForm.Field>
-                    <filterForm.Field name="itemCodeFilter">
-                      {(field) => (
-                        <div className="flex flex-col md:col-span-2">
-                          <label
-                            htmlFor="itemcode-filter"
-                            className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                          >
-                            Item Code
-                          </label>
-                          <Input
+                    </filterForm.Subscribe>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        itemCodeFilter: state.values.itemCodeFilter,
+                      })}
+                    >
+                      {({ itemCodeFilter }) => (
+                        <div className="md:col-span-2">
+                          <ItemCodeFilterField
                             id="itemcode-filter"
-                            type="text"
-                            className="bg-gray-900 text-white"
-                            value={field.state.value}
-                            onChange={(e) =>
-                              filterForm.setFieldValue(
-                                "itemCodeFilter",
-                                e.target.value,
-                              )
+                            label="Item Code"
+                            value={itemCodeFilter}
+                            onValueChange={(val) =>
+                              filterForm.setFieldValue("itemCodeFilter", val)
                             }
-                            placeholder="e.g. umc, amu"
+                            showClearButton={false}
                           />
                         </div>
                       )}
-                    </filterForm.Field>
+                    </filterForm.Subscribe>
 
                     {/* Stat Filters */}
                     <filterForm.Field name="statFilters">
@@ -1018,33 +819,32 @@ const ItemPacksDialog: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <filterForm.Field name="itemTypeFilter">
-                {(field) => (
-                  <div className="flex flex-col mt-6">
-                    <label
-                      htmlFor="item-type-select"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                    >
-                      Item Type
-                    </label>
-                    <div
+              <filterForm.Subscribe
+                selector={(state) => ({
+                  itemTypeFilter: state.values.itemTypeFilter,
+                })}
+              >
+                {({ itemTypeFilter }) => (
+                  <div className="mt-6">
+                    <ItemTypesSelector
                       id="item-type-select"
-                      className="text-white grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2"
-                    >
-                      {Object.entries(sdk.items.type)
-                        .sort(([a], [b]) => naturalSort(a, b))
-                        .map(([name, val]) => (
-                          <ItemTypeCheckbox
-                            key={val}
-                            name={name}
-                            checked={field.state.value.has(Number(val))}
-                            onChange={handleItemTypeChange(Number(val))}
-                          />
-                        ))}
-                    </div>
+                      itemTypeFilter={itemTypeFilter}
+                      onItemTypeChange={(type, checked) => {
+                        const next = new Set(itemTypeFilter);
+                        if (checked) {
+                          next.add(type);
+                        } else {
+                          next.delete(type);
+                        }
+                        filterForm.setFieldValue("itemTypeFilter", next);
+                      }}
+                      showSearch={false}
+                      showCollapsible={false}
+                      className="text-white"
+                    />
                   </div>
                 )}
-              </filterForm.Field>
+              </filterForm.Subscribe>
               <filterForm.Subscribe
                 selector={(state) => ({
                   values: state.values,
