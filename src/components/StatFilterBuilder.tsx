@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { NTIPAliasStat } from "@/lib/NTItemAlias";
 import { naturalSort } from "@/lib/utils";
-import { Plus, Search, X } from "lucide-react";
+import { Edit2Icon, Plus, Search, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type StatFilter = {
@@ -36,6 +36,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
     const [statSearch, setStatSearch] = useState("");
     const [statDropdownFocusIndex, setStatDropdownFocusIndex] = useState(-1);
     const statDropdownRef = useRef<HTMLDivElement>(null);
+    const [editingFilterId, setEditingFilterId] = useState<string | null>(null);
     const [newStatFilter, setNewStatFilter] = useState<{
       stat: string;
       comparison: "gte" | "lte" | "eq";
@@ -46,7 +47,6 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
       value: "",
     });
 
-    // Scroll focused item into view
     useEffect(() => {
       if (statDropdownFocusIndex >= 0 && statDropdownRef.current) {
         const focusedButton = statDropdownRef.current.children[
@@ -67,17 +67,51 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
     const handleAddStatFilter = useCallback(() => {
       if (!newStatFilter.stat || newStatFilter.value === "") return;
 
-      const filter: StatFilter = {
-        id: `${Date.now()}-${Math.random()}`,
-        stat: newStatFilter.stat,
-        comparison: newStatFilter.comparison,
-        value: Number(newStatFilter.value),
-      };
+      if (editingFilterId) {
+        // Update existing filter
+        setStatFilters(
+          statFilters.map((f) =>
+            f.id === editingFilterId
+              ? {
+                  ...f,
+                  stat: newStatFilter.stat,
+                  comparison: newStatFilter.comparison,
+                  value: Number(newStatFilter.value),
+                }
+              : f,
+          ),
+        );
+        setEditingFilterId(null);
+      } else {
+        // Add new filter
+        const filter: StatFilter = {
+          id: `${Date.now()}-${Math.random()}`,
+          stat: newStatFilter.stat,
+          comparison: newStatFilter.comparison,
+          value: Number(newStatFilter.value),
+        };
+        setStatFilters([...statFilters, filter]);
+      }
 
-      setStatFilters([...statFilters, filter]);
       setNewStatFilter({ stat: "", comparison: "gte", value: "" });
       setStatSearch("");
-    }, [newStatFilter, statFilters, setStatFilters]);
+    }, [newStatFilter, statFilters, setStatFilters, editingFilterId]);
+
+    const handleEditStatFilter = useCallback((filter: StatFilter) => {
+      setNewStatFilter({
+        stat: filter.stat,
+        comparison: filter.comparison,
+        value: String(filter.value),
+      });
+      setEditingFilterId(filter.id);
+      setStatSearch("");
+    }, []);
+
+    const handleCancelEdit = useCallback(() => {
+      setEditingFilterId(null);
+      setNewStatFilter({ stat: "", comparison: "gte", value: "" });
+      setStatSearch("");
+    }, []);
 
     const handleRemoveStatFilter = useCallback(
       (id: string) => {
@@ -94,46 +128,66 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
           </div>
         )}
 
-        {/* Active Stat Filters */}
         {statFilters.length > 0 && (
           <div className="mb-3 space-y-2">
-            {statFilters.map((filter) => (
-              <div
-                key={filter.id}
-                className="flex items-center gap-2 bg-gray-800 p-2 rounded border border-gray-700"
-              >
-                <span className="text-sm text-gray-300 flex-1">
-                  <span className="font-semibold text-lime-400">
-                    {filter.stat}
-                  </span>{" "}
-                  <span className="text-gray-400">
-                    {filter.comparison === "gte"
-                      ? "≥"
-                      : filter.comparison === "lte"
-                        ? "≤"
-                        : "="}
-                  </span>{" "}
-                  <span className="font-mono">{filter.value}</span>
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 hover:text-red-400"
-                  onClick={() => handleRemoveStatFilter(filter.id)}
-                  title="Remove stat filter"
+            {statFilters.map((filter) => {
+              const isEditing = editingFilterId === filter.id;
+              return (
+                <div
+                  key={filter.id}
+                  className={`flex items-center gap-2 p-2 rounded border transition-colors ${
+                    isEditing
+                      ? "bg-blue-900/30 border-blue-500 ring-2 ring-blue-500/50"
+                      : "bg-gray-800 border-gray-700"
+                  }`}
                 >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
+                  <span className="text-sm text-gray-300 flex-1">
+                    <span className="font-semibold text-lime-400">
+                      {filter.stat}
+                    </span>{" "}
+                    <span className="text-gray-400">
+                      {filter.comparison === "gte"
+                        ? "≥"
+                        : filter.comparison === "lte"
+                          ? "≤"
+                          : "="}
+                    </span>{" "}
+                    <span className="font-mono">{filter.value}</span>
+                    {isEditing && (
+                      <span className="ml-2 text-xs text-blue-400 font-semibold">
+                        (editing)
+                      </span>
+                    )}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 hover:text-blue-400"
+                    onClick={() => handleEditStatFilter(filter)}
+                    title="Edit stat filter"
+                    disabled={isEditing}
+                  >
+                    <Edit2Icon className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 hover:text-red-400"
+                    onClick={() => handleRemoveStatFilter(filter.id)}
+                    title="Remove stat filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Add New Stat Filter */}
         <div className="bg-gray-800 p-3 rounded border border-gray-700">
           <div className="flex flex-col gap-2">
-            {/* Stat Search/Select */}
             <div className="flex flex-col gap-1">
               <label
                 htmlFor="stat-search-input"
@@ -228,7 +282,6 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                 )}
             </div>
 
-            {/* Comparison and Value */}
             <div className="flex items-end gap-2">
               <div className="flex flex-col gap-1 flex-1">
                 <label
@@ -278,19 +331,46 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                       value: e.target.value,
                     })
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddStatFilter();
+                    }
+                  }}
                   className="bg-gray-900 border-gray-700 text-white"
                 />
               </div>
 
-              <Button
-                type="button"
-                onClick={handleAddStatFilter}
-                disabled={!newStatFilter.stat || newStatFilter.value === ""}
-                className="bg-lime-600 hover:bg-lime-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add
-              </Button>
+              {editingFilterId ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handleAddStatFilter}
+                    disabled={!newStatFilter.stat || newStatFilter.value === ""}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    variant="ghost"
+                    className="text-gray-400 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleAddStatFilter}
+                  disabled={!newStatFilter.stat || newStatFilter.value === ""}
+                  className="bg-lime-600 hover:bg-lime-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              )}
             </div>
           </div>
         </div>
