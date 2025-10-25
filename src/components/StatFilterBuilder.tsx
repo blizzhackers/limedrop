@@ -36,6 +36,9 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
     const [statSearch, setStatSearch] = useState("");
     const [statDropdownFocusIndex, setStatDropdownFocusIndex] = useState(-1);
     const statDropdownRef = useRef<HTMLDivElement>(null);
+    const statInputRef = useRef<HTMLInputElement>(null);
+    const valueInputRef = useRef<HTMLInputElement>(null);
+    const addButtonRef = useRef<HTMLButtonElement>(null);
     const [editingFilterId, setEditingFilterId] = useState<string | null>(null);
     const [newStatFilter, setNewStatFilter] = useState<{
       stat: string;
@@ -68,7 +71,6 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
       if (!newStatFilter.stat || newStatFilter.value === "") return;
 
       if (editingFilterId) {
-        // Update existing filter
         setStatFilters(
           statFilters.map((f) =>
             f.id === editingFilterId
@@ -83,7 +85,6 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
         );
         setEditingFilterId(null);
       } else {
-        // Add new filter
         const filter: StatFilter = {
           id: `${Date.now()}-${Math.random()}`,
           stat: newStatFilter.stat,
@@ -199,6 +200,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   id="stat-search-input"
+                  ref={statInputRef}
                   type="text"
                   placeholder="Search stats (e.g., fireresist, strength)..."
                   value={newStatFilter.stat}
@@ -322,6 +324,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                 </label>
                 <Input
                   id="stat-value-input"
+                  ref={valueInputRef}
                   type="number"
                   placeholder="Value"
                   value={newStatFilter.value}
@@ -335,6 +338,13 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                     if (e.key === "Enter") {
                       e.preventDefault();
                       handleAddStatFilter();
+                    } else if (e.key === "Tab" && !e.shiftKey) {
+                      const isDisabled =
+                        !newStatFilter.stat || newStatFilter.value === "";
+                      if (isDisabled) {
+                        e.preventDefault();
+                        statInputRef.current?.focus();
+                      }
                     }
                   }}
                   className="bg-gray-900 border-gray-700 text-white"
@@ -344,9 +354,16 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
               {editingFilterId ? (
                 <>
                   <Button
+                    ref={addButtonRef}
                     type="button"
                     onClick={handleAddStatFilter}
                     disabled={!newStatFilter.stat || newStatFilter.value === ""}
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && !e.shiftKey) {
+                        e.preventDefault();
+                        statInputRef.current?.focus();
+                      }
+                    }}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Update
@@ -356,15 +373,28 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                     onClick={handleCancelEdit}
                     variant="ghost"
                     className="text-gray-400 hover:text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && !e.shiftKey) {
+                        e.preventDefault();
+                        statInputRef.current?.focus();
+                      }
+                    }}
                   >
                     Cancel
                   </Button>
                 </>
               ) : (
                 <Button
+                  ref={addButtonRef}
                   type="button"
                   onClick={handleAddStatFilter}
                   disabled={!newStatFilter.stat || newStatFilter.value === ""}
+                  onKeyDown={(e) => {
+                    if (e.key === "Tab" && !e.shiftKey) {
+                      e.preventDefault();
+                      statInputRef.current?.focus();
+                    }
+                  }}
                   className="bg-lime-600 hover:bg-lime-700 text-white"
                 >
                   <Plus className="w-4 h-4 mr-1" />

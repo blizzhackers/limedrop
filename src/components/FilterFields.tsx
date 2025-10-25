@@ -379,7 +379,7 @@ export const ItemCodeFilterField: React.FC<ItemCodeFilterFieldProps> = ({
   value,
   onValueChange,
   className = "",
-  label = "Item Code (V2)",
+  label = "Item Code",
   showLabel = true,
   placeholder = "e.g. umc, amu",
   showClearButton = true,

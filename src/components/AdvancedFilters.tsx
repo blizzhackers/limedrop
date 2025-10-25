@@ -123,11 +123,10 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
             />
           </div>
 
-          {/* V2 Item Filters - Only work with newer item data */}
           <div className="flex flex-col gap-4">
             <NumericFilterWithComparison
               id="ilvl-input"
-              label="Item Level (V2)"
+              label="Item Level"
               value={ilvlFilter}
               comparison={ilvlComparison}
               onValueChange={setIlvlFilter}
@@ -140,7 +139,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
           <div className="flex flex-col gap-4">
             <NumericFilterWithComparison
               id="levelreq-input"
-              label="Level Req (V2)"
+              label="Level Req"
               value={levelReqFilter}
               comparison={levelReqComparison}
               onValueChange={setLevelReqFilter}
@@ -158,7 +157,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
           </div>
         </div>
 
-        {/* Stat Filters Section (V2) */}
         <div className="flex flex-col mt-6">
           <StatFilterBuilder
             statFilters={statFilters}

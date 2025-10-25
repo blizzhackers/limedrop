@@ -48,19 +48,17 @@ const ItemPacksDialog: React.FC = () => {
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [editFilterIdx, setEditFilterIdx] = useState<number | null>(null);
 
-  // Legacy stat editing state
+  // Legacy stat editing state - deprecated
   const [statInput, setStatInput] = useState("");
   const [editStatIdx, setEditStatIdx] = useState<number | null>(null);
   const [statEditIdx, setStatEditIdx] = useState<number | null>(null);
 
-  // TanStack Form for pack name
   const packForm = useForm({
     defaultValues: {
       label: "",
     },
   });
 
-  // TanStack Form for filter creation/editing
   const filterForm = useForm({
     defaultValues: {
       name: "",
@@ -566,7 +564,8 @@ const ItemPacksDialog: React.FC = () => {
                     htmlFor="stat-input"
                     className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
                   >
-                    Stats (one per line)
+                    Stats (one per line) (legacy - use Stat Filters below for
+                    new packs)
                   </label>
                   <div className="flex gap-2 mb-2">
                     <Input
@@ -731,7 +730,6 @@ const ItemPacksDialog: React.FC = () => {
                   </filterForm.Field>
                 </div>
 
-                {/* V2 Item Filters */}
                 <div className="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-gray-600">
                   <h3 className="text-sm font-semibold text-lime-400 mb-3">
                     V2 Item Filters (Enhanced Data)
