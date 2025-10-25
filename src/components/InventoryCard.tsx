@@ -4,7 +4,7 @@ import { isV2Item } from "@/lib/utils";
 import { addToCart, removeFromCart, useAppStore } from "@/stores/appStore";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import type React from "react";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 interface InventoryCardProps {
   item: InventoryItem;
@@ -12,12 +12,30 @@ interface InventoryCardProps {
 
 export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
   const inCart = useAppStore((s) => s.cartItemIds.has(item.itemid));
+  const showDebugInfo = useAppStore((s) => s.showDebugInfo);
+
   const [isFlipped, setIsFlipped] = useState(false);
   const isV2 = isV2Item(item);
 
   const title = item.description ? item.description.split("$", 1)[0] : "";
   let desc = item.description || "";
-  if (desc.startsWith(title)) desc = desc.slice(title.length);
+  if (desc.startsWith(title)) {
+    desc = desc.slice(title.length);
+  }
+
+  useEffect(() => {
+    const debugSubscription = useAppStore.subscribe(
+      (state) => state.showDebugInfo,
+      (value) => {
+        if (!value) {
+          setIsFlipped(false);
+        }
+      },
+    );
+    return () => {
+      debugSubscription();
+    };
+  }, []);
 
   const handleClick = () => {
     if (inCart) {
@@ -223,15 +241,16 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
         </div>
       )}
 
-      {/* Flip button */}
-      <button
-        type="button"
-        className="absolute top-2 left-2 bg-gray-600 hover:bg-gray-500 text-white p-1 rounded-full transition-colors z-10"
-        onClick={handleFlip}
-        title="Flip card to see details"
-      >
-        <RotateCcw className="w-4 h-4" />
-      </button>
+      {showDebugInfo && (
+        <button
+          type="button"
+          className="absolute top-2 left-2 bg-gray-600 hover:bg-gray-500 text-white p-1 rounded-full transition-colors z-10"
+          onClick={handleFlip}
+          title="Flip card to see details"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+      )}
 
       {inCart && (
         <span className="absolute top-2 right-2 bg-green-600 text-xs px-2 py-0.5 rounded-full text-white z-10">
