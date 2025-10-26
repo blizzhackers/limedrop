@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NTIPAliasColor } from "@/lib/NTItemAlias";
 import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
@@ -207,6 +208,61 @@ export const RunewordFilterField: React.FC<RunewordFilterFieldProps> = ({
           <SelectItem value="all">Any</SelectItem>
           <SelectItem value="yes">Runeword</SelectItem>
           <SelectItem value="no">Non-RW</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+
+interface ColorFilterFieldProps {
+  id?: string;
+  value: number | null;
+  onValueChange: (value: number | null) => void;
+  className?: string;
+  label?: string;
+  showLabel?: boolean;
+}
+
+export const ColorFilterField: React.FC<ColorFilterFieldProps> = ({
+  id = "color-select",
+  value,
+  onValueChange,
+  className = "",
+  label = "Color",
+  showLabel = true,
+}) => {
+  // Create a sorted array of color entries
+  const colorEntries = Object.entries(NTIPAliasColor).sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  );
+
+  return (
+    <div className="flex flex-col">
+      {showLabel && (
+        <label
+          htmlFor={id}
+          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+        >
+          {label}
+        </label>
+      )}
+      <Select
+        value={value !== null ? String(value) : "all"}
+        onValueChange={(v) => onValueChange(v === "all" ? null : Number(v))}
+      >
+        <SelectTrigger
+          id={id}
+          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
+        >
+          <SelectValue placeholder="Any" />
+        </SelectTrigger>
+        <SelectContent className="bg-gray-900 border border-gray-700 text-white">
+          <SelectItem value="all">Any</SelectItem>
+          {colorEntries.map(([colorName, colorValue]) => (
+            <SelectItem key={colorValue} value={String(colorValue)}>
+              {colorName.charAt(0).toUpperCase() + colorName.slice(1)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

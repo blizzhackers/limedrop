@@ -109,7 +109,7 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
                 Item Debug Info {isV2 ? "(V2)" : "(V1)"}
               </div>
               <div>
-                <span className="text-gray-400">ID:</span> {item.itemid}
+                <span className="text-gray-400">ID:</span> {item.gid}
               </div>
               <div>
                 <span className="text-gray-400">Account:</span> {item.account}
@@ -143,9 +143,12 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
               </div>
 
               {isV2 && (
-                <div className="mt-2 pt-2 border-t border-gray-600">
+                <div className="mt-2 pt-2 border-gray-600">
                   <div className="text-lime-400 font-semibold mb-1">
                     V2 Extended Info
+                  </div>
+                  <div>
+                    <span className="text-gray-400">ID:</span> {item.id}
                   </div>
                   <div>
                     <span className="text-gray-400">Code:</span> {item.code}
@@ -169,6 +172,15 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
                     <span className="text-gray-400">Dex Req:</span>{" "}
                     {item.dexreq}
                   </div>
+                  <div>
+                    <span className="text-gray-400">Color:</span> {item.color}
+                  </div>
+                  <div>
+                    <span className="text-gray-400">GFX:</span> {item.gfx}
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Flags:</span> {item.flags}
+                  </div>
                   {item.prefix && (
                     <div>
                       <span className="text-gray-400">Prefix:</span>{" "}
@@ -181,6 +193,18 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
                       {item.suffix}
                     </div>
                   )}
+                  {item.prefixnum !== undefined && (
+                    <div>
+                      <span className="text-gray-400">Prefix Num:</span>{" "}
+                      {item.prefixnum}
+                    </div>
+                  )}
+                  {item.suffixnum !== undefined && (
+                    <div>
+                      <span className="text-gray-400">Suffix Num:</span>{" "}
+                      {item.suffixnum}
+                    </div>
+                  )}
                   {item.prefixes.length > 0 && (
                     <div>
                       <span className="text-gray-400">Prefixes:</span>{" "}
@@ -191,6 +215,18 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
                     <div>
                       <span className="text-gray-400">Suffixes:</span>{" "}
                       {item.suffixes.join(", ")}
+                    </div>
+                  )}
+                  {item.prefixnums.length > 0 && (
+                    <div>
+                      <span className="text-gray-400">Prefix Nums:</span>{" "}
+                      {item.prefixnums.join(", ")}
+                    </div>
+                  )}
+                  {item.suffixnums.length > 0 && (
+                    <div>
+                      <span className="text-gray-400">Suffix Nums:</span>{" "}
+                      {item.suffixnums.join(", ")}
                     </div>
                   )}
                   {Object.keys(item.stats).length > 0 && (

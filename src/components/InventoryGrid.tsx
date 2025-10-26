@@ -43,6 +43,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const [etherealFilter, setEtherealFilter] = useState<null | boolean>(null);
     const [runewordFilter, setRunewordFilter] = useState<null | boolean>(null);
     const [socketFilter, setSocketFilter] = useState<number | null>(null);
+    const [colorFilter, setColorFilter] = useState<number | null>(null);
     const [activeItemPackId, setActiveItemPackId] = useState<number | null>(
       null,
     );
@@ -220,6 +221,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         if (socketFilter !== null && item.sockets !== socketFilter) {
           return false;
         }
+        if (colorFilter !== null && item.color !== colorFilter) {
+          return false;
+        }
 
         // V2 Item filters (only apply to V2 items)
         if (isV2Item(item)) {
@@ -315,6 +319,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       itemPacks,
       itemPackMultiplier,
       socketFilter,
+      colorFilter,
       gameType,
       gameMode,
       gameClass,
@@ -395,6 +400,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       etherealFilter !== null ||
       runewordFilter !== null ||
       socketFilter !== null ||
+      colorFilter !== null ||
       ilvlFilter !== null ||
       levelReqFilter !== null ||
       itemCodeFilter !== "" ||
@@ -468,6 +474,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             setRunewordFilter={setRunewordFilter}
             socketFilter={socketFilter}
             setSocketFilter={setSocketFilter}
+            colorFilter={colorFilter}
+            setColorFilter={setColorFilter}
             activeItemPackId={activeItemPackId}
             setActiveItemPackId={setActiveItemPackId}
             itemPackMultiplier={itemPackMultiplier}

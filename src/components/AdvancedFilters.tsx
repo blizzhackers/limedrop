@@ -1,5 +1,6 @@
 import { memo } from "react";
 import {
+  ColorFilterField,
   EtherealFilterField,
   ItemClassFilterField,
   ItemCodeFilterField,
@@ -32,6 +33,8 @@ interface AdvancedFiltersProps {
   setRunewordFilter: (value: boolean | null) => void;
   socketFilter: number | null;
   setSocketFilter: (value: number | null) => void;
+  colorFilter: number | null;
+  setColorFilter: (value: number | null) => void;
   activeItemPackId: number | null;
   setActiveItemPackId: (value: number | null) => void;
   itemPackMultiplier: number;
@@ -62,6 +65,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
     setRunewordFilter,
     socketFilter,
     setSocketFilter,
+    colorFilter,
+    setColorFilter,
     activeItemPackId,
     setActiveItemPackId,
     itemPackMultiplier,
@@ -84,7 +89,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
 
     return (
       <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
           <div className="flex flex-col gap-4">
             <QualityFilterField
               value={qualityFilter}
@@ -120,6 +125,13 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
                 const val = e.target.value;
                 setSocketFilter(val === "" ? null : Number(val));
               }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ColorFilterField
+              value={colorFilter}
+              onValueChange={setColorFilter}
             />
           </div>
 
