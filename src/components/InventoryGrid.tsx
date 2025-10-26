@@ -584,7 +584,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           <button
             type="button"
             onClick={handleBackToTop}
-            className="fixed bottom-24 right-8 z-50 bg-lime-600 hover:bg-lime-700 text-white rounded-full shadow-lg p-3 transition-all flex items-center justify-center"
+            className="fixed bottom-6 right-6 z-50 bg-lime-600 hover:bg-lime-700 text-white rounded-full shadow-lg p-3 transition-all flex items-center justify-center"
             aria-label="Back to Top"
             style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}
           >
