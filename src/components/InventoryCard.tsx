@@ -268,11 +268,11 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
       {/* V1 Update Banner */}
       {!isV2 && (
         <div
-          className="absolute top-0 left-50 right-0 bg-yellow-600 text-black text-xs px-2 py-1 rounded-t flex items-center gap-1 z-10"
+          className="absolute top-0 right-0 bg-yellow-600 text-black text-xs px-2 py-1 rounded-t flex items-center gap-1 z-10"
           title="This item uses the legacy V1 format with limited metadata. Re-logging this item in-game will upgrade it to V2 format with enhanced filtering capabilities including item stats, affixes, and more detailed information."
         >
           <AlertCircle className="w-3 h-3 flex-shrink-0" />
-          <span className="font-semibold">Update required - V1 item</span>
+          <span className="font-semibold">V1 item</span>
         </div>
       )}
 
