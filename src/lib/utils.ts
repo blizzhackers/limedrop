@@ -7,31 +7,66 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export interface InventoryItem {
+type BaseInventoryItem = {
   itemid: string;
   lod: boolean;
   sc: boolean;
   ladder: boolean;
-
   account: string;
   character: string;
-
-  // Item details
   description: string;
   image?: string;
-
   title: string;
   realm: string;
-  classid: number;
+  gid: string;
+};
+
+type V1InventoryItem = BaseInventoryItem & {
+  version: 1;
+  id: number;
   quality: number;
   itemType: number;
   itemClass: number;
   runeword: boolean;
   ethereal: boolean;
   sockets: number;
-  gfx: string;
-  color: string;
-}
+  gfx: number;
+  color: number;
+};
+
+type ItemInfo = {
+  id: number;
+  code: string;
+  name: string;
+  prefix: string | undefined;
+  suffix: string | undefined;
+  prefixes: string[];
+  suffixes: string[];
+  prefixnum: number;
+  suffixnum: number;
+  prefixnums: number[];
+  suffixnums: number[];
+  itemType: number;
+  itemClass: number;
+  quality: number;
+  sockets: number;
+  gfx: number;
+  color: number;
+  ilvl: number;
+  lvlreq: number;
+  strreq: number;
+  dexreq: number;
+  flags: number;
+  ethereal: boolean;
+  runeword: boolean;
+  stats: Record<string, string | number>;
+};
+
+type V2InventoryItem = BaseInventoryItem & {
+  version: 2;
+} & ItemInfo;
+
+export type InventoryItem = V1InventoryItem | V2InventoryItem;
 
 // Deep equality helper for objects/arrays
 export function deepEqual(a: unknown, b: unknown): boolean {
@@ -64,35 +99,44 @@ export function deepEqual(a: unknown, b: unknown): boolean {
 export function extractItemInfo(itemid: string, desc: string) {
   /**
     // From Mulelogger.logItem
-    + unit.gid + ":"
+    let desc = (
+      Item.getItemDesc(unit, logIlvl) + "$"
+      + unit.gid + ":"
       + unit.classid + ":"
       + unit.location + ":"
       + unit.x + ":"
       + unit.y + ":"
-      + (unit.getFlag(sdk.items.flags.Ethereal) ? "1" : "0") + ":"
-      + (unit.getFlag(sdk.items.flags.Runeword) ? "1" : "0") + ":"
-      + unit.itemType + ":"
-      + unit.quality + ":"
-      + unit.itemclass + ":"
-      + sock.length + ":"
-      + unit.gfx + ":"
-      + color + ":"
+      + {
+        id: unit.classid,
+        code: unit.code,
+        name: name,
+        prefix: unit.prefix,
+        suffix: unit.suffix,
+        prefixes: unit.prefixes,
+        suffixes: unit.suffixes,
+        prefixnum: unit.prefixnum,
+        suffixnum: unit.suffixnum,
+        prefixnums: unit.prefixnums,
+        suffixnums: unit.suffixnums,
+        type: unit.itemType,
+        itemClass: unit.itemclass,
+        quality: unit.quality,
+        sockets: unit.sockets,
+        gfx: unit.gfx,
+        color: color,
+        ilvl: unit.ilvl,
+        lvlreq: unit.lvlreq,
+        strreq: unit.strreq,
+        dexreq: unit.dexreq,
+        flags: unit.getFlags(),
+        ethereal: unit.getFlag(sdk.items.flags.Ethereal),
+        runeword: unit.getFlag(sdk.items.flags.Runeword),
+        stats: MuleLogger.dumpItemStats(unit)
+      } + ":"
+    );
    */
-  const [
-    gid,
-    classid,
-    loc,
-    x,
-    y,
-    ethFlag,
-    rwFlag,
-    itemType,
-    itemQuality,
-    itemClass,
-    sockets,
-    gfx,
-    color,
-  ] = itemid.split(":");
+  const [gid, classid, loc, x, y, itemInfo] = itemid.split(":");
+
   const codeToQuality = {
     [sdk.colors.White]: sdk.items.quality.Normal,
     [sdk.colors.Blue]: sdk.items.quality.Magic,
@@ -104,36 +148,68 @@ export function extractItemInfo(itemid: string, desc: string) {
     [sdk.colors.Gray]: sdk.items.quality.Normal,
   };
 
+  // handle old logs without itemInfo
+  if (!itemInfo || itemInfo.length === 1) {
+    const [
+      _gid,
+      _classid,
+      _loc,
+      _x,
+      _y,
+      ethFlag,
+      rwFlag,
+      itemType,
+      itemQuality,
+      itemClass,
+      sockets,
+      gfx,
+      color,
+    ] = itemid.split(":");
+
+    return {
+      version: 1 as const,
+      gid,
+      id: Number(classid),
+      loc,
+      x,
+      y,
+      ethereal: ethFlag === "1",
+      runeword: rwFlag === "1",
+      quality: (() => {
+        if (itemQuality) {
+          return Number(itemQuality);
+        }
+        const code = desc.slice(0, 3);
+        if (code === sdk.colors.Gray && desc.includes("Superior")) {
+          return sdk.items.quality.Superior;
+        }
+        const quality = codeToQuality[code];
+        return quality ?? -1;
+      })(),
+      itemType: Number(itemType),
+      itemClass: Number(itemClass),
+      sockets: (() => {
+        if (sockets) {
+          return Number(sockets);
+        }
+        const match = desc.match(/Socketed \((\d+)\)/);
+        return match ? Number(match[1]) : 0;
+      })(),
+      gfx: Number(gfx),
+      color: Number(color),
+    };
+  }
+
+  const itemDump = JSON.parse(atob(itemInfo)) as ItemInfo;
+
   return {
+    version: 2 as const,
     gid,
     classid: Number(classid),
     loc,
     x,
     y,
-    ethereal: ethFlag === "1",
-    runeword: rwFlag === "1",
-    quality: (() => {
-      if (itemQuality) {
-        return Number(itemQuality);
-      }
-      const code = desc.slice(0, 3);
-      if (code === sdk.colors.Gray && desc.includes("Superior")) {
-        return sdk.items.quality.Superior;
-      }
-      const quality = codeToQuality[code];
-      return quality ?? -1;
-    })(),
-    itemType: Number(itemType),
-    itemClass: Number(itemClass),
-    sockets: (() => {
-      if (sockets) {
-        return Number(sockets);
-      }
-      const match = desc.match(/Socketed \((\d+)\)/);
-      return match ? Number(match[1]) : 0;
-    })(),
-    gfx,
-    color,
+    ...itemDump,
   };
 }
 
@@ -158,35 +234,45 @@ export function mapApiItemToInventoryItem(
   el: ApiItemResponse,
   realm: string,
 ): InventoryItem {
-  const [desc, id] = el.description.split("$");
-  const {
-    quality,
-    classid,
-    itemClass,
-    itemType,
-    runeword,
-    ethereal,
-    sockets,
-    gfx,
-    color,
-  } = extractItemInfo(id, desc);
+  const [desc, itemid] = el.description.split("$");
+  const itemInfo = extractItemInfo(itemid, desc);
 
-  return {
+  const baseItem = {
     ...el,
     title: desc.split("\n")[0],
     description: desc,
-    itemid: id,
+    itemid: itemid,
     realm: realm.toLowerCase(),
-    quality,
-    classid,
-    itemClass,
-    itemType,
-    runeword,
-    ethereal,
-    sockets,
-    gfx,
-    color,
   };
+
+  if (itemInfo.version === 1) {
+    return {
+      ...baseItem,
+      version: 1,
+      quality: itemInfo.quality,
+      id: itemInfo.id,
+      itemClass: itemInfo.itemClass,
+      itemType: itemInfo.itemType,
+      runeword: itemInfo.runeword,
+      ethereal: itemInfo.ethereal,
+      sockets: itemInfo.sockets,
+      gfx: itemInfo.gfx,
+      color: itemInfo.color,
+    } as V1InventoryItem;
+  }
+
+  return {
+    ...baseItem,
+    ...itemInfo,
+  } as V2InventoryItem;
+}
+
+export function isV1Item(item: InventoryItem): item is V1InventoryItem {
+  return item.version === 1;
+}
+
+export function isV2Item(item: InventoryItem): item is V2InventoryItem {
+  return item.version === 2;
 }
 
 export const REALMS = ["USEast", "USWest", "Europe", "Asia"] as const;

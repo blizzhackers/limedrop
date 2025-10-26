@@ -5,15 +5,24 @@ import {
   getItemPacks,
   updateItemPack,
 } from "@/lib/itemPacksDb";
-import { sdk } from "@/lib/sdk";
-import { naturalSort } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
+import { useForm } from "@tanstack/react-form";
 import { Edit2Icon, Trash2Icon, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
+import {
+  EtherealFilterField,
+  ItemClassFilterField,
+  ItemCodeFilterField,
+  ItemTypesSelector,
+  NumericFilterWithComparison,
+  QualityFilterField,
+  RunewordFilterField,
+  SocketsFilterField,
+} from "./FilterFields";
+import { type StatFilter, StatFilterBuilder } from "./StatFilterBuilder";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
@@ -31,48 +40,128 @@ const ItemPacksDialog: React.FC = () => {
   const session = useAppStore((s) => s.session);
   const open = useItemPacksDialogStore((s) => s.open);
 
-  const [label, setLabel] = useState("");
+  // Pack-level state (not in form)
   const [filters, setFilters] = useState<ItemPackFilter[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [qualityFilter, setQualityFilter] = useState<number | null>(null);
-  const [itemClassFilter, setItemClassFilter] = useState<number | null>(null);
-  const [itemTypeFilter, setItemTypeFilter] = useState<Set<number>>(new Set());
-  const [etherealFilter, setEtherealFilter] = useState<null | boolean>(null);
-  const [runewordFilter, setRunewordFilter] = useState<null | boolean>(null);
-  const [name, setName] = useState("");
-  const [sockets, setSockets] = useState<number | null>(null);
-  const [count, setCount] = useState<number | null>(null);
-  const [statInput, setStatInput] = useState("");
-  const [stats, setStats] = useState<string[]>([]);
-  const [editStatIdx, setEditStatIdx] = useState<number | null>(null);
-  const [statEditIdx, setStatEditIdx] = useState<number | null>(null);
-
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [editFilterIdx, setEditFilterIdx] = useState<number | null>(null);
+
+  // Legacy stat editing state - deprecated
+  const [statInput, setStatInput] = useState("");
+  const [editStatIdx, setEditStatIdx] = useState<number | null>(null);
+  const [statEditIdx, setStatEditIdx] = useState<number | null>(null);
+
+  const packForm = useForm({
+    defaultValues: {
+      label: "",
+    },
+  });
+
+  const filterForm = useForm({
+    defaultValues: {
+      name: "",
+      qualityFilter: null as number | null,
+      itemClassFilter: null as number | null,
+      itemTypeFilter: new Set<number>(),
+      etherealFilter: null as boolean | null,
+      runewordFilter: null as boolean | null,
+      sockets: null as number | null,
+      count: null as number | null,
+      stats: [] as string[],
+      // V2 filters
+      ilvlFilter: null as number | null,
+      ilvlComparison: "gte" as "gte" | "lte" | "eq",
+      levelReqFilter: null as number | null,
+      levelReqComparison: "lte" as "gte" | "lte" | "eq",
+      itemCodeFilter: "",
+      statFilters: [] as StatFilter[],
+    },
+    onSubmit: async ({ value }) => {
+      const filter = buildFilterFromFormValues(value);
+      if (Object.keys(filter).length === 0) return;
+
+      if (editFilterIdx !== null) {
+        const updated = [...filters];
+        updated[editFilterIdx] = filter;
+        setFilters(updated);
+        setEditFilterIdx(null);
+      } else {
+        setFilters((prev) => [...prev, filter]);
+      }
+
+      filterForm.reset();
+    },
+  });
+
+  // Helper function to build filter from form values
+  const buildFilterFromFormValues = (
+    values: typeof filterForm.state.values,
+  ): ItemPackFilter => {
+    const filter: ItemPackFilter = {};
+    if (values.name.trim()) {
+      filter.name = values.name.trim();
+    }
+    if (values.itemTypeFilter.size > 0) {
+      filter.itemType = Array.from(values.itemTypeFilter);
+    }
+    if (values.qualityFilter !== null) {
+      filter.quality = values.qualityFilter;
+    }
+    if (values.itemClassFilter !== null) {
+      filter.classid = values.itemClassFilter;
+    }
+    if (typeof values.etherealFilter === "boolean") {
+      filter.ethereal = values.etherealFilter;
+    }
+    if (typeof values.runewordFilter === "boolean") {
+      filter.runeword = values.runewordFilter;
+    }
+    if (values.sockets !== null) {
+      filter.sockets = values.sockets;
+    }
+    if (values.count !== null) {
+      filter.count = values.count;
+    }
+    if (values.stats.length > 0) {
+      filter.stats = [...values.stats];
+    }
+    // V2 filters
+    if (values.ilvlFilter !== null) {
+      filter.ilvl = values.ilvlFilter;
+      filter.ilvlComparison = values.ilvlComparison;
+    }
+    if (values.levelReqFilter !== null) {
+      filter.levelReq = values.levelReqFilter;
+      filter.levelReqComparison = values.levelReqComparison;
+    }
+    if (values.itemCodeFilter.trim()) {
+      filter.itemCode = values.itemCodeFilter.trim();
+    }
+    if (values.statFilters.length > 0) {
+      filter.statFilters = values.statFilters.map(
+        ({ stat, comparison, value }) => ({
+          stat,
+          comparison,
+          value,
+        }),
+      );
+    }
+    return filter;
+  };
 
   useEffect(() => {
     if (selectedPackId !== null && packs.length > 0) {
       const pack = packs.find((p) => p.id === selectedPackId);
       if (pack) {
-        setLabel(pack.label);
+        packForm.setFieldValue("label", pack.label);
         setFilters(pack.filters);
         setEditingId(pack.id);
-        resetFilterFields();
+        filterForm.reset();
       }
     }
-  }, [selectedPackId, packs]);
-
-  const handleItemTypeChange = useCallback(
-    (val: number) => (checked: boolean) => {
-      setItemTypeFilter((prev) => {
-        const next = new Set(prev);
-        checked ? next.add(val) : next.delete(val);
-        return next;
-      });
-    },
-    [],
-  );
+  }, [selectedPackId, packs, filterForm, packForm]);
 
   useEffect(() => {
     if (open && session) {
@@ -83,52 +172,47 @@ const ItemPacksDialog: React.FC = () => {
   }, [open, session, username]);
 
   const resetForm = () => {
-    setLabel("");
-    setStats([]);
+    packForm.setFieldValue("label", "");
     setFilters([]);
     setEditingId(null);
-    resetFilterFields();
-  };
-
-  const resetFilterFields = () => {
-    setName("");
-    setStats([]);
-    setQualityFilter(null);
-    setItemClassFilter(null);
-    setItemTypeFilter(new Set());
-    setEtherealFilter(null);
-    setRunewordFilter(null);
-    setSockets(null);
-    setCount(null);
+    filterForm.reset();
   };
 
   const handleAddStat = () => {
     const trimmed = statInput.trim();
     if (!trimmed) return;
+    const currentStats = filterForm.getFieldValue("stats");
     if (editStatIdx !== null) {
-      // Editing existing stat
-      setStats((prev) => prev.map((s, i) => (i === editStatIdx ? trimmed : s)));
+      const updated = currentStats.map((s, i) =>
+        i === editStatIdx ? trimmed : s,
+      );
+      filterForm.setFieldValue("stats", updated);
       setEditStatIdx(null);
       setStatInput("");
       return;
     }
-    if (!stats.includes(trimmed)) {
-      setStats((prev) => [...prev, trimmed]);
+    if (!currentStats.includes(trimmed)) {
+      filterForm.setFieldValue("stats", [...currentStats, trimmed]);
       setStatInput("");
     }
   };
 
   const handleEditStat = (idx: number) => {
+    const currentStats = filterForm.getFieldValue("stats");
     setStatEditIdx(idx);
-    setStatInput(stats[idx] || "");
+    setStatInput(currentStats[idx] || "");
   };
 
   const handleSaveStatEdit = () => {
     if (statEditIdx === null) return;
     const trimmed = statInput.trim();
     if (!trimmed) return;
-    if (stats.some((s, i) => s === trimmed && i !== statEditIdx)) return;
-    setStats((prev) => prev.map((s, i) => (i === statEditIdx ? trimmed : s)));
+    const currentStats = filterForm.getFieldValue("stats");
+    if (currentStats.some((s, i) => s === trimmed && i !== statEditIdx)) return;
+    const updated = currentStats.map((s, i) =>
+      i === statEditIdx ? trimmed : s,
+    );
+    filterForm.setFieldValue("stats", updated);
     setStatEditIdx(null);
     setStatInput("");
   };
@@ -138,25 +222,16 @@ const ItemPacksDialog: React.FC = () => {
     setStatInput("");
   };
 
-  const buildCurrentFilter = (): ItemPackFilter => {
-    const filter: ItemPackFilter = {};
-    if (name.trim()) filter.name = name.trim();
-    if (itemTypeFilter.size > 0) filter.itemType = Array.from(itemTypeFilter);
-    if (qualityFilter !== null) filter.quality = qualityFilter;
-    if (itemClassFilter !== null) filter.classid = itemClassFilter;
-    if (typeof etherealFilter === "boolean") filter.ethereal = etherealFilter;
-    if (typeof runewordFilter === "boolean") filter.runeword = runewordFilter;
-    if (sockets !== null) filter.sockets = sockets;
-    if (count !== null) filter.count = count;
-    if (stats.length > 0) filter.stats = [...stats];
-    return filter;
-  };
-
-  const handleAddFilter = () => {
-    const filter = buildCurrentFilter();
-    if (Object.keys(filter).length === 0) return;
-    setFilters((prev) => [...prev, filter]);
-    resetFilterFields();
+  const handleRemoveStat = (idx: number) => {
+    const currentStats = filterForm.getFieldValue("stats");
+    filterForm.setFieldValue(
+      "stats",
+      currentStats.filter((_, i) => i !== idx),
+    );
+    if (statEditIdx === idx) {
+      setStatEditIdx(null);
+      setStatInput("");
+    }
   };
 
   const handleRemoveFilter = (idx: number) => {
@@ -164,6 +239,7 @@ const ItemPacksDialog: React.FC = () => {
   };
 
   const handleSave = async () => {
+    const label = packForm.getFieldValue("label");
     if (!session || !label.trim() || filters.length === 0) return;
     if (editingId) {
       await updateItemPack(editingId, { label, filters, username });
@@ -184,64 +260,88 @@ const ItemPacksDialog: React.FC = () => {
     setSelectedPackId(null);
   };
 
-  const [editFilterIdx, setEditFilterIdx] = useState<number | null>(null);
   const handleEditFilter = (idx: number) => {
     const f = filters[idx];
-    setName(f.name || "");
-    setQualityFilter(f.quality ?? null);
-    setItemClassFilter(f.classid ?? null);
-    setItemTypeFilter(new Set(f.itemType ?? []));
-    setEtherealFilter(typeof f.ethereal === "boolean" ? f.ethereal : null);
-    setRunewordFilter(typeof f.runeword === "boolean" ? f.runeword : null);
-    setSockets(f.sockets ?? null);
-    setCount(f.count ?? null);
-    setStats(f.stats ?? []);
+    filterForm.setFieldValue("name", f.name || "");
+    filterForm.setFieldValue("qualityFilter", f.quality ?? null);
+    filterForm.setFieldValue("itemClassFilter", f.classid ?? null);
+    filterForm.setFieldValue("itemTypeFilter", new Set(f.itemType ?? []));
+    filterForm.setFieldValue(
+      "etherealFilter",
+      typeof f.ethereal === "boolean" ? f.ethereal : null,
+    );
+    filterForm.setFieldValue(
+      "runewordFilter",
+      typeof f.runeword === "boolean" ? f.runeword : null,
+    );
+    filterForm.setFieldValue("sockets", f.sockets ?? null);
+    filterForm.setFieldValue("count", f.count ?? null);
+    filterForm.setFieldValue("stats", f.stats ?? []);
+    // V2 filters
+    filterForm.setFieldValue("ilvlFilter", f.ilvl ?? null);
+    filterForm.setFieldValue("ilvlComparison", f.ilvlComparison ?? "gte");
+    filterForm.setFieldValue("levelReqFilter", f.levelReq ?? null);
+    filterForm.setFieldValue(
+      "levelReqComparison",
+      f.levelReqComparison ?? "lte",
+    );
+    filterForm.setFieldValue("itemCodeFilter", f.itemCode ?? "");
+    filterForm.setFieldValue(
+      "statFilters",
+      (f.statFilters ?? []).map((sf, i) => ({
+        id: `${Date.now()}-${i}`,
+        ...sf,
+      })),
+    );
     setEditFilterIdx(idx);
-  };
-
-  const handleSaveFilterEdit = () => {
-    if (editFilterIdx === null) return;
-    const updated = [...filters];
-    updated[editFilterIdx] = buildCurrentFilter();
-    setFilters(updated);
-    setEditFilterIdx(null);
-    resetFilterFields();
   };
 
   const handleCancelFilterEdit = () => {
     setEditFilterIdx(null);
-    resetFilterFields();
+    filterForm.reset();
   };
 
-  const handleNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value),
-    [],
-  );
   const handleQualityChange = useCallback(
-    (v: string) => setQualityFilter(v === "all" ? null : Number(v)),
-    [],
+    (value: number | null) => {
+      filterForm.setFieldValue("qualityFilter", value);
+    },
+    [filterForm],
   );
   const handleItemClassChange = useCallback(
-    (v: string) => setItemClassFilter(v === "all" ? null : Number(v)),
-    [],
+    (value: number | null) => {
+      filterForm.setFieldValue("itemClassFilter", value);
+    },
+    [filterForm],
   );
   const handleSocketsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setSockets(e.target.value ? Number(e.target.value) : null),
-    [],
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      filterForm.setFieldValue(
+        "sockets",
+        e.target.value ? Number(e.target.value) : null,
+      );
+    },
+    [filterForm],
   );
   const handleCountChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setCount(e.target.value ? Number(e.target.value) : null),
-    [],
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      filterForm.setFieldValue(
+        "count",
+        e.target.value ? Number(e.target.value) : null,
+      );
+    },
+    [filterForm],
   );
   const handleEtherealChange = useCallback(
-    (v: string) => setEtherealFilter(v === "all" ? null : v === "yes"),
-    [],
+    (value: boolean | null) => {
+      filterForm.setFieldValue("etherealFilter", value);
+    },
+    [filterForm],
   );
   const handleRunewordChange = useCallback(
-    (v: string) => setRunewordFilter(v === "all" ? null : v === "yes"),
-    [],
+    (value: boolean | null) => {
+      filterForm.setFieldValue("runewordFilter", value);
+    },
+    [filterForm],
   );
 
   const handleDeleteRequest = (id: number) => {
@@ -260,14 +360,6 @@ const ItemPacksDialog: React.FC = () => {
   const handleCancelDelete = () => {
     setPendingDeleteId(null);
     setDeleteDialogOpen(false);
-  };
-
-  const handleRemoveStat = (idx: number) => {
-    setStats((prev) => prev.filter((_, i) => i !== idx));
-    if (statEditIdx === idx) {
-      setStatEditIdx(null);
-      setStatInput("");
-    }
   };
 
   const handleExportPack = () => {
@@ -447,13 +539,17 @@ const ItemPacksDialog: React.FC = () => {
               >
                 Item Pack Name
               </label>
-              <Input
-                id="pack-name-input"
-                placeholder="Pack Name"
-                className="mb-2 bg-gray-900 text-white"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
+              <packForm.Field name="label">
+                {(field) => (
+                  <Input
+                    id="pack-name-input"
+                    placeholder="Pack Name"
+                    className="mb-2 bg-gray-900 text-white"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                )}
+              </packForm.Field>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="col-span-1 md:col-span-2 flex flex-col">
                   <label
@@ -462,20 +558,25 @@ const ItemPacksDialog: React.FC = () => {
                   >
                     Name
                   </label>
-                  <Input
-                    id="name-input"
-                    value={name}
-                    onChange={handleNameChange}
-                    placeholder="Item Name (optional)"
-                    className="bg-gray-900 text-white"
-                  />
+                  <filterForm.Field name="name">
+                    {(field) => (
+                      <Input
+                        id="name-input"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="Item Name (optional)"
+                        className="bg-gray-900 text-white"
+                      />
+                    )}
+                  </filterForm.Field>
                 </div>
                 <div className="col-span-1 md:col-span-2 flex flex-col">
                   <label
                     htmlFor="stat-input"
                     className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
                   >
-                    Stats (one per line)
+                    Stats (one per line) (legacy - use Stat Filters below for
+                    new packs)
                   </label>
                   <div className="flex gap-2 mb-2">
                     <Input
@@ -532,255 +633,273 @@ const ItemPacksDialog: React.FC = () => {
                       Invalid regex will cause errors.
                     </span>
                   </div>
-                  {stats.length > 0 && (
-                    <ul className="flex flex-wrap gap-2">
-                      {stats.map((s, idx) => (
-                        <li
-                          key={
-                            stats.filter((x) => x === s).length === 1
-                              ? s
-                              : `${s}-${idx}`
-                          }
-                          className="bg-gray-800 text-white rounded px-2 py-1 flex items-center gap-1 text-xs"
-                        >
-                          <span>{s}</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleEditStat(idx)}
-                          >
-                            <Edit2Icon />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleRemoveStat(idx)}
-                          >
-                            <X />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <filterForm.Subscribe
+                    selector={(state) => state.values.stats}
+                  >
+                    {(stats) =>
+                      stats.length > 0 && (
+                        <ul className="flex flex-wrap gap-2">
+                          {stats.map((s, idx) => (
+                            <li
+                              key={
+                                stats.filter((x) => x === s).length === 1
+                                  ? s
+                                  : `${s}-${idx}`
+                              }
+                              className="bg-gray-800 text-white rounded px-2 py-1 flex items-center gap-1 text-xs"
+                            >
+                              <span>{s}</span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleEditStat(idx)}
+                              >
+                                <Edit2Icon />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleRemoveStat(idx)}
+                              >
+                                <X />
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    }
+                  </filterForm.Subscribe>
                 </div>
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col">
-                    <label
-                      htmlFor="quality-select"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                    >
-                      Quality
-                    </label>
-                    <Select
-                      value={
-                        qualityFilter !== null ? String(qualityFilter) : "all"
-                      }
-                      onValueChange={handleQualityChange}
-                    >
-                      <SelectTrigger
-                        id="quality-select"
-                        className="w-full bg-gray-900 border border-gray-700 text-white"
-                      >
-                        <SelectValue placeholder="All" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border border-gray-700 text-white">
-                        <SelectItem value="all">All</SelectItem>
-                        {Object.entries(sdk.items.quality).map(
-                          ([label, value]) => (
-                            <SelectItem key={value} value={String(value)}>
-                              {label}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col">
-                    <label
-                      htmlFor="item-class-select"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                    >
-                      Item Class
-                    </label>
-                    <Select
-                      value={
-                        itemClassFilter !== null
-                          ? String(itemClassFilter)
-                          : "all"
-                      }
-                      onValueChange={handleItemClassChange}
-                    >
-                      <SelectTrigger
-                        id="item-class-select"
-                        className="w-full bg-gray-900 border border-gray-700 text-white"
-                      >
-                        <SelectValue placeholder="Item Class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Classes</SelectItem>
-                        {Object.entries(sdk.items.class).map(
-                          ([label, value]) => (
-                            <SelectItem key={value} value={String(value)}>
-                              {label}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <filterForm.Field name="qualityFilter">
+                    {(field) => (
+                      <QualityFilterField
+                        value={field.state.value}
+                        onValueChange={handleQualityChange}
+                      />
+                    )}
+                  </filterForm.Field>
+                  <filterForm.Field name="itemClassFilter">
+                    {(field) => (
+                      <ItemClassFilterField
+                        value={field.state.value}
+                        onValueChange={handleItemClassChange}
+                      />
+                    )}
+                  </filterForm.Field>
                 </div>
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col">
-                    <label
-                      htmlFor="ethereal-select"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                    >
-                      Ethereal
-                    </label>
-                    <Select
-                      value={
-                        etherealFilter === null
-                          ? "all"
-                          : etherealFilter
-                            ? "yes"
-                            : "no"
-                      }
-                      onValueChange={handleEtherealChange}
-                    >
-                      <SelectTrigger
-                        id="ethereal-select"
-                        className="w-full bg-gray-900 border border-gray-700 text-white"
-                      >
-                        <SelectValue placeholder="Ethereal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Any</SelectItem>
-                        <SelectItem value="yes">Ethereal</SelectItem>
-                        <SelectItem value="no">Non-Eth</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col">
-                    <label
-                      htmlFor="runeword-select"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                    >
-                      Runeword
-                    </label>
-                    <Select
-                      value={
-                        runewordFilter === null
-                          ? "all"
-                          : runewordFilter
-                            ? "yes"
-                            : "no"
-                      }
-                      onValueChange={handleRunewordChange}
-                    >
-                      <SelectTrigger
-                        id="runeword-select"
-                        className="w-full bg-gray-900 border border-gray-700 text-white"
-                      >
-                        <SelectValue placeholder="Runeword" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Any</SelectItem>
-                        <SelectItem value="yes">Runeword</SelectItem>
-                        <SelectItem value="no">Non-RW</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <filterForm.Field name="etherealFilter">
+                    {(field) => (
+                      <EtherealFilterField
+                        value={field.state.value}
+                        onValueChange={handleEtherealChange}
+                      />
+                    )}
+                  </filterForm.Field>
+                  <filterForm.Field name="runewordFilter">
+                    {(field) => (
+                      <RunewordFilterField
+                        value={field.state.value}
+                        onValueChange={handleRunewordChange}
+                      />
+                    )}
+                  </filterForm.Field>
                 </div>
                 <div className="col-span-1 md:col-span-2 flex flex-row gap-4">
-                  <div className="flex flex-col flex-1">
-                    <label
-                      htmlFor="sockets-input"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                  <filterForm.Field name="sockets">
+                    {(field) => (
+                      <div className="flex-1">
+                        <SocketsFilterField
+                          value={field.state.value}
+                          onChange={handleSocketsChange}
+                        />
+                      </div>
+                    )}
+                  </filterForm.Field>
+                  <filterForm.Field name="count">
+                    {(field) => (
+                      <div className="flex flex-col flex-1">
+                        <label
+                          htmlFor="count-input"
+                          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                        >
+                          Count
+                        </label>
+                        <Input
+                          id="count-input"
+                          type="number"
+                          min={1}
+                          max={6}
+                          className="bg-gray-900 text-white"
+                          value={field.state.value ?? ""}
+                          onChange={handleCountChange}
+                          placeholder="Count"
+                        />
+                      </div>
+                    )}
+                  </filterForm.Field>
+                </div>
+
+                <div className="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-gray-600">
+                  <h3 className="text-sm font-semibold text-lime-400 mb-3">
+                    V2 Item Filters (Enhanced Data)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        ilvlFilter: state.values.ilvlFilter,
+                        ilvlComparison: state.values.ilvlComparison,
+                      })}
                     >
-                      Sockets
-                    </label>
-                    <Input
-                      id="sockets-input"
-                      type="number"
-                      className="bg-gray-900 text-white"
-                      min={0}
-                      value={sockets ?? ""}
-                      onChange={handleSocketsChange}
-                      placeholder="Sockets"
-                    />
-                  </div>
-                  <div className="flex flex-col flex-1">
-                    <label
-                      htmlFor="count-input"
-                      className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                      {({ ilvlFilter, ilvlComparison }) => (
+                        <NumericFilterWithComparison
+                          id="ilvl-filter"
+                          label="Item Level"
+                          value={ilvlFilter}
+                          comparison={ilvlComparison}
+                          onValueChange={(val) =>
+                            filterForm.setFieldValue("ilvlFilter", val)
+                          }
+                          onComparisonChange={(val) =>
+                            filterForm.setFieldValue("ilvlComparison", val)
+                          }
+                          placeholder="ilvl"
+                        />
+                      )}
+                    </filterForm.Subscribe>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        levelReqFilter: state.values.levelReqFilter,
+                        levelReqComparison: state.values.levelReqComparison,
+                      })}
                     >
-                      Count
-                    </label>
-                    <Input
-                      id="count-input"
-                      type="number"
-                      min={1}
-                      max={6}
-                      className="bg-gray-900 text-white"
-                      value={count ?? ""}
-                      onChange={handleCountChange}
-                      placeholder="Count"
-                    />
+                      {({ levelReqFilter, levelReqComparison }) => (
+                        <NumericFilterWithComparison
+                          id="levelreq-filter"
+                          label="Level Requirement"
+                          value={levelReqFilter}
+                          comparison={levelReqComparison}
+                          onValueChange={(val) =>
+                            filterForm.setFieldValue("levelReqFilter", val)
+                          }
+                          onComparisonChange={(val) =>
+                            filterForm.setFieldValue("levelReqComparison", val)
+                          }
+                          placeholder="lvl req"
+                        />
+                      )}
+                    </filterForm.Subscribe>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        itemCodeFilter: state.values.itemCodeFilter,
+                      })}
+                    >
+                      {({ itemCodeFilter }) => (
+                        <div className="md:col-span-2">
+                          <ItemCodeFilterField
+                            id="itemcode-filter"
+                            label="Item Code"
+                            value={itemCodeFilter}
+                            onValueChange={(val) =>
+                              filterForm.setFieldValue("itemCodeFilter", val)
+                            }
+                            showClearButton={false}
+                          />
+                        </div>
+                      )}
+                    </filterForm.Subscribe>
+
+                    {/* Stat Filters */}
+                    <filterForm.Field name="statFilters">
+                      {(field) => (
+                        <div className="flex flex-col md:col-span-2 mt-4">
+                          <StatFilterBuilder
+                            statFilters={field.state.value}
+                            setStatFilters={(val) =>
+                              filterForm.setFieldValue("statFilters", val)
+                            }
+                            showLabel={true}
+                            labelText="Item Stats"
+                          />
+                        </div>
+                      )}
+                    </filterForm.Field>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col mt-6">
-                <label
-                  htmlFor="item-type-select"
-                  className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-                >
-                  Item Type
-                </label>
-                <div
-                  id="item-type-select"
-                  className="text-white grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2"
-                >
-                  {Object.entries(sdk.items.type)
-                    .sort(([a], [b]) => naturalSort(a, b))
-                    .map(([name, val]) => (
-                      <ItemTypeCheckbox
-                        key={val}
-                        name={name}
-                        checked={itemTypeFilter.has(Number(val))}
-                        onChange={handleItemTypeChange(Number(val))}
-                      />
-                    ))}
-                </div>
-              </div>
-              <div className="flex flex-row justify-end gap-2">
-                {editFilterIdx !== null ? (
-                  <>
-                    <Button
-                      className="mt-2 flex justify-end"
-                      onClick={handleSaveFilterEdit}
-                      disabled={Object.keys(buildCurrentFilter()).length === 0}
-                    >
-                      Save Filter Edit
-                    </Button>
-                    <Button
-                      className="mt-2 flex justify-end text-white"
-                      variant="ghost"
-                      onClick={handleCancelFilterEdit}
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <div className="mt-2 flex justify-end">
-                    <Button
-                      onClick={handleAddFilter}
-                      disabled={Object.keys(buildCurrentFilter()).length === 0}
-                    >
-                      Add to Pack
-                    </Button>
+              <filterForm.Subscribe
+                selector={(state) => ({
+                  itemTypeFilter: state.values.itemTypeFilter,
+                })}
+              >
+                {({ itemTypeFilter }) => (
+                  <div className="mt-6">
+                    <ItemTypesSelector
+                      id="item-type-select"
+                      itemTypeFilter={itemTypeFilter}
+                      onItemTypeChange={(type, checked) => {
+                        const next = new Set(itemTypeFilter);
+                        if (checked) {
+                          next.add(type);
+                        } else {
+                          next.delete(type);
+                        }
+                        filterForm.setFieldValue("itemTypeFilter", next);
+                      }}
+                      showSearch={false}
+                      showCollapsible={false}
+                      className="text-white"
+                    />
                   </div>
                 )}
-              </div>
+              </filterForm.Subscribe>
+              <filterForm.Subscribe
+                selector={(state) => ({
+                  values: state.values,
+                  canSubmit:
+                    Object.keys(buildFilterFromFormValues(state.values))
+                      .length > 0,
+                })}
+              >
+                {({ canSubmit }) => (
+                  <div className="flex flex-row justify-end gap-2">
+                    {editFilterIdx !== null ? (
+                      <>
+                        <Button
+                          className="mt-2 flex justify-end"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            filterForm.handleSubmit();
+                          }}
+                          disabled={!canSubmit}
+                        >
+                          Save Filter Edit
+                        </Button>
+                        <Button
+                          className="mt-2 flex justify-end text-white"
+                          variant="ghost"
+                          onClick={handleCancelFilterEdit}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            filterForm.handleSubmit();
+                          }}
+                          disabled={!canSubmit}
+                        >
+                          Add to Pack
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </filterForm.Subscribe>
               {filters.length > 0 && (
                 <div className="mt-4">
                   <h4 className="font-semibold mb-2 text-sm text-gray-300">
@@ -815,25 +934,29 @@ const ItemPacksDialog: React.FC = () => {
                   </ul>
                 </div>
               )}
-              <div className="mt-2 flex justify-end">
-                {filters.length > 0 && (
-                  <Button
-                    onClick={handleSave}
-                    disabled={!label.trim() || filters.length === 0}
-                  >
-                    Save Pack
-                  </Button>
+              <packForm.Subscribe selector={(state) => state.values.label}>
+                {(label) => (
+                  <div className="mt-2 flex justify-end">
+                    {filters.length > 0 && (
+                      <Button
+                        onClick={handleSave}
+                        disabled={!label.trim() || filters.length === 0}
+                      >
+                        Save Pack
+                      </Button>
+                    )}
+                    {editingId && (
+                      <Button
+                        className="ml-2"
+                        variant="destructive"
+                        onClick={resetForm}
+                      >
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
                 )}
-                {editingId && (
-                  <Button
-                    className="ml-2"
-                    variant="destructive"
-                    onClick={resetForm}
-                  >
-                    Cancel Edit
-                  </Button>
-                )}
-              </div>
+              </packForm.Subscribe>
             </div>
           </div>
         </DialogContent>

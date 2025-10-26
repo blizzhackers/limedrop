@@ -31,6 +31,7 @@ interface AppState {
   drops: DropItem[];
   packs: ItemPack[];
   session: string | null;
+  showDebugInfo: boolean;
 }
 
 interface AppActions {
@@ -111,6 +112,7 @@ export const useAppStore = create(
       drops: [],
       packs: [],
       session: null,
+      showDebugInfo: false,
     })),
     {
       name: "limedrop-app",
@@ -241,6 +243,10 @@ export const setPacks = (packs: ItemPack[]) => {
 
 export const setSession = (session: string | null) => {
   useAppStore.setState({ session });
+};
+
+export const toggleDebugInfo = () => {
+  useAppStore.setState((state) => ({ showDebugInfo: !state.showDebugInfo }));
 };
 
 export function handleClearDropsFromInvo() {

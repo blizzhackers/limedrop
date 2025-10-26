@@ -16,6 +16,17 @@ export interface ItemPackFilter {
   itemClass?: number;
   ethereal?: boolean;
   stats?: string[];
+  // V2 filters
+  ilvl?: number;
+  ilvlComparison?: "gte" | "lte" | "eq";
+  levelReq?: number;
+  levelReqComparison?: "gte" | "lte" | "eq";
+  itemCode?: string;
+  statFilters?: Array<{
+    stat: string;
+    comparison: "gte" | "lte" | "eq";
+    value: number;
+  }>;
 }
 
 export interface ItemPackRaw {

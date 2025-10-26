@@ -1,9 +1,11 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { getItemPacks } from "@/lib/itemPacksDb";
+import { isV2Item } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AdvancedFilters } from "./AdvancedFilters";
+import { toast } from "sonner";
+import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
@@ -45,6 +47,18 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       null,
     );
     const [itemPackMultiplier, setItemPackMultiplier] = useState(1);
+
+    // V2 Item filters
+    const [ilvlFilter, setIlvlFilter] = useState<number | null>(null);
+    const [ilvlComparison, setIlvlComparison] = useState<"gte" | "lte" | "eq">(
+      "gte",
+    );
+    const [levelReqFilter, setLevelReqFilter] = useState<number | null>(null);
+    const [levelReqComparison, setLevelReqComparison] = useState<
+      "gte" | "lte" | "eq"
+    >("lte");
+    const [itemCodeFilter, setItemCodeFilter] = useState("");
+    const [statFilters, setStatFilters] = useState<StatFilter[]>([]);
 
     useEffect(() => {
       if (!session) return;
@@ -102,6 +116,61 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                 if (f.sockets !== undefined && item.sockets !== f.sockets) {
                   return false;
                 }
+
+                // V2 Item Pack Filters
+                if (isV2Item(item)) {
+                  if (f.ilvl !== undefined) {
+                    const comparison = f.ilvlComparison || "gte";
+                    if (comparison === "gte" && item.ilvl < f.ilvl)
+                      return false;
+                    if (comparison === "lte" && item.ilvl > f.ilvl)
+                      return false;
+                    if (comparison === "eq" && item.ilvl !== f.ilvl)
+                      return false;
+                  }
+                  if (f.levelReq !== undefined) {
+                    const comparison = f.levelReqComparison || "lte";
+                    if (comparison === "gte" && item.lvlreq < f.levelReq)
+                      return false;
+                    if (comparison === "lte" && item.lvlreq > f.levelReq)
+                      return false;
+                    if (comparison === "eq" && item.lvlreq !== f.levelReq)
+                      return false;
+                  }
+                  if (
+                    f.itemCode &&
+                    !item.code.toLowerCase().includes(f.itemCode.toLowerCase())
+                  ) {
+                    return false;
+                  }
+                  if (f.statFilters && f.statFilters.length > 0) {
+                    for (const statFilter of f.statFilters) {
+                      const itemStatValue = item.stats[statFilter.stat];
+                      if (itemStatValue === undefined) {
+                        return false;
+                      }
+                      const numericValue =
+                        typeof itemStatValue === "string"
+                          ? Number.parseFloat(itemStatValue)
+                          : itemStatValue;
+                      if (Number.isNaN(numericValue)) {
+                        return false;
+                      }
+                      switch (statFilter.comparison) {
+                        case "gte":
+                          if (numericValue < statFilter.value) return false;
+                          break;
+                        case "lte":
+                          if (numericValue > statFilter.value) return false;
+                          break;
+                        case "eq":
+                          if (numericValue !== statFilter.value) return false;
+                          break;
+                      }
+                    }
+                  }
+                }
+
                 return true;
               });
               if (f.count !== undefined) {
@@ -151,6 +220,84 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         if (socketFilter !== null && item.sockets !== socketFilter) {
           return false;
         }
+
+        // V2 Item filters (only apply to V2 items)
+        if (isV2Item(item)) {
+          if (ilvlFilter !== null) {
+            if (ilvlComparison === "gte" && item.ilvl < ilvlFilter) {
+              return false;
+            }
+            if (ilvlComparison === "lte" && item.ilvl > ilvlFilter) {
+              return false;
+            }
+            if (ilvlComparison === "eq" && item.ilvl !== ilvlFilter) {
+              return false;
+            }
+          }
+          if (levelReqFilter !== null) {
+            if (levelReqComparison === "gte" && item.lvlreq < levelReqFilter) {
+              return false;
+            }
+            if (levelReqComparison === "lte" && item.lvlreq > levelReqFilter) {
+              return false;
+            }
+            if (levelReqComparison === "eq" && item.lvlreq !== levelReqFilter) {
+              return false;
+            }
+          }
+          if (
+            itemCodeFilter &&
+            !item.code.toLowerCase().includes(itemCodeFilter.toLowerCase())
+          ) {
+            return false;
+          }
+
+          if (statFilters.length > 0) {
+            for (const statFilter of statFilters) {
+              const statKey = statFilter.stat;
+
+              // Check if the item has this stat
+              const itemStatValue = item.stats[statKey];
+              if (itemStatValue === undefined) {
+                return false; // Item doesn't have this stat
+              }
+
+              // Convert stat value to number for comparison
+              const numericValue =
+                typeof itemStatValue === "string"
+                  ? Number.parseFloat(itemStatValue)
+                  : itemStatValue;
+
+              if (Number.isNaN(numericValue)) {
+                return false; // Can't compare non-numeric value
+              }
+
+              // Apply comparison
+              switch (statFilter.comparison) {
+                case "gte":
+                  if (numericValue < statFilter.value) return false;
+                  break;
+                case "lte":
+                  if (numericValue > statFilter.value) return false;
+                  break;
+                case "eq":
+                  if (numericValue !== statFilter.value) return false;
+                  break;
+              }
+            }
+          }
+        } else {
+          // For V1 items, skip if any V2-only filters are active
+          if (
+            ilvlFilter !== null ||
+            levelReqFilter !== null ||
+            itemCodeFilter ||
+            statFilters.length > 0
+          ) {
+            return false;
+          }
+        }
+
         return true;
       });
     }, [
@@ -171,6 +318,12 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       gameType,
       gameMode,
       gameClass,
+      ilvlFilter,
+      ilvlComparison,
+      levelReqFilter,
+      levelReqComparison,
+      itemCodeFilter,
+      statFilters,
     ]);
 
     const PAGE_SIZE = 100;
@@ -225,6 +378,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     }
 
     function refreshInvo() {
+      toast.info("Refreshing inventory...", { duration: 2000 });
       setPage(1);
       fetchInventory();
     }
@@ -239,7 +393,12 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       itemClassFilter !== null ||
       itemTypeFilter.size > 0 ||
       etherealFilter !== null ||
-      runewordFilter !== null;
+      runewordFilter !== null ||
+      socketFilter !== null ||
+      ilvlFilter !== null ||
+      levelReqFilter !== null ||
+      itemCodeFilter !== "" ||
+      statFilters.length > 0;
 
     return (
       <section
@@ -313,6 +472,18 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             setActiveItemPackId={setActiveItemPackId}
             itemPackMultiplier={itemPackMultiplier}
             setItemPackMultiplier={setItemPackMultiplier}
+            ilvlFilter={ilvlFilter}
+            setIlvlFilter={setIlvlFilter}
+            ilvlComparison={ilvlComparison}
+            setIlvlComparison={setIlvlComparison}
+            levelReqFilter={levelReqFilter}
+            setLevelReqFilter={setLevelReqFilter}
+            levelReqComparison={levelReqComparison}
+            setLevelReqComparison={setLevelReqComparison}
+            itemCodeFilter={itemCodeFilter}
+            setItemCodeFilter={setItemCodeFilter}
+            statFilters={statFilters}
+            setStatFilters={setStatFilters}
           />
         )}
         {session && filteredInventory.length > 0 && (
