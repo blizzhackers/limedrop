@@ -47,6 +47,14 @@ interface AdvancedFiltersProps {
   setLevelReqFilter: (value: number | null) => void;
   levelReqComparison: "gte" | "lte" | "eq";
   setLevelReqComparison: (value: "gte" | "lte" | "eq") => void;
+  strReqFilter: number | null;
+  setStrReqFilter: (value: number | null) => void;
+  strReqComparison: "gte" | "lte" | "eq";
+  setStrReqComparison: (value: "gte" | "lte" | "eq") => void;
+  dexReqFilter: number | null;
+  setDexReqFilter: (value: number | null) => void;
+  dexReqComparison: "gte" | "lte" | "eq";
+  setDexReqComparison: (value: "gte" | "lte" | "eq") => void;
   itemCodeFilter: string;
   setItemCodeFilter: (value: string) => void;
   statFilters: StatFilter[];
@@ -79,6 +87,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
     setLevelReqFilter,
     levelReqComparison,
     setLevelReqComparison,
+    strReqFilter,
+    setStrReqFilter,
+    strReqComparison,
+    setStrReqComparison,
+    dexReqFilter,
+    setDexReqFilter,
+    dexReqComparison,
+    setDexReqComparison,
     itemCodeFilter,
     setItemCodeFilter,
     statFilters,
@@ -89,7 +105,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
 
     return (
       <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-9 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-11 gap-4">
           <div className="flex flex-col gap-4">
             <QualityFilterField
               value={qualityFilter}
@@ -157,6 +173,32 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
               onValueChange={setLevelReqFilter}
               onComparisonChange={setLevelReqComparison}
               placeholder="lvl req"
+              showClearButton={true}
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <NumericFilterWithComparison
+              id="strreq-input"
+              label="Str Req"
+              value={strReqFilter}
+              comparison={strReqComparison}
+              onValueChange={setStrReqFilter}
+              onComparisonChange={setStrReqComparison}
+              placeholder="str req"
+              showClearButton={true}
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <NumericFilterWithComparison
+              id="dexreq-input"
+              label="Dex Req"
+              value={dexReqFilter}
+              comparison={dexReqComparison}
+              onValueChange={setDexReqFilter}
+              onComparisonChange={setDexReqComparison}
+              placeholder="dex req"
               showClearButton={true}
             />
           </div>

@@ -75,6 +75,10 @@ const ItemPacksDialog: React.FC = () => {
       ilvlComparison: "gte" as "gte" | "lte" | "eq",
       levelReqFilter: null as number | null,
       levelReqComparison: "lte" as "gte" | "lte" | "eq",
+      strReqFilter: null as number | null,
+      strReqComparison: "lte" as "gte" | "lte" | "eq",
+      dexReqFilter: null as number | null,
+      dexReqComparison: "lte" as "gte" | "lte" | "eq",
       itemCodeFilter: "",
       statFilters: [] as StatFilter[],
     },
@@ -135,6 +139,14 @@ const ItemPacksDialog: React.FC = () => {
     if (values.levelReqFilter !== null) {
       filter.levelReq = values.levelReqFilter;
       filter.levelReqComparison = values.levelReqComparison;
+    }
+    if (values.strReqFilter !== null) {
+      filter.strReq = values.strReqFilter;
+      filter.strReqComparison = values.strReqComparison;
+    }
+    if (values.dexReqFilter !== null) {
+      filter.dexReq = values.dexReqFilter;
+      filter.dexReqComparison = values.dexReqComparison;
     }
     if (values.itemCodeFilter.trim()) {
       filter.itemCode = values.itemCodeFilter.trim();
@@ -285,6 +297,10 @@ const ItemPacksDialog: React.FC = () => {
       "levelReqComparison",
       f.levelReqComparison ?? "lte",
     );
+    filterForm.setFieldValue("strReqFilter", f.strReq ?? null);
+    filterForm.setFieldValue("strReqComparison", f.strReqComparison ?? "lte");
+    filterForm.setFieldValue("dexReqFilter", f.dexReq ?? null);
+    filterForm.setFieldValue("dexReqComparison", f.dexReqComparison ?? "lte");
     filterForm.setFieldValue("itemCodeFilter", f.itemCode ?? "");
     filterForm.setFieldValue(
       "statFilters",
@@ -787,6 +803,50 @@ const ItemPacksDialog: React.FC = () => {
                             filterForm.setFieldValue("levelReqComparison", val)
                           }
                           placeholder="lvl req"
+                        />
+                      )}
+                    </filterForm.Subscribe>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        strReqFilter: state.values.strReqFilter,
+                        strReqComparison: state.values.strReqComparison,
+                      })}
+                    >
+                      {({ strReqFilter, strReqComparison }) => (
+                        <NumericFilterWithComparison
+                          id="strreq-filter"
+                          label="Str Req"
+                          value={strReqFilter}
+                          comparison={strReqComparison}
+                          onValueChange={(val) =>
+                            filterForm.setFieldValue("strReqFilter", val)
+                          }
+                          onComparisonChange={(val) =>
+                            filterForm.setFieldValue("strReqComparison", val)
+                          }
+                          placeholder="str req"
+                        />
+                      )}
+                    </filterForm.Subscribe>
+                    <filterForm.Subscribe
+                      selector={(state) => ({
+                        dexReqFilter: state.values.dexReqFilter,
+                        dexReqComparison: state.values.dexReqComparison,
+                      })}
+                    >
+                      {({ dexReqFilter, dexReqComparison }) => (
+                        <NumericFilterWithComparison
+                          id="dexreq-filter"
+                          label="Dex Req"
+                          value={dexReqFilter}
+                          comparison={dexReqComparison}
+                          onValueChange={(val) =>
+                            filterForm.setFieldValue("dexReqFilter", val)
+                          }
+                          onComparisonChange={(val) =>
+                            filterForm.setFieldValue("dexReqComparison", val)
+                          }
+                          placeholder="dex req"
                         />
                       )}
                     </filterForm.Subscribe>

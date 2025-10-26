@@ -9,7 +9,7 @@ export const ItemTypeCheckbox: React.FC<{
   ({ name, checked, onChange }) => (
     <label
       htmlFor={name}
-      className="flex items-center gap-1 text-xs 2xl:text-base cursor-pointer select-none"
+      className="flex items-center gap-1 text-xs 3xl:text-base cursor-pointer select-none"
     >
       <Checkbox
         id={name}

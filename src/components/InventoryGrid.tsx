@@ -58,6 +58,14 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const [levelReqComparison, setLevelReqComparison] = useState<
       "gte" | "lte" | "eq"
     >("lte");
+    const [strReqFilter, setStrReqFilter] = useState<number | null>(null);
+    const [strReqComparison, setStrReqComparison] = useState<
+      "gte" | "lte" | "eq"
+    >("lte");
+    const [dexReqFilter, setDexReqFilter] = useState<number | null>(null);
+    const [dexReqComparison, setDexReqComparison] = useState<
+      "gte" | "lte" | "eq"
+    >("lte");
     const [itemCodeFilter, setItemCodeFilter] = useState("");
     const [statFilters, setStatFilters] = useState<StatFilter[]>([]);
 
@@ -249,6 +257,28 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
               return false;
             }
           }
+          if (strReqFilter !== null) {
+            if (strReqComparison === "gte" && item.strreq < strReqFilter) {
+              return false;
+            }
+            if (strReqComparison === "lte" && item.strreq > strReqFilter) {
+              return false;
+            }
+            if (strReqComparison === "eq" && item.strreq !== strReqFilter) {
+              return false;
+            }
+          }
+          if (dexReqFilter !== null) {
+            if (dexReqComparison === "gte" && item.dexreq < dexReqFilter) {
+              return false;
+            }
+            if (dexReqComparison === "lte" && item.dexreq > dexReqFilter) {
+              return false;
+            }
+            if (dexReqComparison === "eq" && item.dexreq !== dexReqFilter) {
+              return false;
+            }
+          }
           if (
             itemCodeFilter &&
             !item.code.toLowerCase().includes(itemCodeFilter.toLowerCase())
@@ -295,6 +325,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           if (
             ilvlFilter !== null ||
             levelReqFilter !== null ||
+            strReqFilter !== null ||
+            dexReqFilter !== null ||
             itemCodeFilter ||
             statFilters.length > 0
           ) {
@@ -327,6 +359,10 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       ilvlComparison,
       levelReqFilter,
       levelReqComparison,
+      strReqFilter,
+      strReqComparison,
+      dexReqFilter,
+      dexReqComparison,
       itemCodeFilter,
       statFilters,
     ]);
@@ -403,6 +439,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       colorFilter !== null ||
       ilvlFilter !== null ||
       levelReqFilter !== null ||
+      strReqFilter !== null ||
+      dexReqFilter !== null ||
       itemCodeFilter !== "" ||
       statFilters.length > 0;
 
@@ -488,6 +526,14 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             setLevelReqFilter={setLevelReqFilter}
             levelReqComparison={levelReqComparison}
             setLevelReqComparison={setLevelReqComparison}
+            strReqFilter={strReqFilter}
+            setStrReqFilter={setStrReqFilter}
+            strReqComparison={strReqComparison}
+            setStrReqComparison={setStrReqComparison}
+            dexReqFilter={dexReqFilter}
+            setDexReqFilter={setDexReqFilter}
+            dexReqComparison={dexReqComparison}
+            setDexReqComparison={setDexReqComparison}
             itemCodeFilter={itemCodeFilter}
             setItemCodeFilter={setItemCodeFilter}
             statFilters={statFilters}

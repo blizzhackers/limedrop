@@ -21,6 +21,10 @@ export interface ItemPackFilter {
   ilvlComparison?: "gte" | "lte" | "eq";
   levelReq?: number;
   levelReqComparison?: "gte" | "lte" | "eq";
+  strReq?: number;
+  strReqComparison?: "gte" | "lte" | "eq";
+  dexReq?: number;
+  dexReqComparison?: "gte" | "lte" | "eq";
   itemCode?: string;
   statFilters?: Array<{
     stat: string;
