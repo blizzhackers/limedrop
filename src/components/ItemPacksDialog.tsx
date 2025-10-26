@@ -83,17 +83,14 @@ const ItemPacksDialog: React.FC = () => {
       if (Object.keys(filter).length === 0) return;
 
       if (editFilterIdx !== null) {
-        // Update existing filter
         const updated = [...filters];
         updated[editFilterIdx] = filter;
         setFilters(updated);
         setEditFilterIdx(null);
       } else {
-        // Add new filter
         setFilters((prev) => [...prev, filter]);
       }
 
-      // Reset form
       filterForm.reset();
     },
   });
@@ -103,19 +100,33 @@ const ItemPacksDialog: React.FC = () => {
     values: typeof filterForm.state.values,
   ): ItemPackFilter => {
     const filter: ItemPackFilter = {};
-    if (values.name.trim()) filter.name = values.name.trim();
-    if (values.itemTypeFilter.size > 0)
+    if (values.name.trim()) {
+      filter.name = values.name.trim();
+    }
+    if (values.itemTypeFilter.size > 0) {
       filter.itemType = Array.from(values.itemTypeFilter);
-    if (values.qualityFilter !== null) filter.quality = values.qualityFilter;
-    if (values.itemClassFilter !== null)
+    }
+    if (values.qualityFilter !== null) {
+      filter.quality = values.qualityFilter;
+    }
+    if (values.itemClassFilter !== null) {
       filter.classid = values.itemClassFilter;
-    if (typeof values.etherealFilter === "boolean")
+    }
+    if (typeof values.etherealFilter === "boolean") {
       filter.ethereal = values.etherealFilter;
-    if (typeof values.runewordFilter === "boolean")
+    }
+    if (typeof values.runewordFilter === "boolean") {
       filter.runeword = values.runewordFilter;
-    if (values.sockets !== null) filter.sockets = values.sockets;
-    if (values.count !== null) filter.count = values.count;
-    if (values.stats.length > 0) filter.stats = [...values.stats];
+    }
+    if (values.sockets !== null) {
+      filter.sockets = values.sockets;
+    }
+    if (values.count !== null) {
+      filter.count = values.count;
+    }
+    if (values.stats.length > 0) {
+      filter.stats = [...values.stats];
+    }
     // V2 filters
     if (values.ilvlFilter !== null) {
       filter.ilvl = values.ilvlFilter;
@@ -125,8 +136,9 @@ const ItemPacksDialog: React.FC = () => {
       filter.levelReq = values.levelReqFilter;
       filter.levelReqComparison = values.levelReqComparison;
     }
-    if (values.itemCodeFilter.trim())
+    if (values.itemCodeFilter.trim()) {
       filter.itemCode = values.itemCodeFilter.trim();
+    }
     if (values.statFilters.length > 0) {
       filter.statFilters = values.statFilters.map(
         ({ stat, comparison, value }) => ({
@@ -171,7 +183,6 @@ const ItemPacksDialog: React.FC = () => {
     if (!trimmed) return;
     const currentStats = filterForm.getFieldValue("stats");
     if (editStatIdx !== null) {
-      // Editing existing stat
       const updated = currentStats.map((s, i) =>
         i === editStatIdx ? trimmed : s,
       );
