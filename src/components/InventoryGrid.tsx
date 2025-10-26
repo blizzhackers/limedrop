@@ -252,7 +252,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             return false;
           }
 
-          // Stat filtering
           if (statFilters.length > 0) {
             for (const statFilter of statFilters) {
               const statKey = statFilter.stat;
@@ -270,15 +269,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
               // Check if the item has this stat
               const itemStatValue = item.stats[statKey];
               if (itemStatValue === undefined) {
-                console.debug(
-                  `Item ${item.gid} does not have stat ${statKey} (ID: ${statId}) (${JSON.stringify(item.stats)})`,
-                );
                 return false; // Item doesn't have this stat
               }
-
-              console.debug(
-                `Item ${item.gid} stat ${statKey} (ID: ${statId}) value: ${itemStatValue}`,
-              );
 
               // Convert stat value to number for comparison
               const numericValue =
@@ -287,15 +279,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   : itemStatValue;
 
               if (Number.isNaN(numericValue)) {
-                console.debug(
-                  `Item ${item.gid} stat ${statKey} (ID: ${statId}) value is not numeric: ${itemStatValue}`,
-                );
                 return false; // Can't compare non-numeric value
               }
-
-              console.debug(
-                `Item ${item.gid} stat ${statKey} (ID: ${statId}) numeric value: ${numericValue}`,
-              );
 
               // Apply comparison
               switch (statFilter.comparison) {

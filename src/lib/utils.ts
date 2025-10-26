@@ -137,8 +137,6 @@ export function extractItemInfo(itemid: string, desc: string) {
    */
   const [gid, classid, loc, x, y, itemInfo] = itemid.split(":");
 
-  console.log(itemid);
-
   const codeToQuality = {
     [sdk.colors.White]: sdk.items.quality.Normal,
     [sdk.colors.Blue]: sdk.items.quality.Magic,
