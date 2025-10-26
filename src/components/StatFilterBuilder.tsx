@@ -116,9 +116,12 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
 
     const handleRemoveStatFilter = useCallback(
       (id: string) => {
+        if (editingFilterId === id) {
+          setEditingFilterId(null);
+        }
         setStatFilters(statFilters.filter((f) => f.id !== id));
       },
-      [statFilters, setStatFilters],
+      [statFilters, setStatFilters, editingFilterId],
     );
 
     return (
