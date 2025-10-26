@@ -89,7 +89,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
 
     return (
       <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-9 gap-4">
           <div className="flex flex-col gap-4">
             <QualityFilterField
               value={qualityFilter}
@@ -169,31 +169,35 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
           </div>
         </div>
 
-        <div className="flex flex-col mt-6">
-          <StatFilterBuilder
-            statFilters={statFilters}
-            setStatFilters={setStatFilters}
-          />
-        </div>
+        <div className="flex flex-col xl:flex-row gap-6 mt-6">
+          <div className="flex flex-col flex-1">
+            <StatFilterBuilder
+              statFilters={statFilters}
+              setStatFilters={setStatFilters}
+              showCollapsible={true}
+              defaultOpen={true}
+            />
+          </div>
 
-        <div className="flex flex-col mt-6">
-          <ItemTypesSelector
-            itemTypeFilter={itemTypeFilter}
-            onItemTypeChange={(type, checked) => {
-              setItemTypeFilter((prev) => {
-                const next = new Set(prev);
-                if (checked) {
-                  next.add(type);
-                } else {
-                  next.delete(type);
-                }
-                return next;
-              });
-            }}
-            showSearch={true}
-            showCollapsible={true}
-            defaultOpen={true}
-          />
+          <div className="flex flex-col flex-1">
+            <ItemTypesSelector
+              itemTypeFilter={itemTypeFilter}
+              onItemTypeChange={(type, checked) => {
+                setItemTypeFilter((prev) => {
+                  const next = new Set(prev);
+                  if (checked) {
+                    next.add(type);
+                  } else {
+                    next.delete(type);
+                  }
+                  return next;
+                });
+              }}
+              showSearch={true}
+              showCollapsible={true}
+              defaultOpen={true}
+            />
+          </div>
         </div>
 
         <div className="mt-2 flex items-center gap-2">

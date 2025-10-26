@@ -408,7 +408,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     return (
       <section
-        className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col"
+        className="md:col-span-3 bg-gray-800 rounded shadow p-2 flex flex-col"
         style={{ minHeight: "80vh" }}
       >
         <div className="flex flex-row items-center justify-between gap-4 mb-4">
@@ -548,7 +548,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           </div>
         )}
         {totalPages > 1 && !loadingInventory && (
-          <div className="flex justify-center gap-2 mt-2">
+          <div className="flex justify-center gap-2 mt-2 mb-[-8px]">
             <Button
               type="button"
               onClick={() => {

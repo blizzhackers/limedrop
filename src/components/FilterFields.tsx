@@ -500,6 +500,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
   className = "",
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(defaultOpen);
 
   const allItemTypes = useMemo(
     () => Object.entries(sdk.items.type).sort(([a], [b]) => naturalSort(a, b)),
@@ -511,6 +512,39 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
     const lower = searchTerm.toLowerCase();
     return allItemTypes.filter(([name]) => name.toLowerCase().includes(lower));
   }, [allItemTypes, searchTerm, showSearch]);
+
+  const selectedItemTypes = useMemo(() => {
+    return allItemTypes.filter(([, val]) => itemTypeFilter.has(Number(val)));
+  }, [allItemTypes, itemTypeFilter]);
+
+  const selectedItemTypesContent = (
+    <>
+      {selectedItemTypes.length > 0 && (
+        <div className="mb-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {selectedItemTypes.map(([name, val]) => (
+              <div
+                key={val}
+                className="flex items-center gap-2 px-2 py-1 rounded border bg-gray-800 border-gray-700"
+              >
+                <span className="text-sm text-gray-300">{name}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-5 w-5 hover:text-red-400 p-0"
+                  onClick={() => onItemTypeChange(Number(val), false)}
+                  title={`Remove ${name}`}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
 
   const gridContent = (
     <>
@@ -564,14 +598,17 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
   if (showCollapsible) {
     return (
       <div className="flex flex-col">
-        <Collapsible defaultOpen={defaultOpen}>
+        <Collapsible
+          open={isCollapsibleOpen}
+          onOpenChange={setIsCollapsibleOpen}
+        >
           <div className="flex items-center justify-between">
             {showLabel && (
               <label
                 htmlFor={id}
                 className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
               >
-                {label}
+                {label} {itemTypeFilter.size > 0 && `(${itemTypeFilter.size})`}
               </label>
             )}
             <CollapsibleTrigger
@@ -581,6 +618,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
               <ChevronsUpDown className="w-4 h-4" />
             </CollapsibleTrigger>
           </div>
+          {!isCollapsibleOpen && selectedItemTypesContent}
           <CollapsibleContent>{gridContent}</CollapsibleContent>
         </Collapsible>
       </div>
@@ -597,6 +635,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
           {label}
         </label>
       )}
+      {selectedItemTypesContent}
       {gridContent}
     </div>
   );
