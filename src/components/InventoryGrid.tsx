@@ -4,6 +4,7 @@ import { isV2Item } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
@@ -377,6 +378,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     }
 
     function refreshInvo() {
+      toast.info("Refreshing inventory...", { duration: 2000 });
       setPage(1);
       fetchInventory();
     }
