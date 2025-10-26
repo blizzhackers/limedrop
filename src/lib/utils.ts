@@ -146,7 +146,7 @@ export function extractItemInfo(itemid: string, desc: string) {
   };
 
   // handle old logs without itemInfo
-  if (!itemInfo || itemInfo.length === 1) {
+  if (!itemInfo || itemInfo.length === 1 || itemInfo === "eth") {
     const [
       _gid,
       _classid,
@@ -170,7 +170,7 @@ export function extractItemInfo(itemid: string, desc: string) {
       loc,
       x,
       y,
-      ethereal: ethFlag === "1",
+      ethereal: ethFlag === "1" || ethFlag === "eth",
       runeword: rwFlag === "1",
       quality: (() => {
         if (itemQuality) {
