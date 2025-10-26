@@ -168,6 +168,29 @@ function buildV1ItemInfo(itemid: string, desc: string) {
       if (desc.includes("Grand Charm")) {
         return sdk.items.type.GrandCharm;
       }
+      if (desc.includes("Can be inserted")) {
+        if (desc.includes("Amethyst")) {
+          return sdk.items.type.Amethyst;
+        }
+        if (desc.includes("Topaz")) {
+          return sdk.items.type.Topaz;
+        }
+        if (desc.includes("Sapphire")) {
+          return sdk.items.type.Sapphire;
+        }
+        if (desc.includes("Emerald")) {
+          return sdk.items.type.Emerald;
+        }
+        if (desc.includes("Ruby")) {
+          return sdk.items.type.Ruby;
+        }
+        if (desc.includes("Diamond")) {
+          return sdk.items.type.Diamond;
+        }
+        if (desc.includes("Skull")) {
+          return sdk.items.type.Skull;
+        }
+      }
 
       if (desc.includes("Bow")) {
         if (desc.includes("Amazon Only")) {
