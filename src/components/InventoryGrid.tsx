@@ -1,5 +1,4 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { NTIPAliasStat } from "@/lib/NTItemAlias";
 import { getItemPacks } from "@/lib/itemPacksDb";
 import { isV2Item } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
@@ -255,16 +254,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           if (statFilters.length > 0) {
             for (const statFilter of statFilters) {
               const statKey = statFilter.stat;
-              const statAlias =
-                NTIPAliasStat[statKey as keyof typeof NTIPAliasStat];
-
-              // Determine the stat ID to look for
-              let statId: string;
-              if (Array.isArray(statAlias)) {
-                statId = String(statAlias[0]);
-              } else {
-                statId = String(statAlias);
-              }
 
               // Check if the item has this stat
               const itemStatValue = item.stats[statKey];
