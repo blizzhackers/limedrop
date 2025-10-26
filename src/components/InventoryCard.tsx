@@ -1,10 +1,10 @@
+import { AlertCircle, RotateCcw } from "lucide-react";
+import type React from "react";
+import { memo, useEffect, useState } from "react";
 import { renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
 import { isV2Item } from "@/lib/utils";
 import { addToCart, removeFromCart, useAppStore } from "@/stores/appStore";
-import { AlertCircle, RotateCcw } from "lucide-react";
-import type React from "react";
-import { memo, useEffect, useState } from "react";
 
 interface InventoryCardProps {
   item: InventoryItem;
@@ -62,7 +62,6 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
         perspective: "1000px",
       }}
       onClick={!isFlipped ? handleClick : undefined}
-      onKeyDown={() => {}}
       title={
         !isFlipped
           ? inCart

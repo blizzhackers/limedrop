@@ -1,3 +1,5 @@
+import { Edit2Icon, Plus, Search, X } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,8 +11,6 @@ import {
 } from "@/components/ui/select";
 import { NTIPAliasStat } from "@/lib/NTItemAlias";
 import { naturalSort } from "@/lib/utils";
-import { Edit2Icon, Plus, Search, X } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type StatFilter = {
   id: string;

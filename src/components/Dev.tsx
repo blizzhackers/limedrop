@@ -1,9 +1,9 @@
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
 import { useAppStore } from "@/stores/appStore";
-import { useState } from "react";
-import { toast } from "sonner";
 
 interface DevScreenProps {
   api: D2BotAPI;
@@ -222,7 +222,7 @@ export const DevScreen: React.FC<DevScreenProps> = ({ api }) => {
                     () => api.gameaction(gameActionData),
                     "gameaction",
                   );
-                } catch (err) {
+                } catch (_err) {
                   toast.error("Invalid JSON in custom data");
                 }
               }}

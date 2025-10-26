@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   EtherealFilterField,
   ItemClassFilterField,
@@ -16,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setQualityFilter, useAppStore } from "@/stores/appStore";
-import { memo } from "react";
 import { type StatFilter, StatFilterBuilder } from "./StatFilterBuilder";
 
 export type { StatFilter };

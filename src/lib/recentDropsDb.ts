@@ -39,7 +39,11 @@ export async function addRecentDrop({
   items,
   gameName,
   username,
-}: { items: InventoryItem[]; gameName: string; username: string }) {
+}: {
+  items: InventoryItem[];
+  gameName: string;
+  username: string;
+}) {
   const db = await openLimeDropDb();
   const encrypted = encryptDropData({ items, gameName }, username);
   return new Promise<number>((resolve, reject) => {

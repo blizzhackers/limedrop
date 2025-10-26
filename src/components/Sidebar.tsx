@@ -1,3 +1,12 @@
+import {
+  ChevronLeft,
+  ChevronRight,
+  MenuIcon,
+  RefreshCw,
+  XIcon,
+} from "lucide-react";
+import type React from "react";
+import { memo, useMemo, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -10,8 +19,8 @@ import {
   GAME_CLASSES,
   GAME_MODES,
   GAME_TYPES,
-  REALMS,
   naturalSort,
+  REALMS,
 } from "@/lib/utils";
 import {
   setGameClass,
@@ -21,15 +30,6 @@ import {
   setSelectedCharacter,
   useAppStore,
 } from "@/stores/appStore";
-import {
-  ChevronLeft,
-  ChevronRight,
-  MenuIcon,
-  RefreshCw,
-  XIcon,
-} from "lucide-react";
-import type React from "react";
-import { memo, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { DialogTitle } from "./ui/dialog";
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader } from "./ui/drawer";

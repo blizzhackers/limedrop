@@ -1,10 +1,10 @@
+import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getItemPacks } from "@/lib/itemPacksDb";
 import { isV2Item } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
-import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
@@ -513,7 +513,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-1">
               {Array.from({ length: PAGE_SIZE }).map((_, idx) => (
                 <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                  // biome-ignore lint/suspicious/noArrayIndexKey: No better key available here
                   key={idx}
                   className="h-40 bg-gray-700 animate-pulse rounded"
                 />

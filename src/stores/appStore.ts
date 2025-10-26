@@ -1,8 +1,8 @@
+import { create } from "zustand";
+import { persist, subscribeWithSelector } from "zustand/middleware";
 import type { ItemPack } from "@/lib/itemPacksDb";
 import { getRecentDrops } from "@/lib/recentDropsDb";
 import type { InventoryItem } from "@/lib/utils";
-import { create } from "zustand";
-import { persist, subscribeWithSelector } from "zustand/middleware";
 
 interface AppState {
   realm: string;

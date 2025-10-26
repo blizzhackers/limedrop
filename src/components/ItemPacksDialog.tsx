@@ -1,17 +1,17 @@
-import {
-  type ItemPackFilter,
-  addItemPack,
-  deleteItemPack,
-  getItemPacks,
-  updateItemPack,
-} from "@/lib/itemPacksDb";
-import { setPacks, useAppStore } from "@/stores/appStore";
-import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import { useForm } from "@tanstack/react-form";
 import { Edit2Icon, Trash2Icon, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  addItemPack,
+  deleteItemPack,
+  getItemPacks,
+  type ItemPackFilter,
+  updateItemPack,
+} from "@/lib/itemPacksDb";
+import { setPacks, useAppStore } from "@/stores/appStore";
+import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import {
   EtherealFilterField,
   ItemClassFilterField,
@@ -442,7 +442,7 @@ const ItemPacksDialog: React.FC = () => {
       }
       setPacks(await getItemPacks(username));
       toast.success(`Imported ${packsToAdd.length} item pack(s).`);
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to import item packs.");
     }
   };
@@ -908,7 +908,7 @@ const ItemPacksDialog: React.FC = () => {
                   <ul className="space-y-1">
                     {filters.map((f, idx) => (
                       <li
-                        // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                        // biome-ignore lint/suspicious/noArrayIndexKey: No better key available
                         key={idx}
                         className="flex items-center justify-between gap-2 text-xs text-white bg-gray-800 rounded px-2 py-1"
                       >

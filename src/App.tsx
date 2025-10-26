@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
+import { Bug } from "lucide-react";
+import { useCallback } from "react";
+import { toast } from "sonner";
+import { shallow } from "zustand/shallow";
 import { CartDrawer } from "@/components/CartDrawer";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { Sidebar } from "@/components/Sidebar";
@@ -7,8 +11,8 @@ import { Topbar } from "@/components/Topbar";
 import { Button } from "@/components/ui/button";
 import { D2BotAPI } from "@/lib/D2Bot";
 import {
-  type InventoryItem,
   appendUniqueItems,
+  type InventoryItem,
   naturalSort,
 } from "@/lib/utils";
 import {
@@ -21,10 +25,6 @@ import {
   toggleDebugInfo,
   useAppStore,
 } from "@/stores/appStore";
-import { Bug } from "lucide-react";
-import { useCallback } from "react";
-import { toast } from "sonner";
-import { shallow } from "zustand/shallow";
 
 declare global {
   interface Window {

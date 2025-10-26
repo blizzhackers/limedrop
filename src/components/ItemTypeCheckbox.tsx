@@ -1,5 +1,5 @@
-import { Checkbox } from "@/components/ui/checkbox";
 import { memo } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const ItemTypeCheckbox: React.FC<{
   name: string;

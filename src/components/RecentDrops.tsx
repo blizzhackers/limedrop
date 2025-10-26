@@ -1,12 +1,12 @@
+import { X } from "lucide-react";
+import type React from "react";
+import { memo, useEffect } from "react";
 import { renderColorText } from "@/lib/util";
 import {
   setRecentDropsOpen,
   updateCachedDrops,
   useAppStore,
 } from "@/stores/appStore";
-import { X } from "lucide-react";
-import type React from "react";
-import { memo, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
   Drawer,

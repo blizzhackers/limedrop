@@ -69,7 +69,11 @@ export async function addItemPack({
   label,
   filters,
   username,
-}: { label: string; filters: ItemPackFilter[]; username: string }) {
+}: {
+  label: string;
+  filters: ItemPackFilter[];
+  username: string;
+}) {
   const db = await openLimeDropDb();
   const encrypted = encryptPackData({ label, filters }, username);
   return new Promise<number>((resolve, reject) => {

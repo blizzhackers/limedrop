@@ -1,3 +1,6 @@
+import { ChevronsUpDown, Search, X } from "lucide-react";
+import type React from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -14,9 +17,6 @@ import {
 } from "@/components/ui/select";
 import { sdk } from "@/lib/sdk";
 import { naturalSort } from "@/lib/utils";
-import { ChevronsUpDown, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import type React from "react";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 
 interface QualityFilterFieldProps {
