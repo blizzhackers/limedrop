@@ -21,7 +21,13 @@ import {
   setSelectedCharacter,
   useAppStore,
 } from "@/stores/appStore";
-import { MenuIcon, RefreshCw, XIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MenuIcon,
+  RefreshCw,
+  XIcon,
+} from "lucide-react";
 import type React from "react";
 import { memo, useMemo, useState } from "react";
 import { Button } from "./ui/button";
@@ -44,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
     const selectedCharacter = useAppStore((s) => s.selectedCharacter);
     const accountsCache = useAppStore((s) => s.accountDataCache);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
 
     const filteredAccounts = useMemo(() => {
       const checks = {
@@ -88,6 +95,55 @@ export const Sidebar: React.FC<SidebarProps> = memo(
         await fetchAccounts(session);
       }
     };
+
+    const collapsedContent = (
+      <>
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-xs text-gray-400">Type</div>
+          <div className="text-sm font-bold text-lime-400">
+            {gameType === "Expansion" ? "LoD" : "Classic"}
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-xs text-gray-400">Mode</div>
+          <div className="text-sm font-bold text-lime-400">
+            {gameMode === "Softcore" ? "SC" : "HC"}
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-xs text-gray-400">Class</div>
+          <div className="text-sm font-bold text-lime-400">
+            {gameClass === "Ladder" ? "Ladder" : "Non-L"}
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-xs text-gray-400">Realm</div>
+          <div className="text-sm font-bold text-lime-400">{realm}</div>
+        </div>
+        {session && (
+          <>
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-xs text-gray-400">Acct</div>
+              <div
+                className="text-sm font-bold text-lime-400 truncate max-w-full"
+                title={selectedAccount}
+              >
+                {selectedAccount === "Show All" ? "All" : selectedAccount}
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-xs text-gray-400">Char</div>
+              <div
+                className="text-sm font-bold text-lime-400 truncate max-w-full"
+                title={selectedCharacter}
+              >
+                {selectedCharacter === "Show All" ? "All" : selectedCharacter}
+              </div>
+            </div>
+          </>
+        )}
+      </>
+    );
 
     const sidebarContent = (
       <>
@@ -235,8 +291,34 @@ export const Sidebar: React.FC<SidebarProps> = memo(
           <MenuIcon className="h-5 w-5" />
         </Button>
 
-        <aside className="hidden md:flex w-64 bg-gray-800 p-4 flex-col gap-4 min-h-0 min-w-0">
-          {sidebarContent}
+        <aside
+          className={`hidden md:flex bg-gray-800 p-4 flex-col gap-4 min-h-0 min-w-0 transition-all duration-500 ease-in-out relative overflow-hidden ${collapsed ? "w-20" : "w-64"}`}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 hover:bg-gray-700 z-10"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+
+          <div
+            className={`flex flex-col gap-6 mt-8 items-center overflow-y-auto transition-opacity duration-300 ease-in-out absolute inset-x-0 top-0 pt-12 px-2 ${collapsed ? "opacity-100 delay-200 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+          >
+            {collapsedContent}
+          </div>
+
+          <div
+            className={`flex flex-col gap-4 transition-opacity duration-300 ease-in-out ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100 delay-200 pointer-events-auto"}`}
+          >
+            {sidebarContent}
+          </div>
         </aside>
 
         <Drawer direction="left" open={mobileOpen} onOpenChange={setMobileOpen}>
