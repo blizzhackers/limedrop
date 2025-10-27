@@ -1460,6 +1460,7 @@ export const NTIPAliasColor = {
   darkgold: 16,
   darkgreen: 11,
   darkblue: 5,
+  darkpurple: 18,
 } as const;
 
 export const NTIPAliasStat = {
