@@ -98,6 +98,9 @@ html {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --breakpoint-lg: 70rem;
+  --breakpoint-xl: 100rem;
+  --breakpoint-2xl: 120rem;
   --breakpoint-3xl: 160rem;
 }
 

@@ -585,7 +585,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             {filteredInventory.length === 0 ? (
               <div className="text-gray-400">No items found.</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-1">
                 {pageItems.map((item, idx) => (
                   <InventoryCard key={item.itemid || idx} item={item} />
                 ))}
