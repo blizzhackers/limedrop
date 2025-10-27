@@ -576,7 +576,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
       )}
       <div
         id={id}
-        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 3xl:grid-cols-9 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2 ${className}`}
+        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 3xl:grid-cols-9 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2 ${className}`}
       >
         {filteredItemTypes.map(([name, val]) => (
           <ItemTypeCheckbox
@@ -606,7 +606,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
             {showLabel && (
               <label
                 htmlFor={id}
-                className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+                className="text-xs 2xl:text-base mb-1 text-gray-300 font-semibold"
               >
                 {label} {itemTypeFilter.size > 0 && `(${itemTypeFilter.size})`}
               </label>
