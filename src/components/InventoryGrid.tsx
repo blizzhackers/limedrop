@@ -1,9 +1,10 @@
-import { ArrowUp, Filter, Loader2, RefreshCw } from "lucide-react";
+import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getItemPacks } from "@/lib/itemPacksDb";
-import { NTIPAliasFlag } from "@/lib/NTItemAlias";
+import { NTIPAliasColor, NTIPAliasFlag } from "@/lib/NTItemAlias";
+import { sdk } from "@/lib/sdk";
 import { isV2Item } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
@@ -514,6 +515,307 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             </Button>
           </div>
         </div>
+        {!showAdvancedFilters && filtersActive && (
+          <div className="mb-4 bg-gray-900 p-3 rounded border border-gray-700">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm font-semibold text-gray-300">
+                Active Filters:
+              </span>
+              {qualityFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Quality:</span>
+                  <span className="text-white font-medium">
+                    {
+                      Object.entries(sdk.items.quality).find(
+                        ([, v]) => v === qualityFilter,
+                      )?.[0]
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      useAppStore.setState({ qualityFilter: null })
+                    }
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove quality filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {itemClassFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Class:</span>
+                  <span className="text-white font-medium">
+                    {
+                      Object.entries(sdk.items.class).find(
+                        ([, v]) => v === itemClassFilter,
+                      )?.[0]
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setItemClassFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove class filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {itemTypeFilter.size > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Item Types:</span>
+                  <span className="text-white font-medium">
+                    {itemTypeFilter.size} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setItemTypeFilter(new Set())}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Clear item type filters"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {etherealFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Ethereal:</span>
+                  <span className="text-white font-medium">
+                    {etherealFilter ? "Yes" : "No"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEtherealFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove ethereal filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {runewordFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Runeword:</span>
+                  <span className="text-white font-medium">
+                    {runewordFilter ? "Yes" : "No"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRunewordFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove runeword filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {identifiedFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Identified:</span>
+                  <span className="text-white font-medium">
+                    {identifiedFilter ? "Yes" : "No"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIdentifiedFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove identified filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {socketFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Sockets:</span>
+                  <span className="text-white font-medium">{socketFilter}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSocketFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove socket filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {colorFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Color:</span>
+                  <span className="text-white font-medium">
+                    {
+                      Object.entries(NTIPAliasColor).find(
+                        ([, v]) => v === colorFilter,
+                      )?.[0]
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setColorFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove color filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {ilvlFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">ilvl:</span>
+                  <span className="text-white font-medium">
+                    {ilvlComparison === "gte"
+                      ? "≥"
+                      : ilvlComparison === "lte"
+                        ? "≤"
+                        : "="}{" "}
+                    {ilvlFilter}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIlvlFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove ilvl filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {levelReqFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Level Req:</span>
+                  <span className="text-white font-medium">
+                    {levelReqComparison === "gte"
+                      ? "≥"
+                      : levelReqComparison === "lte"
+                        ? "≤"
+                        : "="}{" "}
+                    {levelReqFilter}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLevelReqFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove level requirement filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {strReqFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Str Req:</span>
+                  <span className="text-white font-medium">
+                    {strReqComparison === "gte"
+                      ? "≥"
+                      : strReqComparison === "lte"
+                        ? "≤"
+                        : "="}{" "}
+                    {strReqFilter}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setStrReqFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove strength requirement filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {dexReqFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Dex Req:</span>
+                  <span className="text-white font-medium">
+                    {dexReqComparison === "gte"
+                      ? "≥"
+                      : dexReqComparison === "lte"
+                        ? "≤"
+                        : "="}{" "}
+                    {dexReqFilter}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDexReqFilter(null)}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove dexterity requirement filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {itemCodeFilter !== "" && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
+                  <span className="text-gray-400">Item Code:</span>
+                  <span className="text-white font-medium">
+                    {itemCodeFilter}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setItemCodeFilter("")}
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label="Remove item code filter"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {statFilters.map((filter) => (
+                <span
+                  key={filter.id}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs"
+                >
+                  <span className="text-lime-400 font-medium">
+                    {filter.stat}
+                  </span>
+                  <span className="text-gray-400">
+                    {filter.comparison === "gte"
+                      ? "≥"
+                      : filter.comparison === "lte"
+                        ? "≤"
+                        : "="}
+                  </span>
+                  <span className="text-white font-mono">{filter.value}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStatFilters(
+                        statFilters.filter((f) => f.id !== filter.id),
+                      )
+                    }
+                    className="ml-1 hover:text-red-400 transition-colors"
+                    aria-label={`Remove ${filter.stat} filter`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  useAppStore.setState({ qualityFilter: null });
+                  setItemClassFilter(null);
+                  setItemTypeFilter(new Set());
+                  setEtherealFilter(null);
+                  setRunewordFilter(null);
+                  setIdentifiedFilter(null);
+                  setSocketFilter(null);
+                  setColorFilter(null);
+                  setIlvlFilter(null);
+                  setLevelReqFilter(null);
+                  setStrReqFilter(null);
+                  setDexReqFilter(null);
+                  setItemCodeFilter("");
+                  setStatFilters([]);
+                }}
+                className="ml-auto px-3 py-1 rounded bg-red-900/50 hover:bg-red-800 text-red-200 text-xs font-medium transition-colors border border-red-700"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+        )}
         {showAdvancedFilters && (
           <AdvancedFilters
             itemClassFilter={itemClassFilter}
