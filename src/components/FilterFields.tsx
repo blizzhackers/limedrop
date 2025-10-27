@@ -214,6 +214,53 @@ export const RunewordFilterField: React.FC<RunewordFilterFieldProps> = ({
   );
 };
 
+interface IdentifiedFilterFieldProps {
+  id?: string;
+  value: boolean | null;
+  onValueChange: (value: boolean | null) => void;
+  className?: string;
+  label?: string;
+  showLabel?: boolean;
+}
+
+export const IdentifiedFilterField: React.FC<IdentifiedFilterFieldProps> = ({
+  id = "identified-select",
+  value,
+  onValueChange,
+  className = "",
+  label = "Identified",
+  showLabel = true,
+}) => {
+  return (
+    <div className="flex flex-col">
+      {showLabel && (
+        <label
+          htmlFor={id}
+          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+        >
+          {label}
+        </label>
+      )}
+      <Select
+        value={value === null ? "all" : value ? "yes" : "no"}
+        onValueChange={(v) => onValueChange(v === "all" ? null : v === "yes")}
+      >
+        <SelectTrigger
+          id={id}
+          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
+        >
+          <SelectValue placeholder="Identified" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Any</SelectItem>
+          <SelectItem value="yes">Identified</SelectItem>
+          <SelectItem value="no">Unidentified</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+
 interface ColorFilterFieldProps {
   id?: string;
   value: number | null;

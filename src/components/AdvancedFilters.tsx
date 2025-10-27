@@ -2,6 +2,7 @@ import { memo } from "react";
 import {
   ColorFilterField,
   EtherealFilterField,
+  IdentifiedFilterField,
   ItemClassFilterField,
   ItemCodeFilterField,
   ItemTypesSelector,
@@ -31,6 +32,8 @@ interface AdvancedFiltersProps {
   setEtherealFilter: (value: boolean | null) => void;
   runewordFilter: boolean | null;
   setRunewordFilter: (value: boolean | null) => void;
+  identifiedFilter: boolean | null;
+  setIdentifiedFilter: (value: boolean | null) => void;
   socketFilter: number | null;
   setSocketFilter: (value: number | null) => void;
   colorFilter: number | null;
@@ -71,6 +74,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
     setEtherealFilter,
     runewordFilter,
     setRunewordFilter,
+    identifiedFilter,
+    setIdentifiedFilter,
     socketFilter,
     setSocketFilter,
     colorFilter,
@@ -131,6 +136,13 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
             <RunewordFilterField
               value={runewordFilter}
               onValueChange={setRunewordFilter}
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <IdentifiedFilterField
+              value={identifiedFilter}
+              onValueChange={setIdentifiedFilter}
             />
           </div>
 

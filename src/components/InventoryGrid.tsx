@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getItemPacks } from "@/lib/itemPacksDb";
+import { NTIPAliasFlag } from "@/lib/NTItemAlias";
 import { isV2Item } from "@/lib/utils";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
@@ -42,6 +43,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     );
     const [etherealFilter, setEtherealFilter] = useState<null | boolean>(null);
     const [runewordFilter, setRunewordFilter] = useState<null | boolean>(null);
+    const [identifiedFilter, setIdentifiedFilter] = useState<null | boolean>(
+      null,
+    );
     const [socketFilter, setSocketFilter] = useState<number | null>(null);
     const [colorFilter, setColorFilter] = useState<number | null>(null);
     const [activeItemPackId, setActiveItemPackId] = useState<number | null>(
@@ -226,6 +230,14 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         if (runewordFilter !== null && item.runeword !== runewordFilter) {
           return false;
         }
+        if (identifiedFilter !== null) {
+          if (isV2Item(item)) {
+            const isIdentified = (item.flags & NTIPAliasFlag.identified) !== 0;
+            if (isIdentified !== identifiedFilter) {
+              return false;
+            }
+          }
+        }
         if (socketFilter !== null && item.sockets !== socketFilter) {
           return false;
         }
@@ -347,6 +359,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       itemTypeFilter,
       etherealFilter,
       runewordFilter,
+      identifiedFilter,
       activeItemPackId,
       itemPacks,
       itemPackMultiplier,
@@ -435,6 +448,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       itemTypeFilter.size > 0 ||
       etherealFilter !== null ||
       runewordFilter !== null ||
+      identifiedFilter !== null ||
       socketFilter !== null ||
       colorFilter !== null ||
       ilvlFilter !== null ||
@@ -510,6 +524,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             setEtherealFilter={setEtherealFilter}
             runewordFilter={runewordFilter}
             setRunewordFilter={setRunewordFilter}
+            identifiedFilter={identifiedFilter}
+            setIdentifiedFilter={setIdentifiedFilter}
             socketFilter={socketFilter}
             setSocketFilter={setSocketFilter}
             colorFilter={colorFilter}
