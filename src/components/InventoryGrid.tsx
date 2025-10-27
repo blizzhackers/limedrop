@@ -517,10 +517,34 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         </div>
         {!showAdvancedFilters && filtersActive && (
           <div className="mb-4 bg-gray-900 p-3 rounded border border-gray-700">
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-gray-300">
                 Active Filters:
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  useAppStore.setState({ qualityFilter: null });
+                  setItemClassFilter(null);
+                  setItemTypeFilter(new Set());
+                  setEtherealFilter(null);
+                  setRunewordFilter(null);
+                  setIdentifiedFilter(null);
+                  setSocketFilter(null);
+                  setColorFilter(null);
+                  setIlvlFilter(null);
+                  setLevelReqFilter(null);
+                  setStrReqFilter(null);
+                  setDexReqFilter(null);
+                  setItemCodeFilter("");
+                  setStatFilters([]);
+                }}
+                className="px-3 py-1 rounded bg-red-900/50 hover:bg-red-800 text-red-200 text-xs font-medium transition-colors border border-red-700"
+              >
+                Clear All Filters
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
               {qualityFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Quality:</span>
@@ -791,28 +815,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               ))}
-              <button
-                type="button"
-                onClick={() => {
-                  useAppStore.setState({ qualityFilter: null });
-                  setItemClassFilter(null);
-                  setItemTypeFilter(new Set());
-                  setEtherealFilter(null);
-                  setRunewordFilter(null);
-                  setIdentifiedFilter(null);
-                  setSocketFilter(null);
-                  setColorFilter(null);
-                  setIlvlFilter(null);
-                  setLevelReqFilter(null);
-                  setStrReqFilter(null);
-                  setDexReqFilter(null);
-                  setItemCodeFilter("");
-                  setStatFilters([]);
-                }}
-                className="ml-auto px-3 py-1 rounded bg-red-900/50 hover:bg-red-800 text-red-200 text-xs font-medium transition-colors border border-red-700"
-              >
-                Clear All Filters
-              </button>
             </div>
           </div>
         )}
