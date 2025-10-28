@@ -104,6 +104,30 @@ html {
   --breakpoint-3xl: 160rem;
 }
 
+@custom-variant h-sm {
+  @media (min-height: 37.5rem) {
+    @slot;
+  }
+}
+
+@custom-variant h-md {
+  @media (min-height: 50rem) {
+    @slot;
+  }
+}
+
+@custom-variant h-lg {
+  @media (min-height: 62.5rem) {
+    @slot;
+  }
+}
+
+@custom-variant h-xl {
+  @media (min-height: 75rem) {
+    @slot;
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(0.145 0 0);

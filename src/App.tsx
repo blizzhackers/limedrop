@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
-import { Bug } from "lucide-react";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { shallow } from "zustand/shallow";
 import { CartDrawer } from "@/components/CartDrawer";
+import { DebugButton } from "@/components/DebugButton";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
-import { Button } from "@/components/ui/button";
 import { D2BotAPI } from "@/lib/D2Bot";
 import {
   appendUniqueItems,
@@ -22,7 +21,6 @@ import {
   setFullyLoaded,
   setInventory,
   setLoadingInventory,
-  toggleDebugInfo,
   useAppStore,
 } from "@/stores/appStore";
 
@@ -36,7 +34,6 @@ export default function App() {
   const apiUrl = useAppStore((s) => s.apiUrl);
   const username = useAppStore((s) => s.username);
   const session = useAppStore((s) => s.session);
-  const showDebugInfo = useAppStore((s) => s.showDebugInfo);
 
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
@@ -431,18 +428,7 @@ export default function App() {
       </div>
       <CartDrawer api={api} session={session} handleSignOut={handleSignOut} />
 
-      <Button
-        onClick={toggleDebugInfo}
-        size="icon"
-        className={`fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg transition-colors z-40 ${
-          showDebugInfo
-            ? "bg-lime-600 hover:bg-lime-700"
-            : "bg-gray-700 hover:bg-gray-600"
-        }`}
-        title={showDebugInfo ? "Hide debug info" : "Show debug info"}
-      >
-        <Bug className="h-5 w-5" />
-      </Button>
+      <DebugButton />
 
       <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">
         &copy; 2025 Lime Drop. All rights reserved.

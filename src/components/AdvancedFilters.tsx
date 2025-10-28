@@ -109,7 +109,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
     const itemPacks = useAppStore((s) => s.packs);
 
     return (
-      <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700">
+      <div className="mb-4 bg-gray-900 p-4 rounded border border-gray-700 min-h-72 h-xl:min-h-fit 3xl:min-h-fit overflow-y-auto">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
           <div className="flex flex-col gap-4">
             <QualityFilterField
