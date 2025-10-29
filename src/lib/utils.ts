@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { sdk } from "../constants/sdk";
 import type { ApiItemResponse } from "./D2Bot";
-import { sdk } from "./sdk";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

@@ -9,7 +9,7 @@ import {
   getItemPacks,
   type ItemPackFilter,
   updateItemPack,
-} from "@/lib/itemPacksDb";
+} from "@/db/itemPacksDb";
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
-import type { ItemPack } from "@/lib/itemPacksDb";
-import { getRecentDrops } from "@/lib/recentDropsDb";
+import type { ItemPack } from "@/db/itemPacksDb";
+import { getRecentDrops } from "@/db/recentDropsDb";
 import type { InventoryItem } from "@/lib/utils";
 
 interface AppState {

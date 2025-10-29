@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { NTIPAliasColor } from "@/lib/NTItemAlias";
-import { sdk } from "@/lib/sdk";
+import { NTIPAliasColor } from "@/constants/NTItemAlias";
+import { sdk } from "@/constants/sdk";
 import { naturalSort } from "@/lib/utils";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 

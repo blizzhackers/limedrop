@@ -1,7 +1,7 @@
 import AES from "crypto-js/aes";
 import Utf8 from "crypto-js/enc-utf8";
+import type { InventoryItem } from "../lib/utils";
 import { openLimeDropDb } from "./openLimeDropDb";
-import type { InventoryItem } from "./utils";
 
 const STORE_NAME = "recentDrops";
 

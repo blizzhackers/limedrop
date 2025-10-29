@@ -14,8 +14,8 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import { addRecentDrop } from "@/db/recentDropsDb";
 import type { D2BotAPI } from "@/lib/D2Bot";
-import { addRecentDrop } from "@/lib/recentDropsDb";
 import { FieldInfo, renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
 import {

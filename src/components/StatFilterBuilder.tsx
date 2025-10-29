@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { NTIPAliasStat } from "@/lib/NTItemAlias";
+import { NTIPAliasStat } from "@/constants/NTItemAlias";
 import { naturalSort } from "@/lib/utils";
 
 export type StatFilter = {

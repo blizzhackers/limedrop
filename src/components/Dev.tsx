@@ -1,3 +1,4 @@
+import { Copy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -583,13 +584,30 @@ export const DevScreen: React.FC<DevScreenProps> = ({ api }) => {
           </pre>
         </div>
         {Object.keys(results).length > 0 && (
-          <Button
-            onClick={() => setResults({})}
-            variant="outline"
-            className="mt-2"
-          >
-            Clear Results
-          </Button>
+          <div className="flex gap-2 mt-2">
+            <Button
+              onClick={() => {
+                const resultsText = JSON.stringify(results, null, 2);
+                navigator.clipboard
+                  .writeText(resultsText)
+                  .then(() => {
+                    toast.success("Results copied to clipboard!");
+                  })
+                  .catch((err) => {
+                    toast.error("Failed to copy to clipboard", {
+                      description: String(err),
+                    });
+                  });
+              }}
+              variant="outline"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy to Clipboard
+            </Button>
+            <Button onClick={() => setResults({})} variant="outline">
+              Clear Results
+            </Button>
+          </div>
         )}
       </div>
     </div>
