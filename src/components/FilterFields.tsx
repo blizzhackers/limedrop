@@ -42,7 +42,7 @@ export const QualityFilterField: React.FC<QualityFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -92,7 +92,7 @@ export const ItemClassFilterField: React.FC<ItemClassFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -142,7 +142,7 @@ export const EtherealFilterField: React.FC<EtherealFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -189,7 +189,7 @@ export const RunewordFilterField: React.FC<RunewordFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -236,7 +236,7 @@ export const IdentifiedFilterField: React.FC<IdentifiedFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -288,7 +288,7 @@ export const ColorFilterField: React.FC<ColorFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -342,7 +342,7 @@ export const SocketsFilterField: React.FC<SocketsFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -428,7 +428,7 @@ export const NumericFilterWithComparison: React.FC<
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -492,7 +492,7 @@ export const ItemCodeFilterField: React.FC<ItemCodeFilterFieldProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>
@@ -677,7 +677,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
       {showLabel && (
         <label
           htmlFor={id}
-          className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
         >
           {label}
         </label>

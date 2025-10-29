@@ -72,7 +72,6 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
     >
       {!isFlipped ? (
         <>
-          {/* Original front content */}
           {item.image && (
             <img
               src={`data:image/jpeg;base64,${item.image}`}
@@ -86,10 +85,10 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
             />
           )}
           <div className="comment-text w-full text-center pb-7">
-            <div className="font-semibold text-base">
+            <div className="font-semibold text-xs desktop:text-sm portrait:text-base ultrawide:text-base">
               {renderColorText(title)}
             </div>
-            <div className="text-sm">{renderColorText(desc)}</div>
+            <div className="text-xs h-lg:text-sm">{renderColorText(desc)}</div>
           </div>
           <div className="absolute bottom-2 left-0 w-full px-2 flex flex-row justify-between text-xs text-gray-400 items-center">
             <span>

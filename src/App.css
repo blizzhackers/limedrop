@@ -128,6 +128,48 @@ html {
   }
 }
 
+@custom-variant mobile {
+  @media (max-width: 767px) {
+    @slot;
+  }
+}
+
+@custom-variant tablet {
+  @media (min-width: 768px) and (max-width: 1365px) {
+    @slot;
+  }
+}
+
+@custom-variant sm-laptop {
+  @media (min-width: 1366px) and (max-width: 1620px) {
+    @slot;
+  }
+}
+
+@custom-variant laptop {
+  @media (min-width: 1621px) and (max-width: 1919px) {
+    @slot;
+  }
+}
+
+@custom-variant desktop {
+  @media (min-width: 1920px) and (max-width: 2559px) {
+    @slot;
+  }
+}
+
+@custom-variant ultrawide {
+  @media (min-width: 2560px) {
+    @slot;
+  }
+}
+
+@custom-variant portrait {
+  @media (max-aspect-ratio: 4/3) {
+    @slot;
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(0.145 0 0);
