@@ -489,4 +489,9 @@ export const GAME_TYPES = ["Expansion", "Classic"] as const;
 export const GAME_MODES = ["Softcore", "Hardcore"] as const;
 export const GAME_CLASSES = ["Ladder", "NonLadder"] as const;
 
+export type GameRealm = (typeof REALMS)[number];
+export type GameType = (typeof GAME_TYPES)[number];
+export type GameMode = (typeof GAME_MODES)[number];
+export type GameClass = (typeof GAME_CLASSES)[number];
+
 export type Realm = (typeof REALMS)[number];

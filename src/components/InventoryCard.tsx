@@ -119,6 +119,10 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
                 {item.character}
               </div>
               <div>
+                <span className="text-gray-400">Ladder:</span>{" "}
+                {item.ladder ? "Yes" : "No"}
+              </div>
+              <div>
                 <span className="text-gray-400">Quality:</span> {item.quality}
               </div>
               <div>

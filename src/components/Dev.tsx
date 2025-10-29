@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
+import type { REALMS } from "@/lib/utils";
 import { useAppStore } from "@/stores/appStore";
 
 interface DevScreenProps {
@@ -268,7 +269,10 @@ export const DevScreen: React.FC<DevScreenProps> = ({ api }) => {
               placeholder="Realm (default: USEast)"
               value={queryParams.realm}
               onChange={(e) =>
-                setQueryParams((prev) => ({ ...prev, realm: e.target.value }))
+                setQueryParams((prev) => ({
+                  ...prev,
+                  realm: e.target.value as (typeof REALMS)[number],
+                }))
               }
             />
             <Input

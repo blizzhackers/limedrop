@@ -6,7 +6,7 @@ import { NTIPAliasColor, NTIPAliasFlag } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { getItemPacks } from "@/db/itemPacksDb";
 import { isV2Item } from "@/lib/utils";
-import { setPacks, useAppStore } from "@/stores/appStore";
+import { setLoadingInventory, setPacks, useAppStore } from "@/stores/appStore";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
@@ -434,6 +434,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     function refreshInvo() {
       toast.info("Refreshing inventory...", { duration: 2000 });
+      if (!filteredInventory.length) {
+        setLoadingInventory(true);
+      }
       setPage(1);
       fetchInventory();
     }

@@ -2,13 +2,19 @@ import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import type { ItemPack } from "@/db/itemPacksDb";
 import { getRecentDrops } from "@/db/recentDropsDb";
-import type { InventoryItem } from "@/lib/utils";
+import type {
+  GameClass,
+  GameMode,
+  GameRealm,
+  GameType,
+  InventoryItem,
+} from "@/lib/utils";
 
 interface AppState {
-  realm: string;
-  gameType: string;
-  gameMode: string;
-  gameClass: string;
+  realm: GameRealm;
+  gameType: GameType;
+  gameMode: GameMode;
+  gameClass: GameClass;
   apiUrl: string;
   username: string;
   password: string;
@@ -130,19 +136,19 @@ export const useAppStore = create(
 );
 
 // Action implementations
-export const setRealm = (realm: string) => {
+export const setRealm = (realm: GameRealm) => {
   useAppStore.setState({ realm });
 };
 
-export const setGameType = (gameType: string) => {
+export const setGameType = (gameType: GameType) => {
   useAppStore.setState({ gameType });
 };
 
-export const setGameMode = (gameMode: string) => {
+export const setGameMode = (gameMode: GameMode) => {
   useAppStore.setState({ gameMode });
 };
 
-export const setGameClass = (gameClass: string) => {
+export const setGameClass = (gameClass: GameClass) => {
   useAppStore.setState({ gameClass });
 };
 

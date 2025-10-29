@@ -19,6 +19,7 @@ import {
   GAME_CLASSES,
   GAME_MODES,
   GAME_TYPES,
+  type GameRealm,
   naturalSort,
   REALMS,
 } from "@/lib/utils";
@@ -84,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
         .sort(naturalSort);
     }, [filteredAccounts, selectedAccount]);
 
-    const handleRealmChange = async (realm: string) => {
+    const handleRealmChange = async (realm: GameRealm) => {
       useAppStore.setState({
         realm,
         selectedAccount: "Show All",
@@ -209,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
           <select
             className="w-full p-2 rounded bg-gray-900 border border-gray-700"
             value={realm}
-            onChange={(e) => handleRealmChange(e.target.value)}
+            onChange={(e) => handleRealmChange(e.target.value as GameRealm)}
           >
             {REALMS.map((r) => (
               <option key={r} value={r}>
