@@ -151,7 +151,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
               return (
                 <div
                   key={filter.id}
-                  className={`flex flex-col mobile:flex-row items-start mobile:items-center gap-2 p-2 rounded border transition-colors ${
+                  className={`flex items-center gap-2 p-2 rounded border transition-colors ${
                     isEditing
                       ? "bg-blue-900/30 border-blue-500 ring-2 ring-blue-500/50"
                       : "bg-gray-800 border-gray-700"
@@ -300,8 +300,8 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
               )}
           </div>
 
-          <div className="flex flex-col lg:flex-row items-start lg:items-end gap-2">
-            <div className="flex flex-col gap-1 w-full lg:flex-1">
+          <div className="grid grid-cols-1 tablet:grid-cols-2 md:grid-cols-3 items-center gap-2">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor="stat-comparison-select"
                 className="text-xs text-gray-400"
@@ -319,7 +319,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
               >
                 <SelectTrigger
                   id="stat-comparison-select"
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-gray-900 border-gray-700 text-white w-full"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -331,7 +331,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1 w-full lg:flex-1">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor="stat-value-input"
                 className="text-xs text-gray-400"
@@ -367,8 +367,41 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
               />
             </div>
 
-            {editingFilterId ? (
-              <div className="flex flex-col lg:flex-row gap-2 w-full lg:w-auto">
+            <div className="flex flex-col gap-1 tablet:col-span-2">
+              <div className="text-xs text-gray-400">&nbsp;</div>
+              {editingFilterId ? (
+                <div className="flex gap-2">
+                  <Button
+                    ref={addButtonRef}
+                    type="button"
+                    onClick={handleAddStatFilter}
+                    disabled={!newStatFilter.stat || newStatFilter.value === ""}
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && !e.shiftKey) {
+                        e.preventDefault();
+                        statInputRef.current?.focus();
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    variant="ghost"
+                    className="text-gray-400 hover:text-white flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && !e.shiftKey) {
+                        e.preventDefault();
+                        statInputRef.current?.focus();
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   ref={addButtonRef}
                   type="button"
@@ -380,43 +413,13 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
                       statInputRef.current?.focus();
                     }
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-lime-600 hover:bg-lime-700 text-white w-full"
                 >
-                  Update
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
                 </Button>
-                <Button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  variant="ghost"
-                  className="text-gray-400 hover:text-white"
-                  onKeyDown={(e) => {
-                    if (e.key === "Tab" && !e.shiftKey) {
-                      e.preventDefault();
-                      statInputRef.current?.focus();
-                    }
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <Button
-                ref={addButtonRef}
-                type="button"
-                onClick={handleAddStatFilter}
-                disabled={!newStatFilter.stat || newStatFilter.value === ""}
-                onKeyDown={(e) => {
-                  if (e.key === "Tab" && !e.shiftKey) {
-                    e.preventDefault();
-                    statInputRef.current?.focus();
-                  }
-                }}
-                className="bg-lime-600 hover:bg-lime-700 text-white w-full lg:w-auto"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add
-              </Button>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
