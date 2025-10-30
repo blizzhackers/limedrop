@@ -1,5 +1,13 @@
 import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NTIPAliasColor, NTIPAliasFlag } from "@/constants/NTItemAlias";
@@ -821,7 +829,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             </div>
           </div>
         )}
-        {showAdvancedFilters && (
+        <Activity mode={showAdvancedFilters ? "visible" : "hidden"}>
           <AdvancedFilters
             itemClassFilter={itemClassFilter}
             setItemClassFilter={setItemClassFilter}
@@ -862,7 +870,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             statFilters={statFilters}
             setStatFilters={setStatFilters}
           />
-        )}
+        </Activity>
         {session && filteredInventory.length > 0 && (
           <div className="flex items-center gap-2 mb-2">
             <Checkbox
