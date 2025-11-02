@@ -209,9 +209,15 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         }
       }
       return base.filter((item) => {
-        if (item.lod !== (gameType === "Expansion")) return false;
-        if (item.sc !== (gameMode === "Softcore")) return false;
-        if (item.ladder !== (gameClass === "Ladder")) return false;
+        if (item.lod !== (gameType === "Expansion")) {
+          return false;
+        }
+        if (item.sc !== (gameMode === "Softcore")) {
+          return false;
+        }
+        if (item.ladder !== (gameClass === "Ladder")) {
+          return false;
+        }
         if (
           selectedAccount !== "Show All" &&
           item.account !== selectedAccount

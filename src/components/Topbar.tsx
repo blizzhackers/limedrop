@@ -55,6 +55,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const [showDevScreen, setShowDevScreen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm({
       defaultValues: {
@@ -90,6 +91,12 @@ export const Topbar: React.FC<TopbarProps> = memo(
         }
       },
     });
+
+    useEffect(() => {
+      if (inputRef.current && useAppStore.getState().searchTerm !== "") {
+        inputRef.current.value = useAppStore.getState().searchTerm;
+      }
+    }, []);
 
     useEffect(() => {
       if (!searchValid) {
@@ -198,6 +205,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
               onSubmit={handleSearch}
             >
               <Input
+                ref={inputRef}
                 id="searchTerm"
                 name="searchTerm"
                 type="text"

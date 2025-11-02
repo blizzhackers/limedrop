@@ -35,52 +35,62 @@ interface CartDrawerProps {
   handleSignOut: () => void;
 }
 
-const CartItemRow = memo(({ index, style, data }: ListChildComponentProps) => {
-  const item = data.cart[index];
-  const handleRemoveFromCart = data.handleRemoveFromCart;
-  const title = item.description ? item.description.split("$", 1)[0] : "";
-  let desc = item.description || "";
-  if (desc.startsWith(title)) desc = desc.slice(title.length);
-  return (
-    <div key={item.itemid || index} style={style}>
-      <div className="bg-gray-700 h-[96%] rounded p-2 mb-2 flex flex-row items-center">
-        {item.image && (
-          <img
-            src={`data:image/jpeg;base64,${item.image}`}
-            alt={"item"}
-            className="ld-item mr-2"
-            style={{
-              maxWidth: 48,
-              maxHeight: 48,
-              imageRendering: "crisp-edges",
-            }}
-          />
-        )}
-        <div className="flex-1">
-          <div className="w-full text-left pb-1">
-            <div className="font-semibold text-xs md:text-sm line-clamp-4 overflow-hidden text-ellipsis">
-              {renderColorText(title)}
+const CartItemRow = memo(
+  ({
+    index,
+    style,
+    data,
+  }: ListChildComponentProps<{
+    cart: InventoryItem[];
+    handleRemoveFromCart: typeof removeFromCart;
+  }>) => {
+    const item = data.cart[index];
+    const handleRemoveFromCart = data.handleRemoveFromCart;
+    const title = item.description ? item.description.split("$", 1)[0] : "";
+    let desc = item.description || "";
+    if (desc.startsWith(title)) desc = desc.slice(title.length);
+
+    return (
+      <div key={item.itemid || index} style={style}>
+        <div className="bg-gray-700 h-[96%] rounded p-2 mb-2 flex flex-row items-center">
+          {item.image && (
+            <img
+              src={`data:image/jpeg;base64,${item.image}`}
+              alt={"item"}
+              className="ld-item mr-2"
+              style={{
+                maxWidth: 48,
+                maxHeight: 48,
+                imageRendering: "crisp-edges",
+              }}
+            />
+          )}
+          <div className="flex-1 overflow-x-hidden">
+            <div className="w-full text-left pb-1">
+              <div className="font-semibold text-xs md:text-sm line-clamp-4 overflow-hidden text-ellipsis">
+                {renderColorText(title)}
+              </div>
+              <div className="text-xs line-clamp-2 overflow-hidden text-ellipsis">
+                {renderColorText(desc)}
+              </div>
             </div>
-            <div className="text-xs line-clamp-2 overflow-hidden text-ellipsis">
-              {renderColorText(desc)}
+            <div className="text-xs line-clamp-1 overflow-hidden text-gray-400">
+              {item.account} / {item.character} / {item.gid}
             </div>
           </div>
-          <div className="text-xs text-gray-400">
-            {item.account} / {item.character} / {item.itemid}
-          </div>
+          <button
+            className="ml-2 text-red-400 hover:text-red-600"
+            onClick={() => handleRemoveFromCart(item)}
+            title="Remove"
+            type="button"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          className="ml-2 text-red-400 hover:text-red-600"
-          onClick={() => handleRemoveFromCart(item)}
-          title="Remove"
-          type="button"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 export const CartDrawer: React.FC<CartDrawerProps> = memo(
   ({ api, session, handleSignOut }) => {
@@ -115,7 +125,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
           drops[hash].push(cleanItem);
         }
 
-        startPolling();
+        // startPolling();
 
         for (const hash in drops) {
           try {
@@ -171,7 +181,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
       pollingCounterRef.current = 0;
     }, []);
 
-    const startPolling = useCallback(() => {
+    const _startPolling = useCallback(() => {
       stopPolling();
 
       pollingIntervalRef.current = window.setInterval(async () => {
