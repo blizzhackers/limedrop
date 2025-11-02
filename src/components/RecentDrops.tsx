@@ -108,7 +108,7 @@ export const RecentDrops: React.FC = memo(() => {
                                   {item.account} / {item.character}
                                 </div>
                                 <div className=" text-gray-500 whitespace-nowrap">
-                                  {item.itemid}
+                                  {item.gid}
                                 </div>
                               </div>
                             </div>
