@@ -13,20 +13,34 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { NTIPAliasColor, NTIPAliasFlag } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { getItemPacks } from "@/db/itemPacksDb";
+import type { D2BotAPI } from "@/lib/D2Bot";
 import { isV2Item } from "@/lib/utils";
-import { setLoadingInventory, setPacks, useAppStore } from "@/stores/appStore";
+import {
+  setApiUrl,
+  setLoadingInventory,
+  setLoginOpen,
+  setPacks,
+  setPassword,
+  setSession,
+  setUsername,
+  useAppStore,
+} from "@/stores/appStore";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
+const DEFAULT_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 interface InventoryGridProps {
+  api: D2BotAPI;
   session: string | null;
   loadingAccounts: boolean;
   fetchInventory: () => Promise<void>;
+  fetchAccounts: (session: string) => Promise<void>;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = memo(
-  ({ session, fetchInventory, loadingAccounts }) => {
+  ({ session, fetchInventory, loadingAccounts, api, fetchAccounts }) => {
     const inventory = useAppStore((s) => s.inventory);
     const loadingInventory = useAppStore((s) => s.loadingInventory);
     const searchTerm = useAppStore((s) => s.searchTerm);
@@ -39,6 +53,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const gameType = useAppStore((s) => s.gameType);
     const gameMode = useAppStore((s) => s.gameMode);
     const gameClass = useAppStore((s) => s.gameClass);
+    const username = useAppStore((s) => s.username);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showBackToTop, setShowBackToTop] = useState(false);
@@ -532,6 +547,31 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             </Button>
           </div>
         </div>
+
+        {username === "demo" && session && (
+          <div className="mb-4 bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-600/50 rounded p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                <span className="text-orange-200 font-medium text-sm">
+                  Demo Mode
+                </span>
+                <span className="text-orange-300/70 text-xs">
+                  You're viewing sample inventory data
+                </span>
+              </div>
+              <Button
+                onClick={() => {
+                  setLoginOpen(true);
+                }}
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-3 py-1"
+              >
+                Sign In for Real Account
+              </Button>
+            </div>
+          </div>
+        )}
         {!showAdvancedFilters && filtersActive && (
           <div className="mb-4 bg-gray-900 p-3 rounded border border-gray-700">
             <div className="flex items-center justify-between mb-2">
@@ -894,7 +934,74 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           </div>
         )}
         {!session ? (
-          <div className="text-gray-400">Please login to view inventory.</div>
+          <div className="bg-gray-900 rounded p-6 border border-gray-700">
+            <div className="text-center space-y-4">
+              <h3 className="text-lg font-semibold text-gray-300">
+                Sign in to view your inventory
+              </h3>
+              <p className="text-gray-400">
+                Login with your account to access your Diablo 2 items, or try
+                our demo to see how it works.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <Button
+                  onClick={() => {
+                    setLoginOpen(true);
+                  }}
+                  className="bg-lime-600 hover:bg-lime-700 text-white px-6 py-2"
+                >
+                  Sign In
+                </Button>
+                <span className="text-gray-500">or</span>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const demoUsername = "demo";
+                      const demoPassword = "demo";
+                      const demoApiUrl =
+                        import.meta.env.VITE_DEMO_API_URL || DEFAULT_API_URL;
+                      const session = await api.login(
+                        demoUsername,
+                        demoPassword,
+                        demoApiUrl,
+                      );
+
+                      const validate = await api.validate(
+                        demoPassword,
+                        session,
+                      );
+                      if (!validate) {
+                        throw new Error("Failed to validate session");
+                      }
+                      setSession(session || null);
+                      setLoginOpen(false);
+
+                      setApiUrl(demoApiUrl);
+                      setUsername(demoUsername);
+                      setPassword(demoPassword);
+
+                      toast.success("Login successful!", {
+                        description: "Welcome to LimeDrop!",
+                      });
+                      await fetchAccounts(session);
+                    } catch (err: unknown) {
+                      toast.error(
+                        "Demo login failed. Please try again. " +
+                          (err as Error).message,
+                      );
+                    }
+                  }}
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-800 px-6 py-2"
+                >
+                  Try Demo
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Demo includes sample inventory data to explore features
+              </p>
+            </div>
+          </div>
         ) : loadingInventory ? (
           <div
             ref={scrollRef}

@@ -20,6 +20,7 @@ import {
   setCartOpen,
   setInventory,
   setLoadingInventory,
+  setLoginOpen,
   setPassword,
   setRecentDropsOpen,
   setSearchResults,
@@ -48,8 +49,8 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const password = useAppStore((s) => s.password);
     const cart = useAppStore((s) => s.cart);
     const session = useAppStore((s) => s.session);
+    const loginOpen = useAppStore((s) => s.loginOpen);
 
-    const [loginOpen, setLoginOpen] = useState(false);
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
     const [showDevScreen, setShowDevScreen] = useState(false);
@@ -386,6 +387,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                         {(field) => (
                           <div>
                             <input
+                              autoFocus
                               autoComplete="off"
                               className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
                               placeholder="Username"

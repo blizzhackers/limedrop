@@ -21,6 +21,7 @@ import {
   setFullyLoaded,
   setInventory,
   setLoadingInventory,
+  setLoginOpen,
   useAppStore,
 } from "@/stores/appStore";
 
@@ -50,6 +51,15 @@ export default function App() {
   const handleSignOut = useCallback(() => {
     workerRef.current?.terminate();
     setAccountsToLoad([]);
+    setLoginOpen(false);
+
+    if (useAppStore.getState().username === "demo") {
+      useAppStore.setState({
+        apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080",
+        username: "test",
+      });
+    }
+
     useAppStore.setState({
       password: "",
       accounts: {},
@@ -59,7 +69,9 @@ export default function App() {
       selectedAccount: "Show All",
       selectedCharacter: "Show All",
       session: null,
+      showDebugInfo: false,
     });
+
     toast.success("Signed out successfully!");
   }, []);
 
@@ -223,6 +235,8 @@ export default function App() {
         const accountSet = new Set(validAccounts);
         workerRef.current?.terminate();
 
+        console.log("Determining accounts to load...", validAccounts);
+
         const { selectedCharacter, inventoryCache } = useAppStore.getState();
         const cachedItems: InventoryItem[] = [];
         const currentFilters = {
@@ -277,11 +291,11 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!session) {
-      handleSignOut();
-    }
-  }, [session, handleSignOut]);
+  // useEffect(() => {
+  //   if (!session) {
+  //     handleSignOut();
+  //   }
+  // }, [session, handleSignOut]);
 
   useEffect(() => {
     if (!session || accountsToLoad.length === 0) {
@@ -416,6 +430,8 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full min-h-0 min-w-0">
             <section className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
               <InventoryGrid
+                api={api}
+                fetchAccounts={fetchAccounts}
                 session={session}
                 fetchInventory={async () => {
                   resetAccountLoading();
