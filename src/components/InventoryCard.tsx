@@ -85,7 +85,7 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
             />
           )}
           <div className="comment-text w-full text-center pb-7">
-            <div className="font-semibold text-xs desktop:text-sm portrait:text-base ultrawide:text-base">
+            <div className="font-semibold text-xs mobile:text-xs desktop:text-sm portrait:text-base ultrawide:text-base">
               {renderColorText(title)}
             </div>
             <div className="text-xs h-lg:text-sm">{renderColorText(desc)}</div>

@@ -1,4 +1,12 @@
-import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
+import {
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Loader2,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import {
   Activity,
   memo,
@@ -58,6 +66,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [selectAll, setSelectAll] = useState(false);
+    const [isDemoLoading, setIsDemoLoading] = useState(false);
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -975,6 +984,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                 <span className="text-gray-500">or</span>
                 <Button
                   onClick={async () => {
+                    setIsDemoLoading(true);
                     try {
                       const demoUsername = "demo";
                       const demoPassword = "demo";
@@ -1009,12 +1019,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                         "Demo login failed. Please try again. " +
                           (err as Error).message,
                       );
+                    } finally {
+                      setIsDemoLoading(false);
                     }
                   }}
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-800 px-6 py-2"
+                  disabled={isDemoLoading}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-800 px-6 py-2 disabled:opacity-50"
                 >
-                  Try Demo
+                  {isDemoLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Try Demo"
+                  )}
                 </Button>
               </div>
               <p className="text-xs text-gray-500">
@@ -1058,37 +1078,74 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           </div>
         )}
         {totalPages > 1 && !loadingInventory && (
-          <div className="flex justify-center gap-2 mt-2 mb-[-8px]">
-            <Button
-              type="button"
-              onClick={() => {
-                setPage((p) => Math.max(p - 1, 1));
-                handleBackToTop();
-              }}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-gray-400 self-center inline-flex items-center gap-1">
-              Page {page} of{" "}
-              {fullyLoaded || selectedAccount !== "Show All" ? (
-                totalPages
-              ) : (
-                <Loader2 className="w-4 h-4 animate-spin inline-block" />
-              )}
-            </span>
-            <Button
-              type="button"
-              variant="default"
-              onClick={() => {
-                setPage((p) => Math.min(p + 1, totalPages));
-                handleBackToTop();
-              }}
-              disabled={page === totalPages}
-            >
-              Next
-            </Button>
-          </div>
+          <>
+            {/* mobile */}
+            <div className="md:hidden flex justify-center gap-2 mt-2 mb-[-8px]">
+              <Button
+                type="button"
+                size="iconSmall"
+                onClick={() => {
+                  setPage((p) => Math.max(p - 1, 1));
+                  handleBackToTop();
+                }}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-gray-400 self-center inline-flex items-center gap-1 text-xs">
+                Page {page} of{" "}
+                {fullyLoaded || selectedAccount !== "Show All" ? (
+                  totalPages
+                ) : (
+                  <Loader2 className="w-4 h-4 animate-spin inline-block" />
+                )}
+              </span>
+              <Button
+                type="button"
+                size="iconSmall"
+                onClick={() => {
+                  setPage((p) => Math.min(p + 1, totalPages));
+                  handleBackToTop();
+                }}
+                disabled={page === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* desktop */}
+            <div className="hidden md:flex justify-center gap-2 mt-2 mb-[-8px]">
+              <Button
+                type="button"
+                onClick={() => {
+                  setPage((p) => Math.max(p - 1, 1));
+                  handleBackToTop();
+                }}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-gray-400 self-center inline-flex items-center gap-1">
+                Page {page} of{" "}
+                {fullyLoaded || selectedAccount !== "Show All" ? (
+                  totalPages
+                ) : (
+                  <Loader2 className="w-4 h-4 animate-spin inline-block" />
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => {
+                  setPage((p) => Math.min(p + 1, totalPages));
+                  handleBackToTop();
+                }}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </>
         )}
         {session && filteredInventory.length > 0 && showBackToTop && (
           <button

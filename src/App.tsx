@@ -446,7 +446,7 @@ export default function App() {
 
       <DebugButton />
 
-      <footer className="text-center py-4 text-gray-400 bg-gray-800 mt-auto w-full">
+      <footer className="text-center py-1 text-xs md:text-base md:py-4 text-gray-400 bg-gray-800 mt-auto w-full">
         &copy; 2025 Lime Drop. All rights reserved.
       </footer>
     </div>
