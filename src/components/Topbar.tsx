@@ -250,7 +250,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
             </div>
           )}
 
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-4">
             {session && (
               <>
                 <button

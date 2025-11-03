@@ -493,9 +493,29 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     return (
       <section
-        className="md:col-span-3 bg-gray-800 rounded shadow p-2 flex flex-col"
+        className="md:col-span-3 bg-gray-800 rounded shadow p-0.5 md:p-2 flex flex-col"
         style={{ minHeight: "80vh" }}
       >
+        {username === "demo" && session && (
+          <div className="flex md:hidden items-center justify-between gap-1 px-2 py-1 mb-1 bg-orange-900/50 border border-orange-600/50 rounded text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+              <span className="text-orange-200 font-medium text-xs">Demo</span>
+              <span className="text-orange-300/70 text-xs">
+                You're viewing sample inventory data
+              </span>
+            </div>
+            <Button
+              onClick={() => {
+                setLoginOpen(true);
+              }}
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-2 py-0.5 h-5 ml-1"
+            >
+              Sign In
+            </Button>
+          </div>
+        )}
         <div className="flex flex-row items-center justify-between gap-4 mb-4">
           <div className="flex items-center justify-start gap-2">
             <h2 className="text-xl font-bold">Inventory</h2>
@@ -549,7 +569,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         </div>
 
         {username === "demo" && session && (
-          <div className="mb-4 bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-600/50 rounded p-3">
+          <div className="hidden md:block mb-4 bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-600/50 rounded p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
@@ -567,7 +587,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                 size="sm"
                 className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-3 py-1"
               >
-                Sign In for Real Account
+                Sign In
               </Button>
             </div>
           </div>

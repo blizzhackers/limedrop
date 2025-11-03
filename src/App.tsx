@@ -428,7 +428,7 @@ export default function App() {
         />
         <main className="flex-1 min-h-0 min-w-0 p-2 bg-gray-900 overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full min-h-0 min-w-0">
-            <section className="md:col-span-3 bg-gray-800 rounded shadow p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
+            <section className="md:col-span-3 bg-gray-800 rounded shadow p-2 md:p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
               <InventoryGrid
                 api={api}
                 fetchAccounts={fetchAccounts}
