@@ -277,6 +277,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(
         10 * 60 * 1000,
       );
     }, [stopPolling, api, handleSignOut]);
+    void _startPolling;
 
     useEffect(() => {
       if (!session) {

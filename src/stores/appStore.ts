@@ -38,6 +38,7 @@ interface AppState {
   packs: ItemPack[];
   session: string | null;
   showDebugInfo: boolean;
+  loginOpen: boolean;
 }
 
 interface AppActions {
@@ -119,6 +120,7 @@ export const useAppStore = create(
       packs: [],
       session: null,
       showDebugInfo: false,
+      loginOpen: false,
     })),
     {
       name: "limedrop-app",
@@ -249,6 +251,10 @@ export const setPacks = (packs: ItemPack[]) => {
 
 export const setSession = (session: string | null) => {
   useAppStore.setState({ session });
+};
+
+export const setLoginOpen = (loginOpen: boolean) => {
+  useAppStore.setState({ loginOpen });
 };
 
 export const toggleDebugInfo = () => {

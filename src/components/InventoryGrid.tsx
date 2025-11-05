@@ -13,20 +13,34 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { NTIPAliasColor, NTIPAliasFlag } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { getItemPacks } from "@/db/itemPacksDb";
+import type { D2BotAPI } from "@/lib/D2Bot";
 import { isV2Item } from "@/lib/utils";
-import { setLoadingInventory, setPacks, useAppStore } from "@/stores/appStore";
+import {
+  setApiUrl,
+  setLoadingInventory,
+  setLoginOpen,
+  setPacks,
+  setPassword,
+  setSession,
+  setUsername,
+  useAppStore,
+} from "@/stores/appStore";
 import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
+const DEFAULT_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 interface InventoryGridProps {
+  api: D2BotAPI;
   session: string | null;
   loadingAccounts: boolean;
   fetchInventory: () => Promise<void>;
+  fetchAccounts: (session: string) => Promise<void>;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = memo(
-  ({ session, fetchInventory, loadingAccounts }) => {
+  ({ session, fetchInventory, loadingAccounts, api, fetchAccounts }) => {
     const inventory = useAppStore((s) => s.inventory);
     const loadingInventory = useAppStore((s) => s.loadingInventory);
     const searchTerm = useAppStore((s) => s.searchTerm);
@@ -39,10 +53,12 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const gameType = useAppStore((s) => s.gameType);
     const gameMode = useAppStore((s) => s.gameMode);
     const gameClass = useAppStore((s) => s.gameClass);
+    const username = useAppStore((s) => s.username);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [selectAll, setSelectAll] = useState(false);
+    const [isDemoLoading, setIsDemoLoading] = useState(false);
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -397,19 +413,68 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     const PAGE_SIZE = 100;
     const [page, setPage] = useState(1);
+    const [loadedItemsCount, setLoadedItemsCount] = useState(PAGE_SIZE); // For mobile infinite scroll
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const totalPages = Math.ceil(filteredInventory.length / PAGE_SIZE);
+
+    // Desktop pagination
     const pageItems = filteredInventory.slice(
       (page - 1) * PAGE_SIZE,
       page * PAGE_SIZE,
     );
 
+    // Mobile infinite scroll
+    const infiniteScrollItems = filteredInventory.slice(0, loadedItemsCount);
+
     const handleScroll = useCallback(() => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         const el = scrollRef.current;
-        if (el) setShowBackToTop(el.scrollTop > 300);
+        if (el) {
+          setShowBackToTop(el.scrollTop > 300);
+
+          // Mobile infinite scroll detection
+          const isNearBottom =
+            el.scrollHeight - el.scrollTop - el.clientHeight < 500;
+          const isMobile = window.innerWidth < 768; // md breakpoint
+
+          if (
+            isNearBottom &&
+            isMobile &&
+            !isLoadingMore &&
+            loadedItemsCount < filteredInventory.length
+          ) {
+            setIsLoadingMore(true);
+
+            // Add delay to show loading state
+            setTimeout(() => {
+              const newLoadedCount = Math.min(
+                loadedItemsCount + PAGE_SIZE,
+                filteredInventory.length,
+              );
+              setLoadedItemsCount(newLoadedCount);
+              setIsLoadingMore(false);
+
+              // Auto-scroll to show new content after loading
+              setTimeout(() => {
+                // Calculate approximate scroll distance based on loaded items
+                // Assuming average item height of ~200px (including gaps)
+                const approximateItemHeight = 200;
+                const scrollDistance = Math.min(
+                  PAGE_SIZE * approximateItemHeight * 0.3,
+                  400,
+                );
+
+                el.scrollBy({
+                  top: scrollDistance,
+                  behavior: "smooth",
+                });
+              }, 200);
+            }, 300);
+          }
+        }
       }, 100);
-    }, []);
+    }, [isLoadingMore, loadedItemsCount, filteredInventory.length]);
 
     useEffect(() => {
       const el = scrollRef.current;
@@ -417,6 +482,16 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       el.addEventListener("scroll", handleScroll);
       return () => el.removeEventListener("scroll", handleScroll);
     }, [handleScroll]);
+
+    // Reset infinite scroll when filters change
+    const prevFilteredLength = useRef(filteredInventory.length);
+    useEffect(() => {
+      if (prevFilteredLength.current !== filteredInventory.length) {
+        setLoadedItemsCount(PAGE_SIZE);
+        setPage(1);
+        prevFilteredLength.current = filteredInventory.length;
+      }
+    }, [filteredInventory.length]);
 
     const handleBackToTop = () => {
       const el = scrollRef.current;
@@ -478,9 +553,29 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     return (
       <section
-        className="md:col-span-3 bg-gray-800 rounded shadow p-2 flex flex-col"
+        className="md:col-span-3 bg-gray-800 rounded shadow p-0.5 md:p-2 flex flex-col"
         style={{ minHeight: "80vh" }}
       >
+        {username === "demo" && session && (
+          <div className="flex md:hidden items-center justify-between gap-1 px-2 py-1 mb-1 bg-orange-900/50 border border-orange-600/50 rounded text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+              <span className="text-orange-200 font-medium text-xs">Demo</span>
+              <span className="text-orange-300/70 text-xs">
+                You're viewing sample inventory data
+              </span>
+            </div>
+            <Button
+              onClick={() => {
+                setLoginOpen(true);
+              }}
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-2 py-0.5 h-5 ml-1"
+            >
+              Sign In
+            </Button>
+          </div>
+        )}
         <div className="flex flex-row items-center justify-between gap-4 mb-4">
           <div className="flex items-center justify-start gap-2">
             <h2 className="text-xl font-bold">Inventory</h2>
@@ -532,6 +627,31 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             </Button>
           </div>
         </div>
+
+        {username === "demo" && session && (
+          <div className="hidden md:block mb-4 bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-600/50 rounded p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                <span className="text-orange-200 font-medium text-sm">
+                  Demo Mode
+                </span>
+                <span className="text-orange-300/70 text-xs">
+                  You're viewing sample inventory data
+                </span>
+              </div>
+              <Button
+                onClick={() => {
+                  setLoginOpen(true);
+                }}
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-3 py-1"
+              >
+                Sign In
+              </Button>
+            </div>
+          </div>
+        )}
         {!showAdvancedFilters && filtersActive && (
           <div className="mb-4 bg-gray-900 p-3 rounded border border-gray-700">
             <div className="flex items-center justify-between mb-2">
@@ -894,7 +1014,85 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           </div>
         )}
         {!session ? (
-          <div className="text-gray-400">Please login to view inventory.</div>
+          <div className="bg-gray-900 rounded p-6 border border-gray-700">
+            <div className="text-center space-y-4">
+              <h3 className="text-lg font-semibold text-gray-300">
+                Sign in to view your inventory
+              </h3>
+              <p className="text-gray-400">
+                Login with your account to access your Diablo 2 items, or try
+                our demo to see how it works.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <Button
+                  onClick={() => {
+                    setLoginOpen(true);
+                  }}
+                  className="bg-lime-600 hover:bg-lime-700 text-white px-6 py-2"
+                >
+                  Sign In
+                </Button>
+                <span className="text-gray-500">or</span>
+                <Button
+                  onClick={async () => {
+                    setIsDemoLoading(true);
+                    try {
+                      const demoUsername = "demo";
+                      const demoPassword = "demo";
+                      const demoApiUrl =
+                        import.meta.env.VITE_DEMO_API_URL || DEFAULT_API_URL;
+                      const session = await api.login(
+                        demoUsername,
+                        demoPassword,
+                        demoApiUrl,
+                      );
+
+                      const validate = await api.validate(
+                        demoPassword,
+                        session,
+                      );
+                      if (!validate) {
+                        throw new Error("Failed to validate session");
+                      }
+                      setSession(session || null);
+                      setLoginOpen(false);
+
+                      setApiUrl(demoApiUrl);
+                      setUsername(demoUsername);
+                      setPassword(demoPassword);
+
+                      toast.success("Login successful!", {
+                        description: "Welcome to LimeDrop!",
+                      });
+                      await fetchAccounts(session);
+                    } catch (err: unknown) {
+                      toast.error(
+                        "Demo login failed. Please try again. " +
+                          (err as Error).message,
+                      );
+                    } finally {
+                      setIsDemoLoading(false);
+                    }
+                  }}
+                  variant="outline"
+                  disabled={isDemoLoading}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-800 px-6 py-2 disabled:opacity-50"
+                >
+                  {isDemoLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Try Demo"
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Demo includes sample inventory data to explore features
+              </p>
+            </div>
+          </div>
         ) : loadingInventory ? (
           <div
             ref={scrollRef}
@@ -922,46 +1120,70 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             {filteredInventory.length === 0 ? (
               <div className="text-gray-400">No items found.</div>
             ) : (
-              <div className="grid gap-4 p-1 mobile:grid-cols-1 tablet:grid-cols-2 sm-laptop:grid-cols-4 laptop:grid-cols-5 desktop:grid-cols-5 ultrawide:grid-cols-7 portrait:grid-cols-2">
-                {pageItems.map((item, idx) => (
-                  <InventoryCard key={item.itemid || idx} item={item} />
-                ))}
-              </div>
+              <>
+                <div className="grid gap-4 p-1 mobile:grid-cols-1 tablet:grid-cols-2 sm-laptop:grid-cols-4 laptop:grid-cols-5 desktop:grid-cols-5 ultrawide:grid-cols-7 portrait:grid-cols-2">
+                  {/* Mobile: infinite scroll, Desktop: pagination */}
+                  <div className="md:hidden contents">
+                    {infiniteScrollItems.map((item, idx) => (
+                      <InventoryCard key={item.itemid || idx} item={item} />
+                    ))}
+                  </div>
+                  <div className="hidden md:contents">
+                    {pageItems.map((item, idx) => (
+                      <InventoryCard key={item.itemid || idx} item={item} />
+                    ))}
+                  </div>
+                </div>
+                {/* Mobile loading indicator - positioned as a sticky overlay */}
+                {isLoadingMore && (
+                  <div className="md:hidden sticky bottom-4 left-0 right-0 z-10 flex justify-center py-2">
+                    <div className="flex items-center gap-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-full px-4 py-2 shadow-lg">
+                      <Loader2 className="w-4 h-4 animate-spin text-lime-500" />
+                      <span className="text-gray-300 text-sm font-medium">
+                        Loading more items...
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
         {totalPages > 1 && !loadingInventory && (
-          <div className="flex justify-center gap-2 mt-2 mb-[-8px]">
-            <Button
-              type="button"
-              onClick={() => {
-                setPage((p) => Math.max(p - 1, 1));
-                handleBackToTop();
-              }}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-gray-400 self-center inline-flex items-center gap-1">
-              Page {page} of{" "}
-              {fullyLoaded || selectedAccount !== "Show All" ? (
-                totalPages
-              ) : (
-                <Loader2 className="w-4 h-4 animate-spin inline-block" />
-              )}
-            </span>
-            <Button
-              type="button"
-              variant="default"
-              onClick={() => {
-                setPage((p) => Math.min(p + 1, totalPages));
-                handleBackToTop();
-              }}
-              disabled={page === totalPages}
-            >
-              Next
-            </Button>
-          </div>
+          <>
+            {/* Desktop pagination only */}
+            <div className="hidden md:flex justify-center gap-2 mt-2 mb-[-8px]">
+              <Button
+                type="button"
+                onClick={() => {
+                  setPage((p) => Math.max(p - 1, 1));
+                  handleBackToTop();
+                }}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-gray-400 self-center inline-flex items-center gap-1">
+                Page {page} of{" "}
+                {fullyLoaded || selectedAccount !== "Show All" ? (
+                  totalPages
+                ) : (
+                  <Loader2 className="w-4 h-4 animate-spin inline-block" />
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => {
+                  setPage((p) => Math.min(p + 1, totalPages));
+                  handleBackToTop();
+                }}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </>
         )}
         {session && filteredInventory.length > 0 && showBackToTop && (
           <button

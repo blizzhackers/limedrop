@@ -20,6 +20,7 @@ import {
   setCartOpen,
   setInventory,
   setLoadingInventory,
+  setLoginOpen,
   setPassword,
   setRecentDropsOpen,
   setSearchResults,
@@ -48,8 +49,8 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const password = useAppStore((s) => s.password);
     const cart = useAppStore((s) => s.cart);
     const session = useAppStore((s) => s.session);
+    const loginOpen = useAppStore((s) => s.loginOpen);
 
-    const [loginOpen, setLoginOpen] = useState(false);
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
     const [showDevScreen, setShowDevScreen] = useState(false);
@@ -178,7 +179,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
     return (
       <>
         <ConvertNLDialog api={api} />
-        <header className="flex items-center justify-between px-2 md:px-4 py-2 bg-gray-800 shadow relative">
+        <header className="flex items-center justify-between px-3 md:px-4 py-2 bg-gray-800 shadow relative">
           <div className="flex items-center gap-2 flex-shrink-0 pl-12 md:pl-0">
             <b className="logo-icon hidden md:block">
               <img
@@ -194,7 +195,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
               <img
                 src="/logo-text.png"
                 alt="homepage"
-                className="light-logo h-6 w-24 object-scale-down"
+                className="light-logo h-5 w-20 object-scale-down"
               />
             </span>
           </div>
@@ -222,26 +223,26 @@ export const Topbar: React.FC<TopbarProps> = memo(
           )}
 
           {showMobileSearch && (
-            <div className="absolute inset-0 z-50 bg-gray-800 px-2 py-2 flex items-center md:hidden">
+            <div className="absolute inset-0 z-50 bg-gray-800 px-3 py-2 flex items-center md:hidden">
               <form className="flex-1 relative" onSubmit={handleSearch}>
                 <Input
                   id="searchTerm"
                   name="searchTerm"
                   type="text"
-                  className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
+                  className="w-full p-3 pl-10 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
                   placeholder="Search & enter"
                   autoFocus
                   onChange={(e) =>
                     e.target.value === "" && searchTerm && setSearchTerm("")
                   }
                 />
-                <span className="absolute left-2 top-2.5 text-gray-400 pointer-events-none">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
                   <Search className="w-5 h-5" />
                 </span>
               </form>
               <button
                 type="button"
-                className="ml-2 p-2 hover:bg-gray-700 rounded"
+                className="ml-3 p-2 hover:bg-gray-700 rounded-full"
                 onClick={() => setShowMobileSearch(false)}
               >
                 <X className="w-6 h-6" />
@@ -254,39 +255,39 @@ export const Topbar: React.FC<TopbarProps> = memo(
               <>
                 <button
                   type="button"
-                  className="md:hidden p-2 hover:bg-gray-700 rounded"
+                  className="md:hidden p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                   onClick={() => setShowMobileSearch(true)}
                 >
-                  <Search className="w-6 h-6 text-lime-400" />
+                  <Search className="w-5 h-5 text-lime-400" />
                 </button>
                 <button
                   type="button"
-                  className="p-2 hover:bg-gray-700 rounded"
+                  className="p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                   onClick={() => setRecentDropsOpen(true)}
                   title="Show Recent Drops"
                 >
-                  <History className="w-6 h-6 text-lime-400" />
+                  <History className="w-5 h-5 md:w-6 md:h-6 text-lime-400" />
                 </button>
                 <button
                   type="button"
-                  className="p-2 hover:bg-gray-700 rounded"
+                  className="p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                   onClick={() =>
                     useItemPacksDialogStore.getState().setOpen(true)
                   }
                   title="Manage Item Packs"
                 >
-                  <PackagePlus className="w-6 h-6 text-lime-400" />
+                  <PackagePlus className="w-5 h-5 md:w-6 md:h-6 text-lime-400" />
                 </button>
               </>
             )}
             <button
               type="button"
-              className="relative p-2 hover:bg-gray-700 rounded"
+              className="relative p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
               onClick={openCart}
             >
-              <ShoppingCart className="w-6 h-6" />
+              <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-green-600 text-xs rounded-full px-2">
+                <span className="absolute -top-1 -right-1 bg-green-600 text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
                   {cart.length}
                 </span>
               )}
@@ -295,29 +296,30 @@ export const Topbar: React.FC<TopbarProps> = memo(
               <button
                 ref={buttonRef}
                 type="button"
-                className="flex items-center gap-1 md:gap-2 p-2 hover:bg-gray-700 rounded"
+                className="flex items-center gap-1 md:gap-2 p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                 onClick={() => setLoginOpen(!loginOpen)}
               >
-                <CircleUser className="h-8 w-8 rounded-full" />
+                <CircleUser className="h-7 w-7 md:h-8 md:w-8 rounded-full" />
                 <span className="hidden md:inline">
                   {session ? username : "User"}
                 </span>
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
               </button>
 
               {loginOpen && (
                 <div
                   ref={dropdownRef}
-                  className="absolute right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded shadow-lg z-10"
+                  className="absolute right-0 mt-2 w-72 md:w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 max-h-[80vh] overflow-y-auto"
                 >
                   {session ? (
-                    <div className="flex flex-col gap-2 p-4">
-                      <div className="text-green-400 mb-2">
-                        Logged in as {username}
+                    <div className="flex flex-col gap-3 p-4">
+                      <div className="text-green-400 mb-1 text-sm">
+                        Logged in as{" "}
+                        <span className="font-medium">{username}</span>
                       </div>
                       <button
                         type="button"
-                        className="bg-gray-700 hover:bg-gray-600 text-white rounded p-2 font-semibold flex items-center justify-center gap-2"
+                        className="bg-gray-700 hover:bg-gray-600 text-white rounded-lg p-3 font-medium flex items-center justify-center gap-2 transition-colors"
                         onClick={() =>
                           useConvertNLDialogStore.getState().setOpen(true)
                         }
@@ -336,7 +338,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                       )}
                       <button
                         type="button"
-                        className="bg-red-600 hover:bg-red-700 text-white rounded p-2 font-semibold"
+                        className="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3 font-medium transition-colors"
                         onClick={handleSignOut}
                       >
                         Sign Out
@@ -344,7 +346,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                     </div>
                   ) : (
                     <form
-                      className="flex flex-col gap-2 p-4"
+                      className="flex flex-col gap-3 p-4"
                       onSubmit={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -361,7 +363,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                         {(field) => (
                           <div>
                             <input
-                              className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
+                              className="p-3 rounded-lg bg-gray-900 border border-gray-700 w-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
                               placeholder="API URL"
                               id={field.name}
                               name={field.name}
@@ -386,8 +388,9 @@ export const Topbar: React.FC<TopbarProps> = memo(
                         {(field) => (
                           <div>
                             <input
+                              autoFocus
                               autoComplete="off"
-                              className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
+                              className="p-3 rounded-lg bg-gray-900 border border-gray-700 w-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
                               placeholder="Username"
                               id={field.name}
                               name={field.name}
@@ -412,7 +415,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                         {(field) => (
                           <div>
                             <input
-                              className="p-2 rounded bg-gray-900 border border-gray-700 w-full text-white"
+                              className="p-3 rounded-lg bg-gray-900 border border-gray-700 w-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
                               type="password"
                               placeholder="Password"
                               autoComplete="off"
@@ -430,7 +433,9 @@ export const Topbar: React.FC<TopbarProps> = memo(
                       </form.Field>
 
                       {loginError && (
-                        <div className="text-red-400 text-sm">{loginError}</div>
+                        <div className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg p-2">
+                          {loginError}
+                        </div>
                       )}
 
                       <form.Subscribe
@@ -442,7 +447,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                         {([canSubmit, isSubmitting]) => (
                           <button
                             type="submit"
-                            className="mt-2 bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold disabled:opacity-50"
+                            className="mt-1 bg-green-600 hover:bg-green-700 text-white rounded-lg p-3 font-medium disabled:opacity-50 transition-colors"
                             disabled={!canSubmit}
                           >
                             {isSubmitting ? "Logging in..." : "Login"}
