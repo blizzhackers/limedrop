@@ -262,7 +262,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                 </button>
                 <button
                   type="button"
-                  className="p-2.5 hover:bg-gray-700 rounded-full transition-colors"
+                  className="p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                   onClick={() => setRecentDropsOpen(true)}
                   title="Show Recent Drops"
                 >
@@ -270,7 +270,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
                 </button>
                 <button
                   type="button"
-                  className="p-2.5 hover:bg-gray-700 rounded-full transition-colors"
+                  className="p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                   onClick={() =>
                     useItemPacksDialogStore.getState().setOpen(true)
                   }
@@ -282,7 +282,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
             )}
             <button
               type="button"
-              className="relative p-2.5 hover:bg-gray-700 rounded-full transition-colors"
+              className="relative p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
               onClick={openCart}
             >
               <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
@@ -296,7 +296,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
               <button
                 ref={buttonRef}
                 type="button"
-                className="flex items-center gap-1 md:gap-2 p-2.5 hover:bg-gray-700 rounded-full transition-colors"
+                className="flex items-center gap-1 md:gap-2 p-2 md:p-2.5 hover:bg-gray-700 rounded-full transition-colors"
                 onClick={() => setLoginOpen(!loginOpen)}
               >
                 <CircleUser className="h-7 w-7 md:h-8 md:w-8 rounded-full" />
