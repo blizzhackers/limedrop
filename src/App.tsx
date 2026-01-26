@@ -114,49 +114,54 @@ export default function App() {
       const { gameClass, gameMode, gameType, realm } = useAppStore.getState();
 
       for (const account of accountsData) {
-        const res = account.split("\\");
-        if (!res || res.length < 3) continue;
+        try {
+          const res = account.split("\\");
+          if (!res || res.length < 3) continue;
 
-        const [realmKey, accountName, charName] = res;
-        const charkey = charName.split(".")[1];
+          const [realmKey, accountName, charName] = res;
+          const charkey = charName.split(".")[1];
 
-        if (realmKey !== realm) {
+          if (realmKey !== realm) {
+            continue;
+          }
+
+          if (!accountsMap[accountName]) {
+            accountsMap[accountName] = [];
+          }
+
+          // Check if character matches current filters
+          const charCheck = {
+            ladder: charkey[2] === "l",
+            lod: charkey[1] === "e",
+            sc: charkey[0] === "s",
+          };
+
+          const checks = {
+            ladder: gameClass === "Ladder",
+            lod: gameType === "Expansion",
+            sc: gameMode === "Softcore",
+          };
+
+          if (
+            charCheck.ladder === checks.ladder &&
+            charCheck.lod === checks.lod &&
+            charCheck.sc === checks.sc
+          ) {
+            accountsMap[accountName].push(charName);
+          }
+
+          accountsCache.push({
+            realm,
+            accountName,
+            charName,
+            ladder: charCheck.ladder,
+            sc: charCheck.sc,
+            lod: charCheck.lod,
+          });
+        } catch (err) {
+          console.error("Error processing account:", account, err);
           continue;
         }
-
-        if (!accountsMap[accountName]) {
-          accountsMap[accountName] = [];
-        }
-
-        // Check if character matches current filters
-        const charCheck = {
-          ladder: charkey[2] === "l",
-          lod: charkey[1] === "e",
-          sc: charkey[0] === "s",
-        };
-
-        const checks = {
-          ladder: gameClass === "Ladder",
-          lod: gameType === "Expansion",
-          sc: gameMode === "Softcore",
-        };
-
-        if (
-          charCheck.ladder === checks.ladder &&
-          charCheck.lod === checks.lod &&
-          charCheck.sc === checks.sc
-        ) {
-          accountsMap[accountName].push(charName);
-        }
-
-        accountsCache.push({
-          realm,
-          accountName,
-          charName,
-          ladder: charCheck.ladder,
-          sc: charCheck.sc,
-          lod: charCheck.lod,
-        });
       }
 
       setAccounts(accountsMap);
