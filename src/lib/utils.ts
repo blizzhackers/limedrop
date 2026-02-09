@@ -117,7 +117,7 @@ function buildV1ItemInfo(itemid: string, desc: string) {
     [sdk.colors.Yellow]: sdk.items.quality.Rare,
     [sdk.colors.LightGold]: sdk.items.quality.Crafted,
     [sdk.colors.DarkGold]: sdk.items.quality.Unique,
-    [sdk.colors.Orange]: sdk.items.quality.Normal,
+    [sdk.colors.Orange]: sdk.items.quality.Crafted,
     [sdk.colors.Gray]: sdk.items.quality.Normal,
   };
 
@@ -139,6 +139,15 @@ function buildV1ItemInfo(itemid: string, desc: string) {
         return sdk.items.quality.Superior;
       }
       const quality = codeToQuality[code];
+      if (quality === sdk.items.quality.Crafted) {
+        if (
+          desc.includes("Rune") ||
+          desc.includes("Essence") ||
+          desc.includes("Token")
+        ) {
+          return sdk.items.quality.Normal;
+        }
+      }
       return quality ?? -1;
     })(),
     itemType: (() => {
