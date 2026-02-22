@@ -1,15 +1,14 @@
 import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
-import {
-  Activity,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { NTIPAliasColor, NTIPAliasFlag } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { getItemPacks } from "@/db/itemPacksDb";
@@ -955,48 +954,61 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             </div>
           </div>
         )}
-        <Activity mode={showAdvancedFilters ? "visible" : "hidden"}>
-          <AdvancedFilters
-            itemClassFilter={itemClassFilter}
-            setItemClassFilter={setItemClassFilter}
-            itemTypeFilter={itemTypeFilter}
-            setItemTypeFilter={setItemTypeFilter}
-            etherealFilter={etherealFilter}
-            setEtherealFilter={setEtherealFilter}
-            runewordFilter={runewordFilter}
-            setRunewordFilter={setRunewordFilter}
-            identifiedFilter={identifiedFilter}
-            setIdentifiedFilter={setIdentifiedFilter}
-            socketFilter={socketFilter}
-            setSocketFilter={setSocketFilter}
-            colorFilter={colorFilter}
-            setColorFilter={setColorFilter}
-            activeItemPackId={activeItemPackId}
-            setActiveItemPackId={setActiveItemPackId}
-            itemPackMultiplier={itemPackMultiplier}
-            setItemPackMultiplier={setItemPackMultiplier}
-            ilvlFilter={ilvlFilter}
-            setIlvlFilter={setIlvlFilter}
-            ilvlComparison={ilvlComparison}
-            setIlvlComparison={setIlvlComparison}
-            levelReqFilter={levelReqFilter}
-            setLevelReqFilter={setLevelReqFilter}
-            levelReqComparison={levelReqComparison}
-            setLevelReqComparison={setLevelReqComparison}
-            strReqFilter={strReqFilter}
-            setStrReqFilter={setStrReqFilter}
-            strReqComparison={strReqComparison}
-            setStrReqComparison={setStrReqComparison}
-            dexReqFilter={dexReqFilter}
-            setDexReqFilter={setDexReqFilter}
-            dexReqComparison={dexReqComparison}
-            setDexReqComparison={setDexReqComparison}
-            itemCodeFilter={itemCodeFilter}
-            setItemCodeFilter={setItemCodeFilter}
-            statFilters={statFilters}
-            setStatFilters={setStatFilters}
-          />
-        </Activity>
+        <Sheet open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
+          <SheetContent
+            side="left"
+            className="w-full sm:max-w-md md:max-w-lg bg-gray-900 border-gray-700 overflow-y-auto p-0"
+          >
+            <SheetHeader className="px-4 pt-4 pb-2">
+              <SheetTitle className="text-white">Advanced Filters</SheetTitle>
+              <SheetDescription className="text-gray-400 text-xs">
+                Narrow down your inventory results
+              </SheetDescription>
+            </SheetHeader>
+            <div className="px-4 pb-4">
+              <AdvancedFilters
+                itemClassFilter={itemClassFilter}
+                setItemClassFilter={setItemClassFilter}
+                itemTypeFilter={itemTypeFilter}
+                setItemTypeFilter={setItemTypeFilter}
+                etherealFilter={etherealFilter}
+                setEtherealFilter={setEtherealFilter}
+                runewordFilter={runewordFilter}
+                setRunewordFilter={setRunewordFilter}
+                identifiedFilter={identifiedFilter}
+                setIdentifiedFilter={setIdentifiedFilter}
+                socketFilter={socketFilter}
+                setSocketFilter={setSocketFilter}
+                colorFilter={colorFilter}
+                setColorFilter={setColorFilter}
+                activeItemPackId={activeItemPackId}
+                setActiveItemPackId={setActiveItemPackId}
+                itemPackMultiplier={itemPackMultiplier}
+                setItemPackMultiplier={setItemPackMultiplier}
+                ilvlFilter={ilvlFilter}
+                setIlvlFilter={setIlvlFilter}
+                ilvlComparison={ilvlComparison}
+                setIlvlComparison={setIlvlComparison}
+                levelReqFilter={levelReqFilter}
+                setLevelReqFilter={setLevelReqFilter}
+                levelReqComparison={levelReqComparison}
+                setLevelReqComparison={setLevelReqComparison}
+                strReqFilter={strReqFilter}
+                setStrReqFilter={setStrReqFilter}
+                strReqComparison={strReqComparison}
+                setStrReqComparison={setStrReqComparison}
+                dexReqFilter={dexReqFilter}
+                setDexReqFilter={setDexReqFilter}
+                dexReqComparison={dexReqComparison}
+                setDexReqComparison={setDexReqComparison}
+                itemCodeFilter={itemCodeFilter}
+                setItemCodeFilter={setItemCodeFilter}
+                statFilters={statFilters}
+                setStatFilters={setStatFilters}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
         {session && filteredInventory.length > 0 && (
           <div className="flex items-center gap-2 mb-2">
             <Checkbox
