@@ -276,52 +276,52 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           return false;
         }
 
+        if (ilvlFilter !== null) {
+          if (ilvlComparison === "gte" && item.ilvl < ilvlFilter) {
+            return false;
+          }
+          if (ilvlComparison === "lte" && item.ilvl > ilvlFilter) {
+            return false;
+          }
+          if (ilvlComparison === "eq" && item.ilvl !== ilvlFilter) {
+            return false;
+          }
+        }
+        if (levelReqFilter !== null) {
+          if (levelReqComparison === "gte" && item.lvlreq < levelReqFilter) {
+            return false;
+          }
+          if (levelReqComparison === "lte" && item.lvlreq > levelReqFilter) {
+            return false;
+          }
+          if (levelReqComparison === "eq" && item.lvlreq !== levelReqFilter) {
+            return false;
+          }
+        }
+        if (strReqFilter !== null) {
+          if (strReqComparison === "gte" && item.strreq < strReqFilter) {
+            return false;
+          }
+          if (strReqComparison === "lte" && item.strreq > strReqFilter) {
+            return false;
+          }
+          if (strReqComparison === "eq" && item.strreq !== strReqFilter) {
+            return false;
+          }
+        }
+        if (dexReqFilter !== null) {
+          if (dexReqComparison === "gte" && item.dexreq < dexReqFilter) {
+            return false;
+          }
+          if (dexReqComparison === "lte" && item.dexreq > dexReqFilter) {
+            return false;
+          }
+          if (dexReqComparison === "eq" && item.dexreq !== dexReqFilter) {
+            return false;
+          }
+        }
         // V2 Item filters (only apply to V2 items)
         if (isV2Item(item)) {
-          if (ilvlFilter !== null) {
-            if (ilvlComparison === "gte" && item.ilvl < ilvlFilter) {
-              return false;
-            }
-            if (ilvlComparison === "lte" && item.ilvl > ilvlFilter) {
-              return false;
-            }
-            if (ilvlComparison === "eq" && item.ilvl !== ilvlFilter) {
-              return false;
-            }
-          }
-          if (levelReqFilter !== null) {
-            if (levelReqComparison === "gte" && item.lvlreq < levelReqFilter) {
-              return false;
-            }
-            if (levelReqComparison === "lte" && item.lvlreq > levelReqFilter) {
-              return false;
-            }
-            if (levelReqComparison === "eq" && item.lvlreq !== levelReqFilter) {
-              return false;
-            }
-          }
-          if (strReqFilter !== null) {
-            if (strReqComparison === "gte" && item.strreq < strReqFilter) {
-              return false;
-            }
-            if (strReqComparison === "lte" && item.strreq > strReqFilter) {
-              return false;
-            }
-            if (strReqComparison === "eq" && item.strreq !== strReqFilter) {
-              return false;
-            }
-          }
-          if (dexReqFilter !== null) {
-            if (dexReqComparison === "gte" && item.dexreq < dexReqFilter) {
-              return false;
-            }
-            if (dexReqComparison === "lte" && item.dexreq > dexReqFilter) {
-              return false;
-            }
-            if (dexReqComparison === "eq" && item.dexreq !== dexReqFilter) {
-              return false;
-            }
-          }
           if (
             itemCodeFilter &&
             !item.code.toLowerCase().includes(itemCodeFilter.toLowerCase())
@@ -365,14 +365,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           }
         } else {
           // For V1 items, skip if any V2-only filters are active
-          if (
-            ilvlFilter !== null ||
-            levelReqFilter !== null ||
-            strReqFilter !== null ||
-            dexReqFilter !== null ||
-            itemCodeFilter ||
-            statFilters.length > 0
-          ) {
+          if (itemCodeFilter || statFilters.length > 0) {
             return false;
           }
         }
