@@ -32,6 +32,10 @@ type V1InventoryItem = BaseInventoryItem & {
   sockets: number;
   gfx: number;
   color: number;
+  ilvl: number;
+  lvlreq: number;
+  strreq: number;
+  dexreq: number;
 };
 
 type ItemInfo = {
@@ -364,6 +368,23 @@ function buildV1ItemInfo(itemid: string, desc: string) {
     })(),
     gfx: Number(gfx),
     color: Number(color),
+    ilvl: (() => {
+      // ilvl should always be in the first parentheses
+      const match = desc.match(/(\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
+    lvlreq: (() => {
+      const match = desc.match(/Required Level: (\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
+    strreq: (() => {
+      const match = desc.match(/Required Strength: (\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
+    dexreq: (() => {
+      const match = desc.match(/Required Dexterity: (\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
   };
 }
 
@@ -476,6 +497,10 @@ export function mapApiItemToInventoryItem(
       sockets: itemInfo.sockets,
       gfx: itemInfo.gfx,
       color: itemInfo.color,
+      ilvl: itemInfo.ilvl,
+      lvlreq: itemInfo.lvlreq,
+      strreq: itemInfo.strreq,
+      dexreq: itemInfo.dexreq,
     } as V1InventoryItem;
   }
 
