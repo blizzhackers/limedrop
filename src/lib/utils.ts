@@ -367,6 +367,11 @@ function buildV1ItemInfo(itemid: string, desc: string) {
     })(),
     gfx: Number(gfx),
     color: Number(color),
+    ilvl: (() => {
+      // ilvl should always be in the first parentheses
+      const match = desc.match(/(\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
     lvlreq: (() => {
       const match = desc.match(/Required Level: (\d+)/);
       return match ? Number(match[1]) : 0;
