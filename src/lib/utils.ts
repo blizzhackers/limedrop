@@ -32,6 +32,9 @@ type V1InventoryItem = BaseInventoryItem & {
   sockets: number;
   gfx: number;
   color: number;
+  lvlreq: number;
+  strreq: number;
+  dexreq: number;
 };
 
 type ItemInfo = {
@@ -364,6 +367,18 @@ function buildV1ItemInfo(itemid: string, desc: string) {
     })(),
     gfx: Number(gfx),
     color: Number(color),
+    lvlreq: (() => {
+      const match = desc.match(/Required Level: (\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
+    strreq: (() => {
+      const match = desc.match(/Required Strength: (\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
+    dexreq: (() => {
+      const match = desc.match(/Required Dexterity: (\d+)/);
+      return match ? Number(match[1]) : 0;
+    })(),
   };
 }
 
