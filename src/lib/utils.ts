@@ -32,6 +32,7 @@ type V1InventoryItem = BaseInventoryItem & {
   sockets: number;
   gfx: number;
   color: number;
+  ilvl: number;
   lvlreq: number;
   strreq: number;
   dexreq: number;
@@ -496,6 +497,10 @@ export function mapApiItemToInventoryItem(
       sockets: itemInfo.sockets,
       gfx: itemInfo.gfx,
       color: itemInfo.color,
+      ilvl: itemInfo.ilvl,
+      lvlreq: itemInfo.lvlreq,
+      strreq: itemInfo.strreq,
+      dexreq: itemInfo.dexreq,
     } as V1InventoryItem;
   }
 
