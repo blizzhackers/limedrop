@@ -154,6 +154,10 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
                     <span className="text-gray-400">ID:</span> {item.id}
                   </div>
                   <div>
+                    <span className="text-gray-400">Mode:</span>{" "}
+                    {item.mode ?? "N/A"}
+                  </div>
+                  <div>
                     <span className="text-gray-400">Code:</span> {item.code}
                   </div>
                   <div>
@@ -288,6 +292,16 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
         >
           <RotateCcw className="w-4 h-4" />
         </button>
+      )}
+
+      {isV2 && item.equipped && (
+        <span
+          className={`absolute top-2 bg-blue-500 text-xs px-2 py-0.5 rounded-full text-white z-10 ${
+            showDebugInfo ? "left-10" : "left-2"
+          }`}
+        >
+          Equipped
+        </span>
       )}
 
       {inCart && (

@@ -41,6 +41,7 @@ type V1InventoryItem = BaseInventoryItem & {
 type ItemInfo = {
   id: number;
   code: string;
+  mode?: number;
   name: string;
   prefix: string | undefined;
   suffix: string | undefined;
@@ -64,6 +65,7 @@ type ItemInfo = {
   ethereal: boolean;
   runeword: boolean;
   stats: Record<string, string | number>;
+  equipped?: boolean;
 };
 
 type V2InventoryItem = BaseInventoryItem & {
