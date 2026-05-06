@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,17 +46,17 @@ interface InventoryGridProps {
   fetchAccounts: (session: string) => Promise<void>;
 }
 
+const portraitMq = window.matchMedia("(orientation: portrait)");
+
 function useIsPortrait() {
-  const [isPortrait, setIsPortrait] = useState(
-    () => window.matchMedia("(orientation: portrait)").matches,
+  return useSyncExternalStore(
+    (callback) => {
+      portraitMq.addEventListener("change", callback);
+      return () => portraitMq.removeEventListener("change", callback);
+    },
+    () => portraitMq.matches,
+    () => false,
   );
-  useEffect(() => {
-    const mq = window.matchMedia("(orientation: portrait)");
-    const handler = (e: MediaQueryListEvent) => setIsPortrait(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return isPortrait;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = memo(
@@ -1014,7 +1015,10 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
             </div>
           )
         ) : (
-          <Sheet open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
+          <Sheet
+            open={showAdvancedFilters}
+            onOpenChange={setShowAdvancedFilters}
+          >
             <SheetContent
               side="left"
               className="w-full sm:max-w-md md:max-w-lg bg-gray-900 border-gray-700 overflow-y-auto p-0"
