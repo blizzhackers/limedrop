@@ -5,7 +5,7 @@ import {
   IdentifiedFilterField,
   ItemClassFilterField,
   ItemCodeComboField,
-  ItemTypesSelector,
+  ItemTypeComboField,
   NumericFilterWithComparison,
   QualityFilterField,
   RunewordFilterField,
@@ -30,7 +30,7 @@ export const AdvancedFilters = withForm({
 
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 portrait:grid-cols-3 gap-4">
           <div className="flex flex-col gap-4">
             <form.Field name="qualityFilter">
               {(field) => <QualityFilterField field={field} />}
@@ -169,9 +169,11 @@ export const AdvancedFilters = withForm({
             </form.Subscribe>
           </div>
 
+          <div className="flex-col gap-4 hidden portrait:flex"></div>
+
           <div className="flex flex-col gap-4">
-            <form.Field name="itemCodeFilter">
-              {(field) => <ItemCodeComboField field={field} />}
+            <form.Field name="itemTypeFilter">
+              {(field) => <ItemTypeComboField field={field} />}
             </form.Field>
           </div>
 
@@ -180,45 +182,24 @@ export const AdvancedFilters = withForm({
               {(field) => <ClassIdComboField field={field} />}
             </form.Field>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-6 mt-4">
-          <div className="flex flex-col flex-1">
-            <form.Field name="statFilters">
-              {(field) => (
-                <StatFilterBuilder
-                  field={field}
-                  showCollapsible={true}
-                  defaultOpen={true}
-                />
-              )}
+          <div className="flex flex-col gap-4">
+            <form.Field name="itemCodeFilter">
+              {(field) => <ItemCodeComboField field={field} />}
             </form.Field>
           </div>
+        </div>
 
-          <div className="flex flex-col flex-1">
-            <form.Subscribe selector={(s) => s.values.itemTypeFilter}>
-              {(itemTypeFilter) => (
-                <ItemTypesSelector
-                  itemTypeFilter={itemTypeFilter}
-                  onItemTypeChange={(type, checked) => {
-                    form.setFieldValue("itemTypeFilter", (prev) => {
-                      const next = new Set(prev);
-                      if (checked) {
-                        next.add(type);
-                      } else {
-                        next.delete(type);
-                      }
-                      return next;
-                    });
-                  }}
-                  showSearch={true}
-                  showCollapsible={true}
-                  defaultOpen={true}
-                  gridClassName="grid-cols-3"
-                />
-              )}
-            </form.Subscribe>
-          </div>
+        <div className="flex flex-col gap-4 mt-4">
+          <form.Field name="statFilters">
+            {(field) => (
+              <StatFilterBuilder
+                field={field}
+                showCollapsible={true}
+                defaultOpen={true}
+              />
+            )}
+          </form.Field>
         </div>
 
         <form.Subscribe

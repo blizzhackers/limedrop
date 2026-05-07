@@ -19,6 +19,7 @@ import {
   NTIPAliasClassID,
   NTIPAliasCodes,
   NTIPAliasColor,
+  NTIPAliasType,
 } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { naturalSort } from "@/lib/utils";
@@ -618,6 +619,59 @@ export const ClassIdComboField: React.FC<ClassIdComboFieldProps> = ({
     placeholder="Search item class (e.g. handaxe)"
   />
 );
+
+// ── Item type combo (Set<number> ↔ string[]) ─────────────────────────────────
+
+const ITEM_TYPE_OPTIONS = Object.entries(NTIPAliasType).map(([key, value]) => ({
+  key,
+  value,
+}));
+
+const ITEM_TYPE_BY_ID = Object.fromEntries(
+  Object.entries(NTIPAliasType).map(([k, v]) => [v, k]),
+) as Record<number, string>;
+
+interface ItemTypeComboFieldProps {
+  field: FilterField<Set<number>>;
+  id?: string;
+  label?: string;
+  showLabel?: boolean;
+}
+
+export const ItemTypeComboField: React.FC<ItemTypeComboFieldProps> = ({
+  field,
+  id = "itemtype-combo",
+  label = "Item Types",
+  showLabel = true,
+}) => {
+  const adapted: FilterField<string[]> = {
+    state: {
+      value: Array.from(field.state.value)
+        .map((n) => ITEM_TYPE_BY_ID[n])
+        .filter(Boolean),
+    },
+    handleChange: (names: string[]) => {
+      field.handleChange(
+        new Set(
+          names
+            .map((name) => NTIPAliasType[name as keyof typeof NTIPAliasType])
+            .filter((n): n is NonNullable<typeof n> => n !== undefined),
+        ),
+      );
+    },
+  };
+
+  return (
+    <MultiComboField
+      field={adapted}
+      id={id}
+      label={label}
+      showLabel={showLabel}
+      options={ITEM_TYPE_OPTIONS}
+      placeholder="Search item type (e.g. sword, helm)"
+    />
+  );
+};
 
 // ── Legacy text input for item code (used in ItemPacksDialog) ───────────────
 
