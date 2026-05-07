@@ -207,17 +207,21 @@ export const Sidebar: React.FC<SidebarProps> = memo(
         </div>
         <div>
           <div className="font-semibold mb-2">Realm</div>
-          <select
-            className="w-full p-2 rounded bg-gray-900 border border-gray-700"
+          <Select
             value={realm}
-            onChange={(e) => handleRealmChange(e.target.value as GameRealm)}
+            onValueChange={(v) => handleRealmChange(v as GameRealm)}
           >
-            {REALMS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full bg-gray-900 border border-gray-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border border-gray-700 text-white">
+              {REALMS.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {session && (
           <>
