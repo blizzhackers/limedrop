@@ -13,10 +13,11 @@ import {
 import { setPacks, useAppStore } from "@/stores/appStore";
 import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import {
+  ClassIdComboField,
   EtherealFilterField,
   ItemClassFilterField,
-  ItemCodeFilterField,
-  ItemTypesSelector,
+  ItemCodeComboField,
+  ItemTypeComboField,
   NumericFilterWithComparison,
   QualityFilterField,
   RunewordFilterField,
@@ -79,7 +80,8 @@ const ItemPacksDialog: React.FC = () => {
       strReqComparison: "lte" as "gte" | "lte" | "eq",
       dexReqFilter: null as number | null,
       dexReqComparison: "lte" as "gte" | "lte" | "eq",
-      itemCodeFilter: "",
+      itemCodeFilter: [] as string[],
+      classIdFilter: [] as string[],
       statFilters: [] as StatFilter[],
     },
     onSubmit: async ({ value }) => {
@@ -148,8 +150,11 @@ const ItemPacksDialog: React.FC = () => {
       filter.dexReq = values.dexReqFilter;
       filter.dexReqComparison = values.dexReqComparison;
     }
-    if (values.itemCodeFilter.trim()) {
-      filter.itemCode = values.itemCodeFilter.trim();
+    if (values.itemCodeFilter.length > 0) {
+      filter.itemCode = [...values.itemCodeFilter];
+    }
+    if (values.classIdFilter.length > 0) {
+      filter.classIdCodes = [...values.classIdFilter];
     }
     if (values.statFilters.length > 0) {
       filter.statFilters = values.statFilters.map(
@@ -301,7 +306,11 @@ const ItemPacksDialog: React.FC = () => {
     filterForm.setFieldValue("strReqComparison", f.strReqComparison ?? "lte");
     filterForm.setFieldValue("dexReqFilter", f.dexReq ?? null);
     filterForm.setFieldValue("dexReqComparison", f.dexReqComparison ?? "lte");
-    filterForm.setFieldValue("itemCodeFilter", f.itemCode ?? "");
+    filterForm.setFieldValue(
+      "itemCodeFilter",
+      Array.isArray(f.itemCode) ? f.itemCode : f.itemCode ? [f.itemCode] : [],
+    );
+    filterForm.setFieldValue("classIdFilter", f.classIdCodes ?? []);
     filterForm.setFieldValue(
       "statFilters",
       (f.statFilters ?? []).map((sf, i) => ({
@@ -797,7 +806,23 @@ const ItemPacksDialog: React.FC = () => {
                     <filterForm.Field name="itemCodeFilter">
                       {(field) => (
                         <div className="md:col-span-2">
-                          <ItemCodeFilterField field={field} />
+                          <ItemCodeComboField field={field} />
+                        </div>
+                      )}
+                    </filterForm.Field>
+
+                    <filterForm.Field name="classIdFilter">
+                      {(field) => (
+                        <div className="md:col-span-2">
+                          <ClassIdComboField field={field} />
+                        </div>
+                      )}
+                    </filterForm.Field>
+
+                    <filterForm.Field name="itemTypeFilter">
+                      {(field) => (
+                        <div className="md:col-span-2">
+                          <ItemTypeComboField field={field} />
                         </div>
                       )}
                     </filterForm.Field>
@@ -817,32 +842,6 @@ const ItemPacksDialog: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <filterForm.Subscribe
-                selector={(state) => ({
-                  itemTypeFilter: state.values.itemTypeFilter,
-                })}
-              >
-                {({ itemTypeFilter }) => (
-                  <div className="mt-6">
-                    <ItemTypesSelector
-                      id="item-type-select"
-                      itemTypeFilter={itemTypeFilter}
-                      onItemTypeChange={(type, checked) => {
-                        const next = new Set(itemTypeFilter);
-                        if (checked) {
-                          next.add(type);
-                        } else {
-                          next.delete(type);
-                        }
-                        filterForm.setFieldValue("itemTypeFilter", next);
-                      }}
-                      showSearch={false}
-                      showCollapsible={false}
-                      className="text-white"
-                    />
-                  </div>
-                )}
-              </filterForm.Subscribe>
               <filterForm.Subscribe
                 selector={(state) => ({
                   values: state.values,

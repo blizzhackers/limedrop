@@ -94,7 +94,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         ] as const
       ).some((k) => filterValues[k] !== null) ||
       filterValues.itemTypeFilter.size > 0 ||
-      filterValues.itemCodeFilter !== "" ||
+      filterValues.itemCodeFilter.length > 0 ||
+      filterValues.classIdFilter.length > 0 ||
       filterValues.statFilters.length > 0;
 
     const handleBackToTop = () => {

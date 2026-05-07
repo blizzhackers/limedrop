@@ -179,13 +179,33 @@ export const ActiveFilterPills = withForm({
                 />
               )}
 
-              {values.itemCodeFilter !== "" && (
+              {values.itemCodeFilter.map((code: string) => (
                 <FilterPill
+                  key={code}
                   label="Item Code"
-                  value={values.itemCodeFilter}
-                  onRemove={() => form.setFieldValue("itemCodeFilter", "")}
+                  value={code}
+                  onRemove={() =>
+                    form.setFieldValue(
+                      "itemCodeFilter",
+                      values.itemCodeFilter.filter((c: string) => c !== code),
+                    )
+                  }
                 />
-              )}
+              ))}
+
+              {values.classIdFilter.map((name: string) => (
+                <FilterPill
+                  key={name}
+                  label="Class ID"
+                  value={name}
+                  onRemove={() =>
+                    form.setFieldValue(
+                      "classIdFilter",
+                      values.classIdFilter.filter((c: string) => c !== name),
+                    )
+                  }
+                />
+              ))}
 
               {values.statFilters.map((filter: StatFilter) => (
                 <span
