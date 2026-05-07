@@ -1,9 +1,9 @@
 import { AlertCircle, RotateCcw } from "lucide-react";
 import type React from "react";
-import { memo, useEffect, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
-import { isV2Item } from "@/lib/utils";
+import { isV2Item, parseItemDescription } from "@/lib/utils";
 import { addToCart, removeFromCart, useAppStore } from "@/stores/appStore";
 
 interface InventoryCardProps {
@@ -17,25 +17,13 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const isV2 = isV2Item(item);
 
-  const title = item.description ? item.description.split("$", 1)[0] : "";
-  let desc = item.description || "";
-  if (desc.startsWith(title)) {
-    desc = desc.slice(title.length);
-  }
+  const { title, desc } = useMemo(
+    () => parseItemDescription(item.description),
+    [item.description],
+  );
 
-  useEffect(() => {
-    const debugSubscription = useAppStore.subscribe(
-      (state) => state.showDebugInfo,
-      (value) => {
-        if (!value) {
-          setIsFlipped(false);
-        }
-      },
-    );
-    return () => {
-      debugSubscription();
-    };
-  }, []);
+  // Only show flipped state when debug info is enabled
+  const effectiveIsFlipped = isFlipped && showDebugInfo;
 
   const handleClick = () => {
     if (inCart) {
@@ -61,16 +49,16 @@ export const InventoryCard: React.FC<InventoryCardProps> = memo(({ item }) => {
         minHeight: 160,
         perspective: "1000px",
       }}
-      onClick={!isFlipped ? handleClick : undefined}
+      onClick={!effectiveIsFlipped ? handleClick : undefined}
       title={
-        !isFlipped
+        !effectiveIsFlipped
           ? inCart
             ? "Remove from Drop List"
             : "Add to Drop List"
           : ""
       }
     >
-      {!isFlipped ? (
+      {!effectiveIsFlipped ? (
         <>
           {item.image && (
             <img

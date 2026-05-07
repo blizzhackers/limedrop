@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import type React from "react";
 import { memo, useEffect } from "react";
 import { renderColorText } from "@/lib/util";
+import { parseItemDescription } from "@/lib/utils";
 import {
   setRecentDropsOpen,
   updateCachedDrops,
@@ -69,12 +70,9 @@ export const RecentDrops: React.FC = memo(() => {
                       <span className="font-semibold text-white">Items:</span>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1">
                         {drop.items.map((item, idx) => {
-                          const title = item.description
-                            ? item.description.split("$", 1)[0]
-                            : "";
-                          let desc = item.description || "";
-                          if (desc.startsWith(title))
-                            desc = desc.slice(title.length);
+                          const { title, desc } = parseItemDescription(
+                            item.description,
+                          );
 
                           return (
                             <div

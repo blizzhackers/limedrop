@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
 import type React from "react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useState } from "react";
 import type { ListChildComponentProps } from "react-window";
 import { FixedSizeList } from "react-window";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { addRecentDrop } from "@/db/recentDropsDb";
 import type { D2BotAPI } from "@/lib/D2Bot";
 import { FieldInfo, renderColorText } from "@/lib/util";
 import type { InventoryItem } from "@/lib/utils";
+import { parseItemDescription } from "@/lib/utils";
 import {
   clearCart,
   handleClearDropsFromInvo,
@@ -31,8 +32,6 @@ import { Button } from "./ui/button";
 
 interface CartDrawerProps {
   api: D2BotAPI;
-  session: string | null;
-  handleSignOut: () => void;
 }
 
 const CartItemRow = memo(
@@ -46,9 +45,7 @@ const CartItemRow = memo(
   }>) => {
     const item = data.cart[index];
     const handleRemoveFromCart = data.handleRemoveFromCart;
-    const title = item.description ? item.description.split("$", 1)[0] : "";
-    let desc = item.description || "";
-    if (desc.startsWith(title)) desc = desc.slice(title.length);
+    const { title, desc } = parseItemDescription(item.description);
 
     return (
       <div key={item.itemid || index} style={style}>
@@ -92,357 +89,230 @@ const CartItemRow = memo(
   },
 );
 
-export const CartDrawer: React.FC<CartDrawerProps> = memo(
-  ({ api, session, handleSignOut }) => {
-    const realm = useAppStore((s) => s.realm);
-    const username = useAppStore((s) => s.username);
-    const gameName = useAppStore((s) => s.gameName);
-    const cart = useAppStore((s) => s.cart);
-    const cartOpen = useAppStore((s) => s.cartOpen);
+export const CartDrawer: React.FC<CartDrawerProps> = memo(({ api }) => {
+  const realm = useAppStore((s) => s.realm);
+  const username = useAppStore((s) => s.username);
+  const gameName = useAppStore((s) => s.gameName);
+  const cart = useAppStore((s) => s.cart);
+  const cartOpen = useAppStore((s) => s.cartOpen);
 
-    const [showPassword, setShowPassword] = useState(false);
-    const pollingIntervalRef = useRef<number | null>(null);
-    const pollingCounterRef = useRef(0);
-    const pollingTimeoutRef = useRef<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-    const form = useForm({
-      defaultValues: {
-        gameName: gameName,
-        gamePass: "",
-      },
-      onSubmit: async ({ value }) => {
-        if (!cart.length) return;
+  const form = useForm({
+    defaultValues: {
+      gameName: gameName,
+      gamePass: "",
+    },
+    onSubmit: async ({ value }) => {
+      if (!cart.length) return;
 
-        // Group by hash (realm+account)
-        const drops: Record<string, Partial<InventoryItem>[]> = {};
-        for (const item of cart) {
-          const hash = await api.md5(
-            realm.toLowerCase() + (item.account || "").toLowerCase(),
-          );
-          if (!drops[hash]) drops[hash] = [];
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { image, description, ...cleanItem } = item;
-          drops[hash].push(cleanItem);
-        }
+      // Group by hash (realm+account)
+      const drops: Record<string, Partial<InventoryItem>[]> = {};
+      for (const item of cart) {
+        const hash = await api.md5(
+          realm.toLowerCase() + (item.account || "").toLowerCase(),
+        );
+        if (!drops[hash]) drops[hash] = [];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { image, description, ...cleanItem } = item;
+        drops[hash].push(cleanItem);
+      }
 
-        // startPolling();
+      // startPolling();
 
-        for (const hash in drops) {
-          try {
-            const GameInfo = {
-              hash,
-              profile: username,
-              action: "doDrop",
-              data: JSON.stringify({
-                gameName: value.gameName,
-                gamePass: value.gamePass,
-                items: drops[hash],
-              }),
-            };
-            await api.gameaction(GameInfo);
-          } catch (err) {
-            console.error("Failed to send drop action", err);
-            toast.error("Drop Error", {
-              description: "Failed to send drop action, please try again.",
-            });
-          }
-        }
-
+      for (const hash in drops) {
         try {
-          await addRecentDrop({
-            items: cart,
-            gameName: value.gameName,
-            username,
-          });
-          updateCachedDrops();
+          const GameInfo = {
+            hash,
+            profile: username,
+            action: "doDrop",
+            data: JSON.stringify({
+              gameName: value.gameName,
+              gamePass: value.gamePass,
+              items: drops[hash],
+            }),
+          };
+          await api.gameaction(GameInfo);
         } catch (err) {
-          console.error("Failed to store recent drop", err);
+          console.error("Failed to send drop action", err);
+          toast.error("Drop Error", {
+            description: "Failed to send drop action, please try again.",
+          });
         }
-
-        // Update the global state with the game name
-        setGameName(value.gameName);
-
-        handleClearDropsFromInvo();
-        clearCart();
-        setCartOpen(false);
-        toast.info("Drop Queue", { description: "Drop action sent!" });
-      },
-    });
-
-    const stopPolling = useCallback(() => {
-      if (pollingIntervalRef.current !== null) {
-        window.clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-      if (pollingTimeoutRef.current !== null) {
-        window.clearTimeout(pollingTimeoutRef.current);
-        pollingTimeoutRef.current = null;
-      }
-      pollingCounterRef.current = 0;
-    }, []);
-
-    const _startPolling = useCallback(() => {
-      stopPolling();
-
-      pollingIntervalRef.current = window.setInterval(async () => {
-        // Only poll every ~2 seconds (20 * 100ms)
-        if (pollingCounterRef.current > 20) {
-          pollingCounterRef.current = 0;
-
-          try {
-            const { status, body } = await api.poll();
-
-            // Handle failed responses with invalid session
-            if (status === "failed" && body === "invalid session") {
-              console.log(
-                "Polling detected invalid session, may need to log in again",
-              );
-
-              let sessionFailCount = window.sessionFailCount || 0;
-              sessionFailCount++;
-              window.sessionFailCount = sessionFailCount;
-
-              if (sessionFailCount > 3) {
-                console.error("Too many failed session attempts, logging out");
-                handleSignOut();
-                toast.error("Session Error", {
-                  description: "Your session has expired, please log in again",
-                });
-                window.sessionFailCount = 0;
-              }
-              return;
-            }
-
-            // Reset the failure counter on success
-            window.sessionFailCount = 0;
-
-            // Handle empty response
-            if (
-              body === "empty" ||
-              (status === "success" && (body || body === "empty"))
-            ) {
-              return;
-            }
-
-            if (body && Array.isArray(body)) {
-              for (const message of body) {
-                if (message?.body) {
-                  console.debug(message);
-                  try {
-                    const data = JSON.parse(message.body);
-                    toast.info("Game Action", { description: data.data });
-                  } catch (parseError) {
-                    console.error(
-                      "Error parsing message:",
-                      parseError,
-                      message,
-                    );
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Polling error:", error);
-
-            if (
-              error instanceof Error &&
-              error.message.includes("invalid session")
-            ) {
-              // Don't flood the console with repeated errors
-              console.log("Polling error with invalid session");
-
-              let sessionFailCount = window.sessionFailCount || 0;
-              sessionFailCount++;
-              window.sessionFailCount = sessionFailCount;
-
-              if (sessionFailCount > 3) {
-                console.error("Too many failed session attempts, logging out");
-                handleSignOut();
-                toast.error("Session Error", {
-                  description: "Your session has expired, please log in again",
-                });
-                window.sessionFailCount = 0;
-              }
-            }
-          }
-        } else {
-          pollingCounterRef.current++;
-        }
-      }, 100);
-
-      pollingTimeoutRef.current = window.setTimeout(
-        () => {
-          stopPolling();
-        },
-        10 * 60 * 1000,
-      );
-    }, [stopPolling, api, handleSignOut]);
-    void _startPolling;
-
-    useEffect(() => {
-      if (!session) {
-        stopPolling();
       }
 
-      return () => {
-        stopPolling();
-      };
-    }, [stopPolling, session]);
+      try {
+        await addRecentDrop({
+          items: cart,
+          gameName: value.gameName,
+          username,
+        });
+        updateCachedDrops();
+      } catch (err) {
+        console.error("Failed to store recent drop", err);
+      }
 
-    function handleRemoveFromCart(item: InventoryItem) {
-      removeFromCart(item);
-    }
+      // Update the global state with the game name
+      setGameName(value.gameName);
 
-    return (
-      <Drawer direction="right" open={cartOpen} onOpenChange={setCartOpen}>
-        <DrawerContent
-          aria-describedby="cart-drawer"
-          className="md:min-w-lg max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col"
+      handleClearDropsFromInvo();
+      clearCart();
+      setCartOpen(false);
+      toast.info("Drop Queue", { description: "Drop action sent!" });
+    },
+  });
+
+  function handleRemoveFromCart(item: InventoryItem) {
+    removeFromCart(item);
+  }
+
+  return (
+    <Drawer direction="right" open={cartOpen} onOpenChange={setCartOpen}>
+      <DrawerContent
+        aria-describedby="cart-drawer"
+        className="md:min-w-lg max-w-full h-full bg-gray-800 shadow-lg p-4 flex flex-col"
+      >
+        <DrawerHeader className="flex items-center justify-between mb-4 p-0">
+          <DrawerTitle className="text-2xl text-white font-bold">
+            Drop List
+          </DrawerTitle>
+          <DrawerClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:bg-red-500 absolute top-0 right-0 m-2"
+            >
+              <X className="w-6 h-6" />
+            </Button>
+          </DrawerClose>
+        </DrawerHeader>
+        <form
+          className="flex flex-col flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
         >
-          <DrawerHeader className="flex items-center justify-between mb-4 p-0">
-            <DrawerTitle className="text-2xl text-white font-bold">
-              Drop List
-            </DrawerTitle>
-            <DrawerClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-400 hover:bg-red-500 absolute top-0 right-0 m-2"
-              >
-                <X className="w-6 h-6" />
-              </Button>
-            </DrawerClose>
-          </DrawerHeader>
-          <form
-            className="flex flex-col flex-1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              form.handleSubmit();
-            }}
-          >
-            <div className="mb-4 flex flex-col gap-2">
-              <form.Field
-                name="gameName"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return "Game name is required";
-                    if (value.length > 15)
-                      return "Game name must be 15 characters or less";
-                    if (!/^[a-zA-Z0-9-_]*$/.test(value))
-                      return "Game name can only contain letters and numbers";
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div>
-                    <Input
-                      type="text"
-                      autoComplete="off"
-                      className="p-2 rounded bg-gray-900 border border-gray-700 text-white"
-                      placeholder="Game Name"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      maxLength={15}
-                    />
-                    <FieldInfo field={field} />
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field
-                name="gamePass"
-                validators={{
-                  onChange: ({ value }) => {
-                    if (value.length > 15)
-                      return "Password must be 15 characters or less";
-                    if (value && !/^[a-zA-Z0-9]*$/.test(value))
-                      return "Password can only contain letters and numbers";
-                    return undefined;
-                  },
-                }}
-              >
-                {(field) => (
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="off"
-                      className="p-2 rounded bg-gray-900 border border-gray-700 text-white pr-10"
-                      placeholder="Game Password (optional)"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      maxLength={15}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-2 top-1.5 text-gray-400 hover:text-white"
-                      tabIndex={-1}
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-5 h-5" />
-                      ) : (
-                        <Eye className="w-5 h-5" />
-                      )}
-                    </button>
-                    <FieldInfo field={field} />
-                  </div>
-                )}
-              </form.Field>
-            </div>
-
-            <div className="flex-1 overflow-hidden">
-              {cart.length === 0 ? (
-                <div className="text-gray-400">No items in drop list.</div>
-              ) : (
-                <div className="h-full flex flex-col gap-y-2">
-                  <FixedSizeList
-                    height={
-                      typeof window !== "undefined"
-                        ? window.innerHeight - 250
-                        : 400
-                    }
-                    itemCount={cart.length}
-                    itemSize={120}
-                    width="100%"
-                    itemData={{ cart, handleRemoveFromCart }}
-                    overscanCount={6}
-                  >
-                    {CartItemRow}
-                  </FixedSizeList>
+          <div className="mb-4 flex flex-col gap-2">
+            <form.Field
+              name="gameName"
+              validators={{
+                onChange: ({ value }) => {
+                  if (!value) return "Game name is required";
+                  if (value.length > 15)
+                    return "Game name must be 15 characters or less";
+                  if (!/^[a-zA-Z0-9-_]*$/.test(value))
+                    return "Game name can only contain letters and numbers";
+                  return undefined;
+                },
+              }}
+            >
+              {(field) => (
+                <div>
+                  <Input
+                    type="text"
+                    autoComplete="off"
+                    className="p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                    placeholder="Game Name"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    maxLength={15}
+                  />
+                  <FieldInfo field={field} />
                 </div>
               )}
-            </div>
+            </form.Field>
 
-            <DrawerFooter className="mt-4 p-0">
-              <form.Subscribe
-                selector={(state) => [
-                  state.canSubmit,
-                  state.isSubmitting,
-                  cart.length,
-                ]}
-              >
-                {([canSubmit, isSubmitting, cartLength]) => (
+            <form.Field
+              name="gamePass"
+              validators={{
+                onChange: ({ value }) => {
+                  if (value.length > 15)
+                    return "Password must be 15 characters or less";
+                  if (value && !/^[a-zA-Z0-9]*$/.test(value))
+                    return "Password can only contain letters and numbers";
+                  return undefined;
+                },
+              }}
+            >
+              {(field) => (
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="off"
+                    className="p-2 rounded bg-gray-900 border border-gray-700 text-white pr-10"
+                    placeholder="Game Password (optional)"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    maxLength={15}
+                  />
                   <button
-                    className="bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold disabled:opacity-50"
-                    disabled={
-                      !!(!canSubmit || cartLength === 0 || isSubmitting)
+                    type="button"
+                    className="absolute right-2 top-1.5 text-gray-400 hover:text-white"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
                     }
-                    type="submit"
                   >
-                    {isSubmitting ? "Processing..." : "Drop Items"}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
-                )}
-              </form.Subscribe>
-            </DrawerFooter>
-          </form>
-        </DrawerContent>
-      </Drawer>
-    );
-  },
-);
+                  <FieldInfo field={field} />
+                </div>
+              )}
+            </form.Field>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            {cart.length === 0 ? (
+              <div className="text-gray-400">No items in drop list.</div>
+            ) : (
+              <div className="h-full flex flex-col gap-y-2">
+                <FixedSizeList
+                  height={
+                    typeof window !== "undefined"
+                      ? window.innerHeight - 250
+                      : 400
+                  }
+                  itemCount={cart.length}
+                  itemSize={120}
+                  width="100%"
+                  itemData={{ cart, handleRemoveFromCart }}
+                  overscanCount={6}
+                >
+                  {CartItemRow}
+                </FixedSizeList>
+              </div>
+            )}
+          </div>
+
+          <DrawerFooter className="mt-4 p-0">
+            <form.Subscribe
+              selector={(state) => [
+                state.canSubmit,
+                state.isSubmitting,
+                cart.length,
+              ]}
+            >
+              {([canSubmit, isSubmitting, cartLength]) => (
+                <button
+                  className="bg-green-600 hover:bg-green-700 text-white rounded p-2 font-semibold disabled:opacity-50"
+                  disabled={!!(!canSubmit || cartLength === 0 || isSubmitting)}
+                  type="submit"
+                >
+                  {isSubmitting ? "Processing..." : "Drop Items"}
+                </button>
+              )}
+            </form.Subscribe>
+          </DrawerFooter>
+        </form>
+      </DrawerContent>
+    </Drawer>
+  );
+});

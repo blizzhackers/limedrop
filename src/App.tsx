@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import "./App.css";
-import { useCallback } from "react";
 import { toast } from "sonner";
 import { shallow } from "zustand/shallow";
 import { CartDrawer } from "@/components/CartDrawer";
@@ -36,6 +35,7 @@ export default function App() {
   const username = useAppStore((s) => s.username);
   const session = useAppStore((s) => s.session);
 
+  const [, startTransition] = useTransition();
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
@@ -281,7 +281,7 @@ export default function App() {
         }
 
         if (cachedItems.length > 0) {
-          React.startTransition(() => {
+          startTransition(() => {
             setInventory(cachedItems);
           });
           setLoadingInventory(false);
@@ -305,12 +305,6 @@ export default function App() {
       accountsToLoadSub();
     };
   }, []);
-
-  // useEffect(() => {
-  //   if (!session) {
-  //     handleSignOut();
-  //   }
-  // }, [session, handleSignOut]);
 
   useEffect(() => {
     if (!session || accountsToLoad.length === 0) {
@@ -378,7 +372,7 @@ export default function App() {
 
           const prevInvo = useAppStore.getState().inventory;
           const newInvo = appendUniqueItems(prevInvo, msg.items);
-          React.startTransition(() => {
+          startTransition(() => {
             setInventory(newInvo);
           });
 
@@ -457,7 +451,7 @@ export default function App() {
           </div>
         </main>
       </div>
-      <CartDrawer api={api} session={session} handleSignOut={handleSignOut} />
+      <CartDrawer api={api} />
 
       <DebugButton />
 
