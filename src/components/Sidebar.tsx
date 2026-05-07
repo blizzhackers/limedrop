@@ -300,9 +300,8 @@ export const Sidebar: React.FC<SidebarProps> = memo(
           className={`hidden md:flex bg-gray-800 p-4 flex-col gap-4 min-h-0 min-w-0 transition-all duration-500 ease-in-out relative overflow-hidden ${collapsed ? "w-20" : "w-64"}`}
         >
           <Button
-            variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 h-6 w-6 hover:bg-gray-700 z-10"
+            className="absolute top-2 right-2 h-6 w-6 z-10"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >

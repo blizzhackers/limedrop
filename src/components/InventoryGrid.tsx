@@ -1,14 +1,7 @@
 import { useStore } from "@tanstack/react-form";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import type React from "react";
-import {
-  memo,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { memo, useDeferredValue, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { getItemPacks } from "@/db/itemPacksDb";
 import { useFilteredInventory } from "@/hooks/useFilteredInventory";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useIsPortrait } from "@/hooks/useIsPortrait";
 import type { D2BotAPI } from "@/lib/D2Bot";
 import { useAppForm } from "@/lib/forms/filterForm";
@@ -49,8 +43,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const selectedAccount = useAppStore((s) => s.selectedAccount);
 
     const scrollRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<NodeJS.Timeout | null>(null);
-    const [showBackToTop, setShowBackToTop] = useState(false);
     const [selectAll, setSelectAll] = useState(false);
     const isPortrait = useIsPortrait();
 
@@ -70,83 +62,40 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     }, [session]);
 
     const [page, setPage] = useState(1);
-    const [loadedItemsCount, setLoadedItemsCount] = useState(PAGE_SIZE);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const totalPages = Math.ceil(filteredInventory.length / PAGE_SIZE);
     const pageItems = filteredInventory.slice(
       (page - 1) * PAGE_SIZE,
       page * PAGE_SIZE,
     );
-    const infiniteScrollItems = filteredInventory.slice(0, loadedItemsCount);
+
+    const { loadedCount, isLoadingMore, showBackToTop } = useInfiniteScroll({
+      scrollRef,
+      filteredCount: filteredInventory.length,
+      pageSize: PAGE_SIZE,
+      onFilteredCountReset: () => setPage(1),
+    });
+
+    const infiniteScrollItems = filteredInventory.slice(0, loadedCount);
 
     const filtersActive =
-      filterValues.qualityFilter !== null ||
-      filterValues.itemClassFilter !== null ||
+      (
+        [
+          "qualityFilter",
+          "itemClassFilter",
+          "etherealFilter",
+          "runewordFilter",
+          "identifiedFilter",
+          "socketFilter",
+          "colorFilter",
+          "ilvlFilter",
+          "levelReqFilter",
+          "strReqFilter",
+          "dexReqFilter",
+        ] as const
+      ).some((k) => filterValues[k] !== null) ||
       filterValues.itemTypeFilter.size > 0 ||
-      filterValues.etherealFilter !== null ||
-      filterValues.runewordFilter !== null ||
-      filterValues.identifiedFilter !== null ||
-      filterValues.socketFilter !== null ||
-      filterValues.colorFilter !== null ||
-      filterValues.ilvlFilter !== null ||
-      filterValues.levelReqFilter !== null ||
-      filterValues.strReqFilter !== null ||
-      filterValues.dexReqFilter !== null ||
       filterValues.itemCodeFilter !== "" ||
       filterValues.statFilters.length > 0;
-
-    const handleScroll = useCallback(() => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-
-        setShowBackToTop(el.scrollTop > 300);
-
-        const isNearBottom =
-          el.scrollHeight - el.scrollTop - el.clientHeight < 500;
-        const isMobile = window.innerWidth < 768;
-
-        if (
-          isNearBottom &&
-          isMobile &&
-          !isLoadingMore &&
-          loadedItemsCount < filteredInventory.length
-        ) {
-          setIsLoadingMore(true);
-          setTimeout(() => {
-            const newLoadedCount = Math.min(
-              loadedItemsCount + PAGE_SIZE,
-              filteredInventory.length,
-            );
-            setLoadedItemsCount(newLoadedCount);
-            setIsLoadingMore(false);
-            setTimeout(() => {
-              el.scrollBy({
-                top: Math.min(PAGE_SIZE * 200 * 0.3, 400),
-                behavior: "smooth",
-              });
-            }, 200);
-          }, 300);
-        }
-      }, 100);
-    }, [isLoadingMore, loadedItemsCount, filteredInventory.length]);
-
-    useEffect(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      el.addEventListener("scroll", handleScroll);
-      return () => el.removeEventListener("scroll", handleScroll);
-    }, [handleScroll]);
-
-    const prevFilteredLength = useRef(filteredInventory.length);
-    useEffect(() => {
-      if (prevFilteredLength.current !== filteredInventory.length) {
-        setLoadedItemsCount(PAGE_SIZE);
-        setPage(1);
-        prevFilteredLength.current = filteredInventory.length;
-      }
-    }, [filteredInventory.length]);
 
     const handleBackToTop = () => {
       scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -190,7 +139,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     return (
       <section
-        className="md:col-span-3 bg-gray-800 rounded shadow p-0.5 md:p-2 flex flex-col"
+        className="bg-gray-800 rounded shadow p-0.5 md:p-2 flex flex-col flex-1 min-h-0"
         style={{ minHeight: "80vh" }}
       >
         <InventoryToolbar
@@ -308,35 +257,41 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         )}
 
         {totalPages > 1 && !loadingInventory && (
-          <div className="hidden md:flex justify-center gap-2 mt-2 mb-[-8px]">
+          <div className="hidden md:flex justify-center items-center gap-1 mt-2">
             <Button
               type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-25"
               onClick={() => {
                 setPage((p) => Math.max(p - 1, 1));
                 handleBackToTop();
               }}
               disabled={page === 1}
             >
-              Previous
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-gray-400 self-center inline-flex items-center gap-1">
-              Page {page} of{" "}
+            <span className="text-sm text-gray-400 px-3 min-w-27.5 text-center">
+              {page}
+              {" / "}
               {fullyLoaded || selectedAccount !== "Show All" ? (
                 totalPages
               ) : (
-                <Loader2 className="w-4 h-4 animate-spin inline-block" />
+                <Loader2 className="w-3 h-3 animate-spin inline-block align-middle" />
               )}
             </span>
             <Button
               type="button"
-              variant="default"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-25"
               onClick={() => {
                 setPage((p) => Math.min(p + 1, totalPages));
                 handleBackToTop();
               }}
               disabled={page === totalPages}
             >
-              Next
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         )}

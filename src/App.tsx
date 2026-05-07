@@ -207,20 +207,16 @@ export default function App() {
           loadingAccounts={loadingAccounts}
           fetchAccounts={fetchAccounts}
         />
-        <main className="flex-1 min-h-0 min-w-0 p-2 bg-gray-900 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full min-h-0 min-w-0">
-            <section className="md:col-span-3 bg-gray-800 rounded shadow p-2 md:p-4 flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
-              <InventoryGrid
-                api={api}
-                fetchAccounts={fetchAccounts}
-                session={session}
-                fetchInventory={async () => {
-                  resetAccountLoading();
-                }}
-                loadingAccounts={loadingAccounts}
-              />
-            </section>
-          </div>
+        <main className="flex-1 min-h-0 min-w-0 p-2 bg-gray-900 overflow-hidden flex flex-col">
+          <InventoryGrid
+            api={api}
+            fetchAccounts={fetchAccounts}
+            session={session}
+            fetchInventory={async () => {
+              resetAccountLoading();
+            }}
+            loadingAccounts={loadingAccounts}
+          />
         </main>
       </div>
       <CartDrawer api={api} />
@@ -228,7 +224,7 @@ export default function App() {
       <DebugButton />
 
       <footer className="text-center py-1 text-xs md:text-base md:py-4 text-gray-400 bg-gray-800 mt-auto w-full">
-        &copy; 2025 Lime Drop. All rights reserved.
+        &copy; {new Date().getFullYear()} Lime Drop. All rights reserved.
       </footer>
     </div>
   );
