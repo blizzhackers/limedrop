@@ -199,10 +199,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(({ api }) => {
               validators={{
                 onChange: ({ value }) => {
                   if (!value) return "Game name is required";
-                  if (value.length > 15)
+                  if (value.length > 15) {
                     return "Game name must be 15 characters or less";
-                  if (!/^[a-zA-Z0-9-_]*$/.test(value))
+                  }
+                  if (!/^[a-zA-Z0-9-_]*$/.test(value)) {
                     return "Game name can only contain letters and numbers";
+                  }
                   return undefined;
                 },
               }}
@@ -228,10 +230,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = memo(({ api }) => {
               name="gamePass"
               validators={{
                 onChange: ({ value }) => {
-                  if (value.length > 15)
+                  if (value.length > 15) {
                     return "Password must be 15 characters or less";
-                  if (value && !/^[a-zA-Z0-9]*$/.test(value))
+                  }
+                  if (value && !/^[a-zA-Z0-9]*$/.test(value)) {
                     return "Password can only contain letters and numbers";
+                  }
                   return undefined;
                 },
               }}
