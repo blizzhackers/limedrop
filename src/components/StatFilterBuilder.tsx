@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { NTIPAliasStat } from "@/constants/NTItemAlias";
 import { naturalSort } from "@/lib/utils";
-import type { FilterField, StatFilter } from "./filterTypes";
+import type { FilterField, StatFilter } from "../types/filterTypes";
 
 export type { StatFilter };
 

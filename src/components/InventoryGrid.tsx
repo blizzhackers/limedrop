@@ -35,9 +35,9 @@ import {
   setUsername,
   useAppStore,
 } from "@/stores/appStore";
+import type { StatFilter } from "../types/filterTypes";
+import { DEFAULT_FILTER_VALUES } from "../types/filterTypes";
 import { AdvancedFilters } from "./AdvancedFilters";
-import type { StatFilter } from "./filterTypes";
-import { DEFAULT_FILTER_VALUES } from "./filterTypes";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 

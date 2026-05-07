@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { withForm } from "@/lib/filterForm";
 import { useAppStore } from "@/stores/appStore";
-import { DEFAULT_FILTER_VALUES } from "./filterTypes";
+import { DEFAULT_FILTER_VALUES } from "../types/filterTypes";
 import { StatFilterBuilder } from "./StatFilterBuilder";
 
 export const AdvancedFilters = withForm({

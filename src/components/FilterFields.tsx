@@ -18,7 +18,7 @@ import {
 import { NTIPAliasColor } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { naturalSort } from "@/lib/utils";
-import type { FilterField } from "./filterTypes";
+import type { FilterField } from "../types/filterTypes";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 
 // ── Generic reusable select wrapper ─────────────────────────────────────────
