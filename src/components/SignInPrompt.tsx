@@ -33,7 +33,7 @@ export const SignInPrompt: React.FC<SignInPromptProps> = ({
 
       try {
         const session = await api.login(demoUsername, demoPassword, demoApiUrl);
-        const validate = await api.validate(demoPassword, session);
+        const validate = await api.validate(demoUsername, session);
         if (!validate) throw new Error("Failed to validate session");
 
         setSession(session || null);

@@ -62,6 +62,7 @@ export default function App() {
       accountDataCache: [],
       inventory: [],
       cart: [],
+      cartItemIds: new Set(),
       selectedAccount: "Show All",
       selectedCharacter: "Show All",
       session: null,

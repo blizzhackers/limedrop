@@ -104,23 +104,25 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     function handleToggleSelectAll() {
       const cartItemIds = useAppStore.getState().cartItemIds;
       if (selectAll) {
-        useAppStore.setState((state) => ({
-          ...state,
-          cart: state.cart.filter(
+        useAppStore.setState((state) => {
+          const cart = state.cart.filter(
             (item) =>
               !cartItemIds.has(item.itemid) ||
               !filteredInventory.some((i) => i.itemid === item.itemid),
-          ),
-        }));
+          );
+          const newCartItemIds = new Set(cart.map((i) => i.itemid));
+          return { ...state, cart, cartItemIds: newCartItemIds };
+        });
         setSelectAll(false);
       } else {
-        useAppStore.setState((state) => ({
-          ...state,
-          cart: [
-            ...state.cart,
-            ...filteredInventory.filter((i) => !cartItemIds.has(i.itemid)),
-          ],
-        }));
+        useAppStore.setState((state) => {
+          const toAdd = filteredInventory.filter(
+            (i) => !cartItemIds.has(i.itemid),
+          );
+          const cart = [...state.cart, ...toAdd];
+          const newCartItemIds = new Set(cart.map((i) => i.itemid));
+          return { ...state, cart, cartItemIds: newCartItemIds };
+        });
         setSelectAll(true);
       }
     }
