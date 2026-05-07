@@ -281,10 +281,12 @@ export const Sidebar: React.FC<SidebarProps> = memo(
       </>
     );
 
+    const isDemo = useAppStore((s) => s.username === "demo" && s.session !== null);
+
     return (
       <>
         <Button
-          className="md:hidden fixed top-3 left-2 z-40 bg-gray-900 text-white rounded p-2 shadow-lg focus:outline-none"
+          className={`md:hidden fixed left-2 z-40 bg-gray-900 text-white rounded p-2 shadow-lg focus:outline-none transition-[top] duration-150 ${isDemo ? "top-10" : "top-3"}`}
           onClick={() => setMobileOpen(true)}
           aria-label="Open sidebar"
           size="icon"

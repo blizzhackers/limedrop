@@ -3,6 +3,7 @@ import "./App.css";
 import { toast } from "sonner";
 import { CartDrawer } from "@/components/CartDrawer";
 import { DebugButton } from "@/components/DebugButton";
+import { DemoBanner } from "@/components/DemoBanner";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
@@ -193,6 +194,7 @@ export default function App() {
       className="w-screen h-screen min-h-0 min-w-0 bg-gray-900 text-white flex flex-col overflow-hidden"
       style={{ margin: 0, padding: 0 }}
     >
+      <DemoBanner />
       <Topbar
         api={api}
         handleSignOut={handleSignOut}

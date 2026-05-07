@@ -27,7 +27,6 @@ import { setLoadingInventory, setPacks, useAppStore } from "@/stores/appStore";
 import { DEFAULT_FILTER_VALUES } from "@/types/filterTypes";
 import { ActiveFilterPills } from "./ActiveFilterPills";
 import { AdvancedFilters } from "./AdvancedFilters";
-import { DemoBannerDesktop, DemoBannerMobile } from "./DemoBanner";
 import { InventoryCard } from "./InventoryCard";
 import { InventoryToolbar } from "./InventoryToolbar";
 import { SignInPrompt } from "./SignInPrompt";
@@ -194,8 +193,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         className="md:col-span-3 bg-gray-800 rounded shadow p-0.5 md:p-2 flex flex-col"
         style={{ minHeight: "80vh" }}
       >
-        <DemoBannerMobile session={session} />
-
         <InventoryToolbar
           session={session}
           filtersActive={filtersActive}
@@ -203,8 +200,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
           onRefresh={refreshInvo}
           onToggleFilters={toggleAdvancedFilter}
         />
-
-        <DemoBannerDesktop session={session} />
 
         {!showAdvancedFilters && filtersActive && (
           <ActiveFilterPills form={filterForm} />
