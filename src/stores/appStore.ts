@@ -30,7 +30,6 @@ interface AppState {
   searchResults: InventoryItem[];
   selectedAccount: string;
   selectedCharacter: string;
-  qualityFilter: number | null;
   accountDataCache: AccountDataCache[];
   accounts: Record<string, string[]>;
   inventoryCache: Record<string, InventoryCacheEntry>;
@@ -112,7 +111,6 @@ export const useAppStore = create(
       searchResults: [],
       selectedAccount: "Show All",
       selectedCharacter: "Show All",
-      qualityFilter: null,
       accounts: {},
       accountDataCache: [],
       inventoryCache: {},
@@ -227,10 +225,6 @@ export const setSelectedAccount = (selectedAccount: string) => {
 
 export const setSelectedCharacter = (selectedCharacter: string) => {
   useAppStore.setState({ selectedCharacter });
-};
-
-export const setQualityFilter = (qualityFilter: number | null) => {
-  useAppStore.setState({ qualityFilter });
 };
 
 export const setAccountDataCache = (accountDataCache: AccountDataCache[]) => {

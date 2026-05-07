@@ -199,6 +199,16 @@ export default function App() {
     toast.success("Notification", { description: "Welcome to Lime Drop!" });
   }, [api]);
 
+  // On mount, if we already have a persisted session, fetch accounts to
+  // bootstrap the subscriber (which only fires on state *changes*, not
+  // on initial load from persisted Zustand state).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We only want to run this on initial mount if session exists, not on every session change
+  useEffect(() => {
+    if (session) {
+      fetchAccounts(session);
+    }
+  }, [session]);
+
   useEffect(() => {
     const accountsToLoadSub = useAppStore.subscribe(
       (s) => [

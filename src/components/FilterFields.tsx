@@ -18,308 +18,276 @@ import {
 import { NTIPAliasColor } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { naturalSort } from "@/lib/utils";
+import type { FilterField } from "./filterTypes";
 import { ItemTypeCheckbox } from "./ItemTypeCheckbox";
 
-interface QualityFilterFieldProps {
+// ── Generic reusable select wrapper ─────────────────────────────────────────
+
+type SelectOption = { value: string; label: string };
+
+interface SelectFilterFieldProps<T> {
+  field: FilterField<T>;
   id?: string;
-  value: number | null;
-  onValueChange: (value: number | null) => void;
+  label?: string;
+  showLabel?: boolean;
+  className?: string;
+  options: SelectOption[];
+  allLabel?: string;
+  toKey: (v: T) => string;
+  fromKey: (k: string) => T;
+}
+
+export function SelectFilterField<T>({
+  field,
+  id,
+  label = "",
+  showLabel = true,
+  className = "",
+  options,
+  allLabel = "All",
+  toKey,
+  fromKey,
+}: SelectFilterFieldProps<T>) {
+  return (
+    <div className="flex flex-col">
+      {showLabel && (
+        <label
+          htmlFor={id}
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
+        >
+          {label}
+        </label>
+      )}
+      <Select
+        value={toKey(field.state.value)}
+        onValueChange={(k) => field.handleChange(fromKey(k))}
+      >
+        <SelectTrigger
+          id={id}
+          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
+        >
+          <SelectValue placeholder={allLabel} />
+        </SelectTrigger>
+        <SelectContent className="bg-gray-900 border border-gray-700 text-white">
+          <SelectItem value="all">{allLabel}</SelectItem>
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+// ── Individual typed filter fields ───────────────────────────────────────────
+
+interface QualityFilterFieldProps {
+  field: FilterField<number | null>;
+  id?: string;
   className?: string;
   label?: string;
   showLabel?: boolean;
 }
 
+const qualityOptions: SelectOption[] = Object.entries(sdk.items.quality).map(
+  ([lbl, val]) => ({ value: String(val), label: lbl }),
+);
+
 export const QualityFilterField: React.FC<QualityFilterFieldProps> = ({
+  field,
   id = "quality-select",
-  value,
-  onValueChange,
   className = "",
   label = "Quality",
   showLabel = true,
-}) => {
-  return (
-    <div className="flex flex-col">
-      {showLabel && (
-        <label
-          htmlFor={id}
-          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
-        >
-          {label}
-        </label>
-      )}
-      <Select
-        value={value !== null ? String(value) : "all"}
-        onValueChange={(v) => onValueChange(v === "all" ? null : Number(v))}
-      >
-        <SelectTrigger
-          id={id}
-          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
-        >
-          <SelectValue placeholder="All" />
-        </SelectTrigger>
-        <SelectContent className="bg-gray-900 border border-gray-700 text-white">
-          <SelectItem value="all">All</SelectItem>
-          {Object.entries(sdk.items.quality).map(([label, value]) => (
-            <SelectItem key={value} value={String(value)}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+}) => (
+  <SelectFilterField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    className={className}
+    options={qualityOptions}
+    toKey={(v) => (v !== null ? String(v) : "all")}
+    fromKey={(k) => (k === "all" ? null : Number(k))}
+  />
+);
 
 interface ItemClassFilterFieldProps {
+  field: FilterField<number | null>;
   id?: string;
-  value: number | null;
-  onValueChange: (value: number | null) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
 }
 
+const itemClassOptions: SelectOption[] = Object.entries(sdk.items.class).map(
+  ([name, val]) => ({ value: String(val), label: name }),
+);
+
 export const ItemClassFilterField: React.FC<ItemClassFilterFieldProps> = ({
+  field,
   id = "item-class-select",
-  value,
-  onValueChange,
   className = "",
   label = "Item Class",
   showLabel = true,
-}) => {
-  return (
-    <div className="flex flex-col">
-      {showLabel && (
-        <label
-          htmlFor={id}
-          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
-        >
-          {label}
-        </label>
-      )}
-      <Select
-        value={value !== null ? String(value) : "all"}
-        onValueChange={(v) => onValueChange(v === "all" ? null : Number(v))}
-      >
-        <SelectTrigger
-          id={id}
-          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
-        >
-          <SelectValue placeholder="Item Class" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Classes</SelectItem>
-          {Object.entries(sdk.items.class).map(([name, val]) => (
-            <SelectItem key={val} value={String(val)}>
-              {name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+}) => (
+  <SelectFilterField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    className={className}
+    options={itemClassOptions}
+    allLabel="All Classes"
+    toKey={(v) => (v !== null ? String(v) : "all")}
+    fromKey={(k) => (k === "all" ? null : Number(k))}
+  />
+);
 
 interface EtherealFilterFieldProps {
+  field: FilterField<boolean | null>;
   id?: string;
-  value: boolean | null;
-  onValueChange: (value: boolean | null) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
 }
 
+const boolOptions = {
+  ethereal: [
+    { value: "yes", label: "Ethereal" },
+    { value: "no", label: "Non-Eth" },
+  ],
+  runeword: [
+    { value: "yes", label: "Runeword" },
+    { value: "no", label: "Non-RW" },
+  ],
+  identified: [
+    { value: "yes", label: "Identified" },
+    { value: "no", label: "Unidentified" },
+  ],
+} as const;
+
+const boolToKey = (v: boolean | null) =>
+  v === null ? "all" : v ? "yes" : "no";
+const boolFromKey = (k: string): boolean | null =>
+  k === "all" ? null : k === "yes";
+
 export const EtherealFilterField: React.FC<EtherealFilterFieldProps> = ({
+  field,
   id = "ethereal-select",
-  value,
-  onValueChange,
   className = "",
   label = "Ethereal",
   showLabel = true,
-}) => {
-  return (
-    <div className="flex flex-col">
-      {showLabel && (
-        <label
-          htmlFor={id}
-          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
-        >
-          {label}
-        </label>
-      )}
-      <Select
-        value={value === null ? "all" : value ? "yes" : "no"}
-        onValueChange={(v) => onValueChange(v === "all" ? null : v === "yes")}
-      >
-        <SelectTrigger
-          id={id}
-          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
-        >
-          <SelectValue placeholder="Ethereal" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Any</SelectItem>
-          <SelectItem value="yes">Ethereal</SelectItem>
-          <SelectItem value="no">Non-Eth</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+}) => (
+  <SelectFilterField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    className={className}
+    options={boolOptions.ethereal as unknown as SelectOption[]}
+    allLabel="Any"
+    toKey={boolToKey}
+    fromKey={boolFromKey}
+  />
+);
 
 interface RunewordFilterFieldProps {
+  field: FilterField<boolean | null>;
   id?: string;
-  value: boolean | null;
-  onValueChange: (value: boolean | null) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
 }
 
 export const RunewordFilterField: React.FC<RunewordFilterFieldProps> = ({
+  field,
   id = "runeword-select",
-  value,
-  onValueChange,
   className = "",
   label = "Runeword",
   showLabel = true,
-}) => {
-  return (
-    <div className="flex flex-col">
-      {showLabel && (
-        <label
-          htmlFor={id}
-          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
-        >
-          {label}
-        </label>
-      )}
-      <Select
-        value={value === null ? "all" : value ? "yes" : "no"}
-        onValueChange={(v) => onValueChange(v === "all" ? null : v === "yes")}
-      >
-        <SelectTrigger
-          id={id}
-          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
-        >
-          <SelectValue placeholder="Runeword" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Any</SelectItem>
-          <SelectItem value="yes">Runeword</SelectItem>
-          <SelectItem value="no">Non-RW</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+}) => (
+  <SelectFilterField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    className={className}
+    options={boolOptions.runeword as unknown as SelectOption[]}
+    allLabel="Any"
+    toKey={boolToKey}
+    fromKey={boolFromKey}
+  />
+);
 
 interface IdentifiedFilterFieldProps {
+  field: FilterField<boolean | null>;
   id?: string;
-  value: boolean | null;
-  onValueChange: (value: boolean | null) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
 }
 
 export const IdentifiedFilterField: React.FC<IdentifiedFilterFieldProps> = ({
+  field,
   id = "identified-select",
-  value,
-  onValueChange,
   className = "",
   label = "Identified",
   showLabel = true,
-}) => {
-  return (
-    <div className="flex flex-col">
-      {showLabel && (
-        <label
-          htmlFor={id}
-          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
-        >
-          {label}
-        </label>
-      )}
-      <Select
-        value={value === null ? "all" : value ? "yes" : "no"}
-        onValueChange={(v) => onValueChange(v === "all" ? null : v === "yes")}
-      >
-        <SelectTrigger
-          id={id}
-          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
-        >
-          <SelectValue placeholder="Identified" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Any</SelectItem>
-          <SelectItem value="yes">Identified</SelectItem>
-          <SelectItem value="no">Unidentified</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+}) => (
+  <SelectFilterField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    className={className}
+    options={boolOptions.identified as unknown as SelectOption[]}
+    allLabel="Any"
+    toKey={boolToKey}
+    fromKey={boolFromKey}
+  />
+);
 
 interface ColorFilterFieldProps {
+  field: FilterField<number | null>;
   id?: string;
-  value: number | null;
-  onValueChange: (value: number | null) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
 }
 
+const colorOptions: SelectOption[] = Object.entries(NTIPAliasColor)
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([name, val]) => ({
+    value: String(val),
+    label: name.charAt(0).toUpperCase() + name.slice(1),
+  }));
+
 export const ColorFilterField: React.FC<ColorFilterFieldProps> = ({
+  field,
   id = "color-select",
-  value,
-  onValueChange,
   className = "",
   label = "Color",
   showLabel = true,
-}) => {
-  // Create a sorted array of color entries
-  const colorEntries = Object.entries(NTIPAliasColor).sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
-
-  return (
-    <div className="flex flex-col">
-      {showLabel && (
-        <label
-          htmlFor={id}
-          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
-        >
-          {label}
-        </label>
-      )}
-      <Select
-        value={value !== null ? String(value) : "all"}
-        onValueChange={(v) => onValueChange(v === "all" ? null : Number(v))}
-      >
-        <SelectTrigger
-          id={id}
-          className={`w-full bg-gray-900 border border-gray-700 text-white ${className}`}
-        >
-          <SelectValue placeholder="Any" />
-        </SelectTrigger>
-        <SelectContent className="bg-gray-900 border border-gray-700 text-white">
-          <SelectItem value="all">Any</SelectItem>
-          {colorEntries.map(([colorName, colorValue]) => (
-            <SelectItem key={colorValue} value={String(colorValue)}>
-              {colorName.charAt(0).toUpperCase() + colorName.slice(1)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-};
+}) => (
+  <SelectFilterField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    className={className}
+    options={colorOptions}
+    allLabel="Any"
+    toKey={(v) => (v !== null ? String(v) : "all")}
+    fromKey={(k) => (k === "all" ? null : Number(k))}
+  />
+);
 
 interface SocketsFilterFieldProps {
+  field: FilterField<number | null>;
   id?: string;
-  value: number | null;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
@@ -328,9 +296,8 @@ interface SocketsFilterFieldProps {
 }
 
 export const SocketsFilterField: React.FC<SocketsFilterFieldProps> = ({
+  field,
   id = "sockets-input",
-  value,
-  onChange,
   className = "",
   label = "Sockets",
   showLabel = true,
@@ -353,8 +320,11 @@ export const SocketsFilterField: React.FC<SocketsFilterFieldProps> = ({
         className={`bg-gray-900 text-white ${className}`}
         min={min}
         max={max}
-        value={value ?? ""}
-        onChange={onChange}
+        value={field.state.value ?? ""}
+        onChange={(e) => {
+          const val = e.target.value;
+          field.handleChange(val === "" ? null : Number(val));
+        }}
         placeholder="Sockets"
       />
     </div>
@@ -467,9 +437,8 @@ export const NumericFilterWithComparison: React.FC<
 };
 
 interface ItemCodeFilterFieldProps {
+  field: FilterField<string>;
   id?: string;
-  value: string;
-  onValueChange: (value: string) => void;
   className?: string;
   label?: string;
   showLabel?: boolean;
@@ -478,9 +447,8 @@ interface ItemCodeFilterFieldProps {
 }
 
 export const ItemCodeFilterField: React.FC<ItemCodeFilterFieldProps> = ({
+  field,
   id = "itemcode-input",
-  value,
-  onValueChange,
   className = "",
   label = "Item Code",
   showLabel = true,
@@ -502,17 +470,17 @@ export const ItemCodeFilterField: React.FC<ItemCodeFilterFieldProps> = ({
           id={id}
           type="text"
           className={`bg-gray-900 text-white ${className}`}
-          value={value}
-          onChange={(e) => onValueChange(e.target.value)}
+          value={field.state.value}
+          onChange={(e) => field.handleChange(e.target.value)}
           placeholder={placeholder}
         />
-        {showClearButton && value && (
+        {showClearButton && field.state.value && (
           <Button
             type="button"
             size="icon"
             variant="ghost"
             className="h-7 w-7"
-            onClick={() => onValueChange("")}
+            onClick={() => field.handleChange("")}
             title="Clear Item Code Filter"
           >
             <X />

@@ -1,7 +1,9 @@
+import { useStore } from "@tanstack/react-form";
 import { ArrowUp, Filter, Loader2, RefreshCw, X } from "lucide-react";
 import {
   memo,
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -21,6 +23,7 @@ import { NTIPAliasColor, NTIPAliasFlag } from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { getItemPacks } from "@/db/itemPacksDb";
 import type { D2BotAPI } from "@/lib/D2Bot";
+import { useAppForm } from "@/lib/filterForm";
 import { isV2Item } from "@/lib/utils";
 import {
   setApiUrl,
@@ -32,7 +35,9 @@ import {
   setUsername,
   useAppStore,
 } from "@/stores/appStore";
-import { AdvancedFilters, type StatFilter } from "./AdvancedFilters";
+import { AdvancedFilters } from "./AdvancedFilters";
+import type { StatFilter } from "./filterTypes";
+import { DEFAULT_FILTER_VALUES } from "./filterTypes";
 import { InventoryCard } from "./InventoryCard";
 import { Button } from "./ui/button";
 
@@ -67,7 +72,6 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const searchResults = useAppStore((s) => s.searchResults);
     const selectedAccount = useAppStore((s) => s.selectedAccount);
     const selectedCharacter = useAppStore((s) => s.selectedCharacter);
-    const qualityFilter = useAppStore((s) => s.qualityFilter);
     const fullyLoaded = useAppStore((s) => s.fullyLoaded);
     const itemPacks = useAppStore((s) => s.packs);
     const gameType = useAppStore((s) => s.gameType);
@@ -83,41 +87,10 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     const isPortrait = useIsPortrait();
 
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-    const [itemClassFilter, setItemClassFilter] = useState<number | null>(null);
-    const [itemTypeFilter, setItemTypeFilter] = useState<Set<number>>(
-      new Set(),
-    );
-    const [etherealFilter, setEtherealFilter] = useState<null | boolean>(null);
-    const [runewordFilter, setRunewordFilter] = useState<null | boolean>(null);
-    const [identifiedFilter, setIdentifiedFilter] = useState<null | boolean>(
-      null,
-    );
-    const [socketFilter, setSocketFilter] = useState<number | null>(null);
-    const [colorFilter, setColorFilter] = useState<number | null>(null);
-    const [activeItemPackId, setActiveItemPackId] = useState<number | null>(
-      null,
-    );
-    const [itemPackMultiplier, setItemPackMultiplier] = useState(1);
 
-    // V2 Item filters
-    const [ilvlFilter, setIlvlFilter] = useState<number | null>(null);
-    const [ilvlComparison, setIlvlComparison] = useState<"gte" | "lte" | "eq">(
-      "gte",
-    );
-    const [levelReqFilter, setLevelReqFilter] = useState<number | null>(null);
-    const [levelReqComparison, setLevelReqComparison] = useState<
-      "gte" | "lte" | "eq"
-    >("lte");
-    const [strReqFilter, setStrReqFilter] = useState<number | null>(null);
-    const [strReqComparison, setStrReqComparison] = useState<
-      "gte" | "lte" | "eq"
-    >("lte");
-    const [dexReqFilter, setDexReqFilter] = useState<number | null>(null);
-    const [dexReqComparison, setDexReqComparison] = useState<
-      "gte" | "lte" | "eq"
-    >("lte");
-    const [itemCodeFilter, setItemCodeFilter] = useState("");
-    const [statFilters, setStatFilters] = useState<StatFilter[]>([]);
+    const filterForm = useAppForm({ defaultValues: DEFAULT_FILTER_VALUES });
+    const filterValues = useStore(filterForm.store, (s) => s.values);
+    const deferredFilterValues = useDeferredValue(filterValues);
 
     useEffect(() => {
       if (!session) return;
@@ -127,6 +100,28 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     }, [session]);
 
     const filteredInventory = useMemo(() => {
+      const {
+        qualityFilter,
+        itemClassFilter,
+        itemTypeFilter,
+        etherealFilter,
+        runewordFilter,
+        identifiedFilter,
+        socketFilter,
+        colorFilter,
+        activeItemPackId,
+        itemPackMultiplier,
+        ilvlFilter,
+        ilvlComparison,
+        levelReqFilter,
+        levelReqComparison,
+        strReqFilter,
+        strReqComparison,
+        dexReqFilter,
+        dexReqComparison,
+        itemCodeFilter,
+        statFilters,
+      } = deferredFilterValues;
       const base = searchTerm ? searchResults : inventory;
       if (activeItemPackId && itemPacks.length) {
         const pack = itemPacks.find((p) => p.id === activeItemPackId);
@@ -399,30 +394,11 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
       searchTerm,
       selectedAccount,
       selectedCharacter,
-      qualityFilter,
-      itemClassFilter,
-      itemTypeFilter,
-      etherealFilter,
-      runewordFilter,
-      identifiedFilter,
-      activeItemPackId,
+      deferredFilterValues,
       itemPacks,
-      itemPackMultiplier,
-      socketFilter,
-      colorFilter,
       gameType,
       gameMode,
       gameClass,
-      ilvlFilter,
-      ilvlComparison,
-      levelReqFilter,
-      levelReqComparison,
-      strReqFilter,
-      strReqComparison,
-      dexReqFilter,
-      dexReqComparison,
-      itemCodeFilter,
-      statFilters,
     ]);
 
     const PAGE_SIZE = 100;
@@ -550,20 +526,20 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
     }
 
     const filtersActive =
-      qualityFilter !== null ||
-      itemClassFilter !== null ||
-      itemTypeFilter.size > 0 ||
-      etherealFilter !== null ||
-      runewordFilter !== null ||
-      identifiedFilter !== null ||
-      socketFilter !== null ||
-      colorFilter !== null ||
-      ilvlFilter !== null ||
-      levelReqFilter !== null ||
-      strReqFilter !== null ||
-      dexReqFilter !== null ||
-      itemCodeFilter !== "" ||
-      statFilters.length > 0;
+      filterValues.qualityFilter !== null ||
+      filterValues.itemClassFilter !== null ||
+      filterValues.itemTypeFilter.size > 0 ||
+      filterValues.etherealFilter !== null ||
+      filterValues.runewordFilter !== null ||
+      filterValues.identifiedFilter !== null ||
+      filterValues.socketFilter !== null ||
+      filterValues.colorFilter !== null ||
+      filterValues.ilvlFilter !== null ||
+      filterValues.levelReqFilter !== null ||
+      filterValues.strReqFilter !== null ||
+      filterValues.dexReqFilter !== null ||
+      filterValues.itemCodeFilter !== "" ||
+      filterValues.statFilters.length > 0;
 
     return (
       <section
@@ -674,42 +650,27 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
               </span>
               <button
                 type="button"
-                onClick={() => {
-                  useAppStore.setState({ qualityFilter: null });
-                  setItemClassFilter(null);
-                  setItemTypeFilter(new Set());
-                  setEtherealFilter(null);
-                  setRunewordFilter(null);
-                  setIdentifiedFilter(null);
-                  setSocketFilter(null);
-                  setColorFilter(null);
-                  setIlvlFilter(null);
-                  setLevelReqFilter(null);
-                  setStrReqFilter(null);
-                  setDexReqFilter(null);
-                  setItemCodeFilter("");
-                  setStatFilters([]);
-                }}
+                onClick={() => filterForm.reset()}
                 className="px-3 py-1 rounded bg-red-900/50 hover:bg-red-800 text-red-200 text-xs font-medium transition-colors border border-red-700"
               >
                 Clear All Filters
               </button>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              {qualityFilter !== null && (
+              {filterValues.qualityFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Quality:</span>
                   <span className="text-white font-medium">
                     {
                       Object.entries(sdk.items.quality).find(
-                        ([, v]) => v === qualityFilter,
+                        ([, v]) => v === filterValues.qualityFilter,
                       )?.[0]
                     }
                   </span>
                   <button
                     type="button"
                     onClick={() =>
-                      useAppStore.setState({ qualityFilter: null })
+                      filterForm.setFieldValue("qualityFilter", null)
                     }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove quality filter"
@@ -718,19 +679,21 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {itemClassFilter !== null && (
+              {filterValues.itemClassFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Class:</span>
                   <span className="text-white font-medium">
                     {
                       Object.entries(sdk.items.class).find(
-                        ([, v]) => v === itemClassFilter,
+                        ([, v]) => v === filterValues.itemClassFilter,
                       )?.[0]
                     }
                   </span>
                   <button
                     type="button"
-                    onClick={() => setItemClassFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("itemClassFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove class filter"
                   >
@@ -738,15 +701,20 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {itemTypeFilter.size > 0 && (
+              {filterValues.itemTypeFilter.size > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Item Types:</span>
                   <span className="text-white font-medium">
-                    {itemTypeFilter.size} selected
+                    {filterValues.itemTypeFilter.size} selected
                   </span>
                   <button
                     type="button"
-                    onClick={() => setItemTypeFilter(new Set())}
+                    onClick={() =>
+                      filterForm.setFieldValue(
+                        "itemTypeFilter",
+                        new Set<number>(),
+                      )
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Clear item type filters"
                   >
@@ -754,15 +722,17 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {etherealFilter !== null && (
+              {filterValues.etherealFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Ethereal:</span>
                   <span className="text-white font-medium">
-                    {etherealFilter ? "Yes" : "No"}
+                    {filterValues.etherealFilter ? "Yes" : "No"}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setEtherealFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("etherealFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove ethereal filter"
                   >
@@ -770,15 +740,17 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {runewordFilter !== null && (
+              {filterValues.runewordFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Runeword:</span>
                   <span className="text-white font-medium">
-                    {runewordFilter ? "Yes" : "No"}
+                    {filterValues.runewordFilter ? "Yes" : "No"}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setRunewordFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("runewordFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove runeword filter"
                   >
@@ -786,15 +758,17 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {identifiedFilter !== null && (
+              {filterValues.identifiedFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Identified:</span>
                   <span className="text-white font-medium">
-                    {identifiedFilter ? "Yes" : "No"}
+                    {filterValues.identifiedFilter ? "Yes" : "No"}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setIdentifiedFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("identifiedFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove identified filter"
                   >
@@ -802,13 +776,17 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {socketFilter !== null && (
+              {filterValues.socketFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Sockets:</span>
-                  <span className="text-white font-medium">{socketFilter}</span>
+                  <span className="text-white font-medium">
+                    {filterValues.socketFilter}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setSocketFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("socketFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove socket filter"
                   >
@@ -816,19 +794,21 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {colorFilter !== null && (
+              {filterValues.colorFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Color:</span>
                   <span className="text-white font-medium">
                     {
                       Object.entries(NTIPAliasColor).find(
-                        ([, v]) => v === colorFilter,
+                        ([, v]) => v === filterValues.colorFilter,
                       )?.[0]
                     }
                   </span>
                   <button
                     type="button"
-                    onClick={() => setColorFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("colorFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove color filter"
                   >
@@ -836,20 +816,20 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {ilvlFilter !== null && (
+              {filterValues.ilvlFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">ilvl:</span>
                   <span className="text-white font-medium">
-                    {ilvlComparison === "gte"
+                    {filterValues.ilvlComparison === "gte"
                       ? "≥"
-                      : ilvlComparison === "lte"
+                      : filterValues.ilvlComparison === "lte"
                         ? "≤"
                         : "="}{" "}
-                    {ilvlFilter}
+                    {filterValues.ilvlFilter}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setIlvlFilter(null)}
+                    onClick={() => filterForm.setFieldValue("ilvlFilter", null)}
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove ilvl filter"
                   >
@@ -857,20 +837,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {levelReqFilter !== null && (
+              {filterValues.levelReqFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Level Req:</span>
                   <span className="text-white font-medium">
-                    {levelReqComparison === "gte"
+                    {filterValues.levelReqComparison === "gte"
                       ? "≥"
-                      : levelReqComparison === "lte"
+                      : filterValues.levelReqComparison === "lte"
                         ? "≤"
                         : "="}{" "}
-                    {levelReqFilter}
+                    {filterValues.levelReqFilter}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setLevelReqFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("levelReqFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove level requirement filter"
                   >
@@ -878,20 +860,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {strReqFilter !== null && (
+              {filterValues.strReqFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Str Req:</span>
                   <span className="text-white font-medium">
-                    {strReqComparison === "gte"
+                    {filterValues.strReqComparison === "gte"
                       ? "≥"
-                      : strReqComparison === "lte"
+                      : filterValues.strReqComparison === "lte"
                         ? "≤"
                         : "="}{" "}
-                    {strReqFilter}
+                    {filterValues.strReqFilter}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setStrReqFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("strReqFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove strength requirement filter"
                   >
@@ -899,20 +883,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {dexReqFilter !== null && (
+              {filterValues.dexReqFilter !== null && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Dex Req:</span>
                   <span className="text-white font-medium">
-                    {dexReqComparison === "gte"
+                    {filterValues.dexReqComparison === "gte"
                       ? "≥"
-                      : dexReqComparison === "lte"
+                      : filterValues.dexReqComparison === "lte"
                         ? "≤"
                         : "="}{" "}
-                    {dexReqFilter}
+                    {filterValues.dexReqFilter}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setDexReqFilter(null)}
+                    onClick={() =>
+                      filterForm.setFieldValue("dexReqFilter", null)
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove dexterity requirement filter"
                   >
@@ -920,15 +906,17 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {itemCodeFilter !== "" && (
+              {filterValues.itemCodeFilter !== "" && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs">
                   <span className="text-gray-400">Item Code:</span>
                   <span className="text-white font-medium">
-                    {itemCodeFilter}
+                    {filterValues.itemCodeFilter}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setItemCodeFilter("")}
+                    onClick={() =>
+                      filterForm.setFieldValue("itemCodeFilter", "")
+                    }
                     className="ml-1 hover:text-red-400 transition-colors"
                     aria-label="Remove item code filter"
                   >
@@ -936,7 +924,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   </button>
                 </span>
               )}
-              {statFilters.map((filter) => (
+              {filterValues.statFilters.map((filter: StatFilter) => (
                 <span
                   key={filter.id}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-600 text-xs"
@@ -955,8 +943,11 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                   <button
                     type="button"
                     onClick={() =>
-                      setStatFilters(
-                        statFilters.filter((f) => f.id !== filter.id),
+                      filterForm.setFieldValue(
+                        "statFilters",
+                        filterValues.statFilters.filter(
+                          (f: StatFilter) => f.id !== filter.id,
+                        ),
                       )
                     }
                     className="ml-1 hover:text-red-400 transition-colors"
@@ -972,46 +963,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
         {isPortrait ? (
           showAdvancedFilters && (
             <div className="px-1 pb-4">
-              <AdvancedFilters
-                itemClassFilter={itemClassFilter}
-                setItemClassFilter={setItemClassFilter}
-                itemTypeFilter={itemTypeFilter}
-                setItemTypeFilter={setItemTypeFilter}
-                etherealFilter={etherealFilter}
-                setEtherealFilter={setEtherealFilter}
-                runewordFilter={runewordFilter}
-                setRunewordFilter={setRunewordFilter}
-                identifiedFilter={identifiedFilter}
-                setIdentifiedFilter={setIdentifiedFilter}
-                socketFilter={socketFilter}
-                setSocketFilter={setSocketFilter}
-                colorFilter={colorFilter}
-                setColorFilter={setColorFilter}
-                activeItemPackId={activeItemPackId}
-                setActiveItemPackId={setActiveItemPackId}
-                itemPackMultiplier={itemPackMultiplier}
-                setItemPackMultiplier={setItemPackMultiplier}
-                ilvlFilter={ilvlFilter}
-                setIlvlFilter={setIlvlFilter}
-                ilvlComparison={ilvlComparison}
-                setIlvlComparison={setIlvlComparison}
-                levelReqFilter={levelReqFilter}
-                setLevelReqFilter={setLevelReqFilter}
-                levelReqComparison={levelReqComparison}
-                setLevelReqComparison={setLevelReqComparison}
-                strReqFilter={strReqFilter}
-                setStrReqFilter={setStrReqFilter}
-                strReqComparison={strReqComparison}
-                setStrReqComparison={setStrReqComparison}
-                dexReqFilter={dexReqFilter}
-                setDexReqFilter={setDexReqFilter}
-                dexReqComparison={dexReqComparison}
-                setDexReqComparison={setDexReqComparison}
-                itemCodeFilter={itemCodeFilter}
-                setItemCodeFilter={setItemCodeFilter}
-                statFilters={statFilters}
-                setStatFilters={setStatFilters}
-              />
+              <AdvancedFilters form={filterForm} />
             </div>
           )
         ) : (
@@ -1030,46 +982,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
                 </SheetDescription>
               </SheetHeader>
               <div className="px-4 pb-4">
-                <AdvancedFilters
-                  itemClassFilter={itemClassFilter}
-                  setItemClassFilter={setItemClassFilter}
-                  itemTypeFilter={itemTypeFilter}
-                  setItemTypeFilter={setItemTypeFilter}
-                  etherealFilter={etherealFilter}
-                  setEtherealFilter={setEtherealFilter}
-                  runewordFilter={runewordFilter}
-                  setRunewordFilter={setRunewordFilter}
-                  identifiedFilter={identifiedFilter}
-                  setIdentifiedFilter={setIdentifiedFilter}
-                  socketFilter={socketFilter}
-                  setSocketFilter={setSocketFilter}
-                  colorFilter={colorFilter}
-                  setColorFilter={setColorFilter}
-                  activeItemPackId={activeItemPackId}
-                  setActiveItemPackId={setActiveItemPackId}
-                  itemPackMultiplier={itemPackMultiplier}
-                  setItemPackMultiplier={setItemPackMultiplier}
-                  ilvlFilter={ilvlFilter}
-                  setIlvlFilter={setIlvlFilter}
-                  ilvlComparison={ilvlComparison}
-                  setIlvlComparison={setIlvlComparison}
-                  levelReqFilter={levelReqFilter}
-                  setLevelReqFilter={setLevelReqFilter}
-                  levelReqComparison={levelReqComparison}
-                  setLevelReqComparison={setLevelReqComparison}
-                  strReqFilter={strReqFilter}
-                  setStrReqFilter={setStrReqFilter}
-                  strReqComparison={strReqComparison}
-                  setStrReqComparison={setStrReqComparison}
-                  dexReqFilter={dexReqFilter}
-                  setDexReqFilter={setDexReqFilter}
-                  dexReqComparison={dexReqComparison}
-                  setDexReqComparison={setDexReqComparison}
-                  itemCodeFilter={itemCodeFilter}
-                  setItemCodeFilter={setItemCodeFilter}
-                  statFilters={statFilters}
-                  setStatFilters={setStatFilters}
-                />
+                <AdvancedFilters form={filterForm} />
               </div>
             </SheetContent>
           </Sheet>

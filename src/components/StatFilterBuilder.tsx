@@ -16,17 +16,12 @@ import {
 } from "@/components/ui/select";
 import { NTIPAliasStat } from "@/constants/NTItemAlias";
 import { naturalSort } from "@/lib/utils";
+import type { FilterField, StatFilter } from "./filterTypes";
 
-export type StatFilter = {
-  id: string;
-  stat: string;
-  comparison: "gte" | "lte" | "eq";
-  value: number;
-};
+export type { StatFilter };
 
 interface StatFilterBuilderProps {
-  statFilters: StatFilter[];
-  setStatFilters: (filters: StatFilter[]) => void;
+  field: FilterField<StatFilter[]>;
   showLabel?: boolean;
   labelText?: string;
   showCollapsible?: boolean;
@@ -35,13 +30,13 @@ interface StatFilterBuilderProps {
 
 export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
   ({
-    statFilters,
-    setStatFilters,
+    field,
     showLabel = true,
     labelText = "Item Stats",
     showCollapsible = false,
     defaultOpen = true,
   }) => {
+    const statFilters = field.state.value;
     const [statSearch, setStatSearch] = useState("");
     const [statDropdownFocusIndex, setStatDropdownFocusIndex] = useState(-1);
     const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(defaultOpen);
@@ -82,7 +77,7 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
       if (!newStatFilter.stat || newStatFilter.value === "") return;
 
       if (editingFilterId) {
-        setStatFilters(
+        field.handleChange(
           statFilters.map((f) =>
             f.id === editingFilterId
               ? {
@@ -102,12 +97,12 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
           comparison: newStatFilter.comparison,
           value: Number(newStatFilter.value),
         };
-        setStatFilters([...statFilters, filter]);
+        field.handleChange([...statFilters, filter]);
       }
 
       setNewStatFilter({ stat: "", comparison: "gte", value: "" });
       setStatSearch("");
-    }, [newStatFilter, statFilters, setStatFilters, editingFilterId]);
+    }, [newStatFilter, statFilters, field, editingFilterId]);
 
     const handleEditStatFilter = useCallback(
       (filter: StatFilter) => {
@@ -137,9 +132,9 @@ export const StatFilterBuilder: React.FC<StatFilterBuilderProps> = memo(
         if (editingFilterId === id) {
           setEditingFilterId(null);
         }
-        setStatFilters(statFilters.filter((f) => f.id !== id));
+        field.handleChange(statFilters.filter((f) => f.id !== id));
       },
-      [statFilters, setStatFilters, editingFilterId],
+      [statFilters, field, editingFilterId],
     );
 
     const activeFiltersContent = (
