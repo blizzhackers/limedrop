@@ -38,7 +38,7 @@ interface InventoryGridProps {
   session: string | null;
   loadingAccounts: boolean;
   fetchInventory: () => Promise<void>;
-  fetchAccounts: (session: string) => Promise<void>;
+  fetchAccounts: (session: string) => void;
 }
 
 const PAGE_SIZE = 100;

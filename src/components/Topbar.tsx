@@ -37,7 +37,7 @@ import { DevScreen } from "./Dev";
 interface TopbarProps {
   api: D2BotAPI;
   handleSignOut: () => void;
-  fetchAccounts: (session: string) => Promise<void>;
+  fetchAccounts: (session: string) => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = memo(
@@ -122,7 +122,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
           toast.success("Login successful!", {
             description: "Welcome to LimeDrop!",
           });
-          await fetchAccounts(session);
+          fetchAccounts(session);
         } catch (err: unknown) {
           setLoginError((err as Error).message || "Login failed");
         }

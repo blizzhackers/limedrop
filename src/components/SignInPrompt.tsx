@@ -16,7 +16,7 @@ const DEFAULT_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 interface SignInPromptProps {
   api: D2BotAPI;
-  fetchAccounts: (session: string) => Promise<void>;
+  fetchAccounts: (session: string) => void;
 }
 
 export const SignInPrompt: React.FC<SignInPromptProps> = ({
@@ -45,7 +45,7 @@ export const SignInPrompt: React.FC<SignInPromptProps> = ({
       toast.success("Login successful!", {
         description: "Welcome to LimeDrop!",
       });
-      await fetchAccounts(session);
+      fetchAccounts(session);
     } catch (err: unknown) {
       toast.error(
         "Demo login failed. Please try again. " + (err as Error).message,

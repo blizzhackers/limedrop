@@ -38,7 +38,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerHeader } from "./ui/drawer";
 interface SidebarProps {
   session: string | null;
   loadingAccounts: boolean;
-  fetchAccounts: (session: string) => Promise<void>;
+  fetchAccounts: (session: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = memo(

@@ -33,7 +33,7 @@ export default function App() {
   const session = useAppStore((s) => s.session);
 
   const [, startTransition] = useTransition();
-  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [loadingAccounts, startAccountsTransition] = useTransition();
   const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
 
@@ -73,14 +73,13 @@ export default function App() {
   }, []);
 
   const fetchAccounts = useCallback(
-    async (session: string) => {
+    (session: string) => {
       if (!session) {
         console.warn("No session established");
         return;
       }
 
-      try {
-        setLoadingAccounts(true);
+      startAccountsTransition(async () => {
         const response = await api.accounts();
 
         if (response.status === "failed") {
@@ -94,7 +93,6 @@ export default function App() {
             toast.error("Session Error", {
               description: "Your session has expired, please log in again",
             });
-            return;
           }
           return;
         }
@@ -119,15 +117,12 @@ export default function App() {
             const [realmKey, accountName, charName] = res;
             const charkey = charName.split(".")[1];
 
-            if (realmKey !== realm) {
-              continue;
-            }
+            if (realmKey !== realm) continue;
 
             if (!accountsMap[accountName]) {
               accountsMap[accountName] = [];
             }
 
-            // Check if character matches current filters
             const charCheck = {
               ladder: charkey[2] === "l",
               lod: charkey[1] === "e",
@@ -158,17 +153,12 @@ export default function App() {
             });
           } catch (err) {
             console.error("Error processing account:", account, err);
-            continue;
           }
         }
 
         setAccounts(accountsMap);
         setAccountDataCache(accountsCache);
-      } catch (err) {
-        console.error("Failed to fetch accounts:", err);
-      } finally {
-        setLoadingAccounts(false);
-      }
+      });
     },
     [api, handleSignOut],
   );
