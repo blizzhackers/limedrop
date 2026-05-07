@@ -9,7 +9,7 @@ import {
   SwitchCamera,
   X,
 } from "lucide-react";
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
@@ -93,6 +93,8 @@ export const Topbar: React.FC<TopbarProps> = memo(
       },
     });
 
+    const [, startTransition] = useTransition();
+
     useEffect(() => {
       if (inputRef.current && useAppStore.getState().searchTerm !== "") {
         inputRef.current.value = useAppStore.getState().searchTerm;
@@ -101,7 +103,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
     useEffect(() => {
       if (!searchValid) {
-        React.startTransition(() => {
+        startTransition(() => {
           setSearchResults([]);
         });
       }

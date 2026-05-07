@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { withForm } from "@/lib/filterForm";
+import { withForm } from "@/lib/forms/filterForm";
 import { useAppStore } from "@/stores/appStore";
 import { DEFAULT_FILTER_VALUES } from "../types/filterTypes";
 import { StatFilterBuilder } from "./StatFilterBuilder";
