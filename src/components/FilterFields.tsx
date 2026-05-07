@@ -1,6 +1,6 @@
 import { ChevronsUpDown, Search, X } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -462,7 +462,7 @@ export const MultiComboField: React.FC<MultiComboFieldProps> = ({
 }) => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const selected = field.state.value;
 
   const filtered = useMemo(() => {
@@ -480,21 +480,20 @@ export const MultiComboField: React.FC<MultiComboFieldProps> = ({
     field.handleChange(next);
   };
 
-  useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, []);
+  const closeAndRefocus = () => {
+    setOpen(false);
+    inputRef.current?.focus();
+  };
 
   return (
-    <div className="flex flex-col" ref={containerRef}>
+    <div
+      className="flex flex-col"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setOpen(false);
+        }
+      }}
+    >
       {showLabel && label && (
         <label
           htmlFor={id}
@@ -527,11 +526,22 @@ export const MultiComboField: React.FC<MultiComboFieldProps> = ({
 
       <div className="relative">
         <Input
+          ref={inputRef}
           id={id}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              const list = inputRef.current?.nextElementSibling;
+              (list?.querySelector("button") as HTMLElement | null)?.focus();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              setOpen(false);
+            }
+          }}
           placeholder={placeholder}
           className="bg-gray-900 text-white"
         />
@@ -552,6 +562,27 @@ export const MultiComboField: React.FC<MultiComboFieldProps> = ({
                   onMouseDown={(e) => {
                     e.preventDefault();
                     toggle(opt.key);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggle(opt.key);
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      const next = e.currentTarget
+                        .nextElementSibling as HTMLElement | null;
+                      if (next) next.focus();
+                      else closeAndRefocus();
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const prev = e.currentTarget
+                        .previousElementSibling as HTMLElement | null;
+                      if (prev) prev.focus();
+                      else closeAndRefocus();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      closeAndRefocus();
+                    }
                   }}
                 >
                   <span className="font-mono">{opt.key}</span>
