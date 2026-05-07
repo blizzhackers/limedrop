@@ -38,7 +38,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerHeader } from "./ui/drawer";
 interface SidebarProps {
   session: string | null;
   loadingAccounts: boolean;
-  fetchAccounts: (session: string) => Promise<void>;
+  fetchAccounts: (session: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = memo(
@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
       });
 
       if (session) {
-        await fetchAccounts(session);
+        fetchAccounts(session);
       }
     };
 
@@ -207,17 +207,21 @@ export const Sidebar: React.FC<SidebarProps> = memo(
         </div>
         <div>
           <div className="font-semibold mb-2">Realm</div>
-          <select
-            className="w-full p-2 rounded bg-gray-900 border border-gray-700"
+          <Select
             value={realm}
-            onChange={(e) => handleRealmChange(e.target.value as GameRealm)}
+            onValueChange={(v) => handleRealmChange(v as GameRealm)}
           >
-            {REALMS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full bg-gray-900 border border-gray-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border border-gray-700 text-white">
+              {REALMS.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {session && (
           <>
@@ -281,10 +285,14 @@ export const Sidebar: React.FC<SidebarProps> = memo(
       </>
     );
 
+    const isDemo = useAppStore(
+      (s) => s.username === "demo" && s.session !== null,
+    );
+
     return (
       <>
         <Button
-          className="md:hidden fixed top-3 left-2 z-40 bg-gray-900 text-white rounded p-2 shadow-lg focus:outline-none"
+          className={`md:hidden fixed left-2 z-40 bg-gray-900 text-white rounded p-2 shadow-lg focus:outline-none transition-[top] duration-150 ${isDemo ? "top-10" : "top-3"}`}
           onClick={() => setMobileOpen(true)}
           aria-label="Open sidebar"
           size="icon"
@@ -296,9 +304,8 @@ export const Sidebar: React.FC<SidebarProps> = memo(
           className={`hidden md:flex bg-gray-800 p-4 flex-col gap-4 min-h-0 min-w-0 transition-all duration-500 ease-in-out relative overflow-hidden ${collapsed ? "w-20" : "w-64"}`}
         >
           <Button
-            variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 h-6 w-6 hover:bg-gray-700 z-10"
+            className="absolute top-2 right-2 h-6 w-6 z-10"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >

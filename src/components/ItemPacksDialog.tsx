@@ -317,45 +317,12 @@ const ItemPacksDialog: React.FC = () => {
     filterForm.reset();
   };
 
-  const handleQualityChange = useCallback(
-    (value: number | null) => {
-      filterForm.setFieldValue("qualityFilter", value);
-    },
-    [filterForm],
-  );
-  const handleItemClassChange = useCallback(
-    (value: number | null) => {
-      filterForm.setFieldValue("itemClassFilter", value);
-    },
-    [filterForm],
-  );
-  const handleSocketsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      filterForm.setFieldValue(
-        "sockets",
-        e.target.value ? Number(e.target.value) : null,
-      );
-    },
-    [filterForm],
-  );
   const handleCountChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       filterForm.setFieldValue(
         "count",
         e.target.value ? Number(e.target.value) : null,
       );
-    },
-    [filterForm],
-  );
-  const handleEtherealChange = useCallback(
-    (value: boolean | null) => {
-      filterForm.setFieldValue("etherealFilter", value);
-    },
-    [filterForm],
-  );
-  const handleRunewordChange = useCallback(
-    (value: boolean | null) => {
-      filterForm.setFieldValue("runewordFilter", value);
     },
     [filterForm],
   );
@@ -688,48 +655,25 @@ const ItemPacksDialog: React.FC = () => {
                 </div>
                 <div className="flex flex-col gap-4">
                   <filterForm.Field name="qualityFilter">
-                    {(field) => (
-                      <QualityFilterField
-                        value={field.state.value}
-                        onValueChange={handleQualityChange}
-                      />
-                    )}
+                    {(field) => <QualityFilterField field={field} />}
                   </filterForm.Field>
                   <filterForm.Field name="itemClassFilter">
-                    {(field) => (
-                      <ItemClassFilterField
-                        value={field.state.value}
-                        onValueChange={handleItemClassChange}
-                      />
-                    )}
+                    {(field) => <ItemClassFilterField field={field} />}
                   </filterForm.Field>
                 </div>
                 <div className="flex flex-col gap-4">
                   <filterForm.Field name="etherealFilter">
-                    {(field) => (
-                      <EtherealFilterField
-                        value={field.state.value}
-                        onValueChange={handleEtherealChange}
-                      />
-                    )}
+                    {(field) => <EtherealFilterField field={field} />}
                   </filterForm.Field>
                   <filterForm.Field name="runewordFilter">
-                    {(field) => (
-                      <RunewordFilterField
-                        value={field.state.value}
-                        onValueChange={handleRunewordChange}
-                      />
-                    )}
+                    {(field) => <RunewordFilterField field={field} />}
                   </filterForm.Field>
                 </div>
                 <div className="col-span-1 md:col-span-2 flex flex-row gap-4">
                   <filterForm.Field name="sockets">
                     {(field) => (
                       <div className="flex-1">
-                        <SocketsFilterField
-                          value={field.state.value}
-                          onChange={handleSocketsChange}
-                        />
+                        <SocketsFilterField field={field} />
                       </div>
                     )}
                   </filterForm.Field>
@@ -850,35 +794,20 @@ const ItemPacksDialog: React.FC = () => {
                         />
                       )}
                     </filterForm.Subscribe>
-                    <filterForm.Subscribe
-                      selector={(state) => ({
-                        itemCodeFilter: state.values.itemCodeFilter,
-                      })}
-                    >
-                      {({ itemCodeFilter }) => (
+                    <filterForm.Field name="itemCodeFilter">
+                      {(field) => (
                         <div className="md:col-span-2">
-                          <ItemCodeFilterField
-                            id="itemcode-filter"
-                            label="Item Code"
-                            value={itemCodeFilter}
-                            onValueChange={(val) =>
-                              filterForm.setFieldValue("itemCodeFilter", val)
-                            }
-                            showClearButton={false}
-                          />
+                          <ItemCodeFilterField field={field} />
                         </div>
                       )}
-                    </filterForm.Subscribe>
+                    </filterForm.Field>
 
                     {/* Stat Filters */}
                     <filterForm.Field name="statFilters">
                       {(field) => (
                         <div className="flex flex-col md:col-span-2 mt-4">
                           <StatFilterBuilder
-                            statFilters={field.state.value}
-                            setStatFilters={(val) =>
-                              filterForm.setFieldValue("statFilters", val)
-                            }
+                            field={field}
                             showLabel={true}
                             labelText="Item Stats"
                           />

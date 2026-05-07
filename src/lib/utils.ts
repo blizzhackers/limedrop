@@ -7,6 +7,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function parseItemDescription(description: string | undefined): {
+  title: string;
+  desc: string;
+} {
+  const title = description ? description.split("$", 1)[0] : "";
+  const desc = description?.startsWith(title)
+    ? description.slice(title.length)
+    : description || "";
+  return { title, desc };
+}
+
 type BaseInventoryItem = {
   itemid: string;
   lod: boolean;

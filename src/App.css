@@ -165,7 +165,7 @@ html {
 }
 
 @custom-variant portrait {
-  @media (max-aspect-ratio: 4/3) {
+  @media (max-aspect-ratio: 4 / 3) {
     @slot;
   }
 }

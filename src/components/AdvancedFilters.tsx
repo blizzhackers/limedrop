@@ -1,4 +1,3 @@
-import { memo } from "react";
 import {
   ColorFilterField,
   EtherealFilterField,
@@ -18,300 +17,271 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { setQualityFilter, useAppStore } from "@/stores/appStore";
-import { type StatFilter, StatFilterBuilder } from "./StatFilterBuilder";
+import { withForm } from "@/lib/forms/filterForm";
+import { useAppStore } from "@/stores/appStore";
+import { DEFAULT_FILTER_VALUES } from "../types/filterTypes";
+import { StatFilterBuilder } from "./StatFilterBuilder";
 
-export type { StatFilter };
-
-interface AdvancedFiltersProps {
-  itemClassFilter: number | null;
-  setItemClassFilter: (value: number | null) => void;
-  itemTypeFilter: Set<number>;
-  setItemTypeFilter: React.Dispatch<React.SetStateAction<Set<number>>>;
-  etherealFilter: boolean | null;
-  setEtherealFilter: (value: boolean | null) => void;
-  runewordFilter: boolean | null;
-  setRunewordFilter: (value: boolean | null) => void;
-  identifiedFilter: boolean | null;
-  setIdentifiedFilter: (value: boolean | null) => void;
-  socketFilter: number | null;
-  setSocketFilter: (value: number | null) => void;
-  colorFilter: number | null;
-  setColorFilter: (value: number | null) => void;
-  activeItemPackId: number | null;
-  setActiveItemPackId: (value: number | null) => void;
-  itemPackMultiplier: number;
-  setItemPackMultiplier: (value: number) => void;
-  ilvlFilter: number | null;
-  setIlvlFilter: (value: number | null) => void;
-  ilvlComparison: "gte" | "lte" | "eq";
-  setIlvlComparison: (value: "gte" | "lte" | "eq") => void;
-  levelReqFilter: number | null;
-  setLevelReqFilter: (value: number | null) => void;
-  levelReqComparison: "gte" | "lte" | "eq";
-  setLevelReqComparison: (value: "gte" | "lte" | "eq") => void;
-  strReqFilter: number | null;
-  setStrReqFilter: (value: number | null) => void;
-  strReqComparison: "gte" | "lte" | "eq";
-  setStrReqComparison: (value: "gte" | "lte" | "eq") => void;
-  dexReqFilter: number | null;
-  setDexReqFilter: (value: number | null) => void;
-  dexReqComparison: "gte" | "lte" | "eq";
-  setDexReqComparison: (value: "gte" | "lte" | "eq") => void;
-  itemCodeFilter: string;
-  setItemCodeFilter: (value: string) => void;
-  statFilters: StatFilter[];
-  setStatFilters: (value: StatFilter[]) => void;
-}
-
-export const AdvancedFilters: React.FC<AdvancedFiltersProps> = memo(
-  ({
-    itemClassFilter,
-    setItemClassFilter,
-    itemTypeFilter,
-    setItemTypeFilter,
-    etherealFilter,
-    setEtherealFilter,
-    runewordFilter,
-    setRunewordFilter,
-    identifiedFilter,
-    setIdentifiedFilter,
-    socketFilter,
-    setSocketFilter,
-    colorFilter,
-    setColorFilter,
-    activeItemPackId,
-    setActiveItemPackId,
-    itemPackMultiplier,
-    setItemPackMultiplier,
-    ilvlFilter,
-    setIlvlFilter,
-    ilvlComparison,
-    setIlvlComparison,
-    levelReqFilter,
-    setLevelReqFilter,
-    levelReqComparison,
-    setLevelReqComparison,
-    strReqFilter,
-    setStrReqFilter,
-    strReqComparison,
-    setStrReqComparison,
-    dexReqFilter,
-    setDexReqFilter,
-    dexReqComparison,
-    setDexReqComparison,
-    itemCodeFilter,
-    setItemCodeFilter,
-    statFilters,
-    setStatFilters,
-  }) => {
-    const qualityFilter = useAppStore((s) => s.qualityFilter);
+export const AdvancedFilters = withForm({
+  defaultValues: DEFAULT_FILTER_VALUES,
+  render: function Render({ form }) {
     const itemPacks = useAppStore((s) => s.packs);
 
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-4">
-            <QualityFilterField
-              value={qualityFilter}
-              onValueChange={setQualityFilter}
-            />
+            <form.Field name="qualityFilter">
+              {(field) => <QualityFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <ItemClassFilterField
-              value={itemClassFilter}
-              onValueChange={setItemClassFilter}
-            />
+            <form.Field name="itemClassFilter">
+              {(field) => <ItemClassFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <EtherealFilterField
-              value={etherealFilter}
-              onValueChange={setEtherealFilter}
-            />
+            <form.Field name="etherealFilter">
+              {(field) => <EtherealFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <RunewordFilterField
-              value={runewordFilter}
-              onValueChange={setRunewordFilter}
-            />
+            <form.Field name="runewordFilter">
+              {(field) => <RunewordFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <IdentifiedFilterField
-              value={identifiedFilter}
-              onValueChange={setIdentifiedFilter}
-            />
+            <form.Field name="identifiedFilter">
+              {(field) => <IdentifiedFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <SocketsFilterField
-              value={socketFilter}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSocketFilter(val === "" ? null : Number(val));
-              }}
-            />
+            <form.Field name="socketFilter">
+              {(field) => <SocketsFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <ColorFilterField
-              value={colorFilter}
-              onValueChange={setColorFilter}
-            />
+            <form.Field name="colorFilter">
+              {(field) => <ColorFilterField field={field} />}
+            </form.Field>
           </div>
 
           <div className="flex flex-col gap-4">
-            <NumericFilterWithComparison
-              id="ilvl-input"
-              label="Item Level"
-              value={ilvlFilter}
-              comparison={ilvlComparison}
-              onValueChange={setIlvlFilter}
-              onComparisonChange={setIlvlComparison}
-              placeholder="ilvl"
-              showClearButton={true}
-            />
+            <form.Subscribe
+              selector={(s) => ({
+                value: s.values.ilvlFilter,
+                comparison: s.values.ilvlComparison,
+              })}
+            >
+              {({ value, comparison }) => (
+                <NumericFilterWithComparison
+                  id="ilvl-input"
+                  label="Item Level"
+                  value={value}
+                  comparison={comparison}
+                  onValueChange={(v) => form.setFieldValue("ilvlFilter", v)}
+                  onComparisonChange={(v) =>
+                    form.setFieldValue("ilvlComparison", v)
+                  }
+                  placeholder="ilvl"
+                  showClearButton={true}
+                />
+              )}
+            </form.Subscribe>
           </div>
 
           <div className="flex flex-col gap-4">
-            <NumericFilterWithComparison
-              id="levelreq-input"
-              label="Level Req"
-              value={levelReqFilter}
-              comparison={levelReqComparison}
-              onValueChange={setLevelReqFilter}
-              onComparisonChange={setLevelReqComparison}
-              placeholder="lvl req"
-              showClearButton={true}
-            />
+            <form.Subscribe
+              selector={(s) => ({
+                value: s.values.levelReqFilter,
+                comparison: s.values.levelReqComparison,
+              })}
+            >
+              {({ value, comparison }) => (
+                <NumericFilterWithComparison
+                  id="levelreq-input"
+                  label="Level Req"
+                  value={value}
+                  comparison={comparison}
+                  onValueChange={(v) => form.setFieldValue("levelReqFilter", v)}
+                  onComparisonChange={(v) =>
+                    form.setFieldValue("levelReqComparison", v)
+                  }
+                  placeholder="lvl req"
+                  showClearButton={true}
+                />
+              )}
+            </form.Subscribe>
           </div>
 
           <div className="flex flex-col gap-4">
-            <NumericFilterWithComparison
-              id="strreq-input"
-              label="Str Req"
-              value={strReqFilter}
-              comparison={strReqComparison}
-              onValueChange={setStrReqFilter}
-              onComparisonChange={setStrReqComparison}
-              placeholder="str req"
-              showClearButton={true}
-            />
+            <form.Subscribe
+              selector={(s) => ({
+                value: s.values.strReqFilter,
+                comparison: s.values.strReqComparison,
+              })}
+            >
+              {({ value, comparison }) => (
+                <NumericFilterWithComparison
+                  id="strreq-input"
+                  label="Str Req"
+                  value={value}
+                  comparison={comparison}
+                  onValueChange={(v) => form.setFieldValue("strReqFilter", v)}
+                  onComparisonChange={(v) =>
+                    form.setFieldValue("strReqComparison", v)
+                  }
+                  placeholder="str req"
+                  showClearButton={true}
+                />
+              )}
+            </form.Subscribe>
           </div>
 
           <div className="flex flex-col gap-4">
-            <NumericFilterWithComparison
-              id="dexreq-input"
-              label="Dex Req"
-              value={dexReqFilter}
-              comparison={dexReqComparison}
-              onValueChange={setDexReqFilter}
-              onComparisonChange={setDexReqComparison}
-              placeholder="dex req"
-              showClearButton={true}
-            />
+            <form.Subscribe
+              selector={(s) => ({
+                value: s.values.dexReqFilter,
+                comparison: s.values.dexReqComparison,
+              })}
+            >
+              {({ value, comparison }) => (
+                <NumericFilterWithComparison
+                  id="dexreq-input"
+                  label="Dex Req"
+                  value={value}
+                  comparison={comparison}
+                  onValueChange={(v) => form.setFieldValue("dexReqFilter", v)}
+                  onComparisonChange={(v) =>
+                    form.setFieldValue("dexReqComparison", v)
+                  }
+                  placeholder="dex req"
+                  showClearButton={true}
+                />
+              )}
+            </form.Subscribe>
           </div>
 
           <div className="flex flex-col gap-4">
-            <ItemCodeFilterField
-              value={itemCodeFilter}
-              onValueChange={setItemCodeFilter}
-            />
+            <form.Field name="itemCodeFilter">
+              {(field) => <ItemCodeFilterField field={field} />}
+            </form.Field>
           </div>
         </div>
 
         <div className="flex flex-col gap-6 mt-4">
           <div className="flex flex-col flex-1">
-            <StatFilterBuilder
-              statFilters={statFilters}
-              setStatFilters={setStatFilters}
-              showCollapsible={true}
-              defaultOpen={true}
-            />
+            <form.Field name="statFilters">
+              {(field) => (
+                <StatFilterBuilder
+                  field={field}
+                  showCollapsible={true}
+                  defaultOpen={true}
+                />
+              )}
+            </form.Field>
           </div>
 
           <div className="flex flex-col flex-1">
-            <ItemTypesSelector
-              itemTypeFilter={itemTypeFilter}
-              onItemTypeChange={(type, checked) => {
-                setItemTypeFilter((prev) => {
-                  const next = new Set(prev);
-                  if (checked) {
-                    next.add(type);
-                  } else {
-                    next.delete(type);
-                  }
-                  return next;
-                });
-              }}
-              showSearch={true}
-              showCollapsible={true}
-              defaultOpen={true}
-              gridClassName="grid-cols-3"
-            />
+            <form.Subscribe selector={(s) => s.values.itemTypeFilter}>
+              {(itemTypeFilter) => (
+                <ItemTypesSelector
+                  itemTypeFilter={itemTypeFilter}
+                  onItemTypeChange={(type, checked) => {
+                    form.setFieldValue("itemTypeFilter", (prev) => {
+                      const next = new Set(prev);
+                      if (checked) {
+                        next.add(type);
+                      } else {
+                        next.delete(type);
+                      }
+                      return next;
+                    });
+                  }}
+                  showSearch={true}
+                  showCollapsible={true}
+                  defaultOpen={true}
+                  gridClassName="grid-cols-3"
+                />
+              )}
+            </form.Subscribe>
           </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-2">
-          <label
-            htmlFor="item-pack-select"
-            className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
-          >
-            Item Pack
-          </label>
-          <Select
-            value={
-              activeItemPackId !== null ? String(activeItemPackId) : "none"
-            }
-            onValueChange={(v) =>
-              setActiveItemPackId(v !== "none" ? Number(v) : null)
-            }
-          >
-            <SelectTrigger
-              id="item-pack-select"
-              className="w-full bg-gray-900 border border-gray-700 text-white"
-            >
-              <SelectValue placeholder="-- No Pack --" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">-- No Pack --</SelectItem>
-              {itemPacks.map((pack) => (
-                <SelectItem key={pack.id} value={String(pack.id)}>
-                  {pack.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {activeItemPackId !== null && (
-            <div className="flex items-center gap-1 ml-2">
+        <form.Subscribe
+          selector={(s) => ({
+            activeItemPackId: s.values.activeItemPackId,
+            itemPackMultiplier: s.values.itemPackMultiplier,
+          })}
+        >
+          {({ activeItemPackId, itemPackMultiplier }) => (
+            <div className="mt-2 flex items-center gap-2">
               <label
-                htmlFor="item-pack-multiplier"
-                className="text-xs text-gray-300"
+                htmlFor="item-pack-select"
+                className="text-xs xl:text-base mb-1 text-gray-300 font-semibold"
               >
-                x
+                Item Pack
               </label>
-              <input
-                id="item-pack-multiplier"
-                type="number"
-                min={1}
-                max={20}
-                value={itemPackMultiplier}
-                onChange={(e) =>
-                  setItemPackMultiplier(
-                    Math.max(1, Math.min(20, Number(e.target.value) || 1)),
+              <Select
+                value={
+                  activeItemPackId !== null ? String(activeItemPackId) : "none"
+                }
+                onValueChange={(v) =>
+                  form.setFieldValue(
+                    "activeItemPackId",
+                    v !== "none" ? Number(v) : null,
                   )
                 }
-                className="w-12 px-1 py-0.5 rounded bg-gray-900 border border-gray-700 text-white text-center text-xs"
-              />
+              >
+                <SelectTrigger
+                  id="item-pack-select"
+                  className="w-full bg-gray-900 border border-gray-700 text-white"
+                >
+                  <SelectValue placeholder="-- No Pack --" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">-- No Pack --</SelectItem>
+                  {itemPacks.map((pack) => (
+                    <SelectItem key={pack.id} value={String(pack.id)}>
+                      {pack.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {activeItemPackId !== null && (
+                <div className="flex items-center gap-1 ml-2">
+                  <label
+                    htmlFor="item-pack-multiplier"
+                    className="text-xs text-gray-300"
+                  >
+                    x
+                  </label>
+                  <input
+                    id="item-pack-multiplier"
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={itemPackMultiplier}
+                    onChange={(e) =>
+                      form.setFieldValue(
+                        "itemPackMultiplier",
+                        Math.max(1, Math.min(20, Number(e.target.value) || 1)),
+                      )
+                    }
+                    className="w-12 px-1 py-0.5 rounded bg-gray-900 border border-gray-700 text-white text-center text-xs"
+                  />
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </form.Subscribe>
       </div>
     );
   },
-);
-
-AdvancedFilters.displayName = "AdvancedFilters";
+});

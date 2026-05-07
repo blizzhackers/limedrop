@@ -410,7 +410,7 @@ export function ConvertNLDialog({ api }: ConvertNLDialogProps) {
       open={open}
       onOpenChange={useConvertNLDialogStore.getState().setOpen}
     >
-      <DialogContent className="bg-gray-900 border border-gray-700 text-white max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="bg-gray-900 md:min-w-3xl border border-gray-700 text-white max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Convert Ladder to Non-Ladder</DialogTitle>
           <DialogDescription className="text-gray-400">

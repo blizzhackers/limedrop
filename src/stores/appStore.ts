@@ -30,7 +30,6 @@ interface AppState {
   searchResults: InventoryItem[];
   selectedAccount: string;
   selectedCharacter: string;
-  qualityFilter: number | null;
   accountDataCache: AccountDataCache[];
   accounts: Record<string, string[]>;
   inventoryCache: Record<string, InventoryCacheEntry>;
@@ -40,27 +39,6 @@ interface AppState {
   showDebugInfo: boolean;
   loginOpen: boolean;
 }
-
-interface AppActions {
-  setRealm: (realm: string) => void;
-  setGameType: (gameType: string) => void;
-  setGameMode: (gameMode: string) => void;
-  setGameClass: (gameClass: string) => void;
-  setApiUrl: (apiUrl: string) => void;
-  setUsername: (username: string) => void;
-  setGameName: (gameName: string) => void;
-  setCart: (cart: InventoryItem[]) => void;
-  addToCart: (item: InventoryItem) => void;
-  removeFromCart: (item: InventoryItem) => void;
-  clearCart: () => void;
-  setPassword: (password: string) => void;
-  setCartOpen: (cartOpen: boolean) => void;
-  setRecentDropsOpen: (open: boolean) => void;
-  setInventory: (inventory: InventoryItem[]) => void;
-  setLoadingInventory: (loading: boolean) => void;
-}
-
-export type AppStore = AppState & AppActions;
 
 export type AccountDataCache = {
   realm: string;
@@ -112,7 +90,6 @@ export const useAppStore = create(
       searchResults: [],
       selectedAccount: "Show All",
       selectedCharacter: "Show All",
-      qualityFilter: null,
       accounts: {},
       accountDataCache: [],
       inventoryCache: {},
@@ -176,21 +153,25 @@ export const setCart = (cart: InventoryItem[]) => {
 
 export const addToCart = (item: InventoryItem) => {
   useAppStore.setState((state) => {
-    if (state.cart.some((i) => i.itemid === item.itemid)) {
-      return { cart: state.cart };
-    }
-    return { cart: [...state.cart, item] };
+    if (state.cartItemIds.has(item.itemid)) return {};
+    const cart = [...state.cart, item];
+    const cartItemIds = new Set(state.cartItemIds);
+    cartItemIds.add(item.itemid);
+    return { cart, cartItemIds };
   });
 };
 
 export const removeFromCart = (item: InventoryItem) => {
   useAppStore.setState((state) => {
-    return { cart: state.cart.filter((i) => i.itemid !== item.itemid) };
+    const cart = state.cart.filter((i) => i.itemid !== item.itemid);
+    const cartItemIds = new Set(state.cartItemIds);
+    cartItemIds.delete(item.itemid);
+    return { cart, cartItemIds };
   });
 };
 
 export const clearCart = () => {
-  useAppStore.setState({ cart: [] });
+  useAppStore.setState({ cart: [], cartItemIds: new Set() });
 };
 
 export const setCartOpen = (cartOpen: boolean) => {
@@ -227,10 +208,6 @@ export const setSelectedAccount = (selectedAccount: string) => {
 
 export const setSelectedCharacter = (selectedCharacter: string) => {
   useAppStore.setState({ selectedCharacter });
-};
-
-export const setQualityFilter = (qualityFilter: number | null) => {
-  useAppStore.setState({ qualityFilter });
 };
 
 export const setAccountDataCache = (accountDataCache: AccountDataCache[]) => {
@@ -345,17 +322,3 @@ export const updateCachedDrops = () => {
       });
   }
 };
-
-useAppStore.subscribe(
-  (state) => state.cart,
-  (cart) => {
-    const newCartItemIds = new Set(cart.map((i) => i.itemid));
-    const currentCartItemIds = useAppStore.getState().cartItemIds;
-    if (
-      newCartItemIds.size !== currentCartItemIds.size ||
-      [...newCartItemIds].some((id) => !currentCartItemIds.has(id))
-    ) {
-      useAppStore.setState({ cartItemIds: newCartItemIds });
-    }
-  },
-);
