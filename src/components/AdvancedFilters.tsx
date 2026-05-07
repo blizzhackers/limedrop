@@ -1,9 +1,10 @@
 import {
+  ClassIdComboField,
   ColorFilterField,
   EtherealFilterField,
   IdentifiedFilterField,
   ItemClassFilterField,
-  ItemCodeFilterField,
+  ItemCodeComboField,
   ItemTypesSelector,
   NumericFilterWithComparison,
   QualityFilterField,
@@ -170,7 +171,13 @@ export const AdvancedFilters = withForm({
 
           <div className="flex flex-col gap-4">
             <form.Field name="itemCodeFilter">
-              {(field) => <ItemCodeFilterField field={field} />}
+              {(field) => <ItemCodeComboField field={field} />}
+            </form.Field>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <form.Field name="classIdFilter">
+              {(field) => <ClassIdComboField field={field} />}
             </form.Field>
           </div>
         </div>

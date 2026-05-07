@@ -1,6 +1,6 @@
 import { ChevronsUpDown, Search, X } from "lucide-react";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -15,7 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { NTIPAliasColor } from "@/constants/NTItemAlias";
+import {
+  NTIPAliasClassID,
+  NTIPAliasCodes,
+  NTIPAliasColor,
+} from "@/constants/NTItemAlias";
 import { sdk } from "@/constants/sdk";
 import { naturalSort } from "@/lib/utils";
 import type { FilterField } from "../types/filterTypes";
@@ -435,6 +439,187 @@ export const NumericFilterWithComparison: React.FC<
     </div>
   );
 };
+
+// ── Multi-select combobox ───────────────────────────────────────────────────
+
+interface MultiComboFieldProps {
+  field: FilterField<string[]>;
+  id?: string;
+  label?: string;
+  showLabel?: boolean;
+  options: { key: string; value: number }[];
+  placeholder?: string;
+}
+
+export const MultiComboField: React.FC<MultiComboFieldProps> = ({
+  field,
+  id,
+  label,
+  showLabel = true,
+  options,
+  placeholder = "Search...",
+}) => {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = field.state.value;
+
+  const filtered = useMemo(() => {
+    const lower = query.toLowerCase();
+    const all = lower
+      ? options.filter((o) => o.key.toLowerCase().includes(lower))
+      : options;
+    return all.slice(0, 60);
+  }, [query, options]);
+
+  const toggle = (key: string) => {
+    const next = selected.includes(key)
+      ? selected.filter((k) => k !== key)
+      : [...selected, key];
+    field.handleChange(next);
+  };
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, []);
+
+  return (
+    <div className="flex flex-col" ref={containerRef}>
+      {showLabel && label && (
+        <label
+          htmlFor={id}
+          className="text-xs xl:text-sm mb-1 text-gray-300 font-semibold"
+        >
+          {label}
+        </label>
+      )}
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-1">
+          {selected.map((key) => (
+            <span
+              key={key}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-lime-900 border border-lime-700 text-xs text-lime-200"
+            >
+              {key}
+              <button
+                type="button"
+                onClick={() => toggle(key)}
+                className="hover:text-red-400 transition-colors"
+                aria-label={`Remove ${key}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <Input
+          id={id}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          className="bg-gray-900 text-white"
+        />
+        {open && (
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded shadow-lg max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-gray-400">No results</div>
+            ) : (
+              filtered.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`w-full text-left px-3 py-1.5 text-sm flex items-center justify-between transition-colors ${
+                    selected.includes(opt.key)
+                      ? "bg-lime-900/40 text-lime-300 hover:bg-lime-900/60"
+                      : "text-white hover:bg-gray-700"
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    toggle(opt.key);
+                  }}
+                >
+                  <span className="font-mono">{opt.key}</span>
+                  <span className="text-gray-500 text-xs">{opt.value}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ITEM_CODE_OPTIONS = Object.entries(NTIPAliasCodes).map(
+  ([key, value]) => ({ key, value }),
+);
+
+const CLASS_ID_OPTIONS = Object.entries(NTIPAliasClassID).map(
+  ([key, value]) => ({ key, value }),
+);
+
+interface ItemCodeComboFieldProps {
+  field: FilterField<string[]>;
+  id?: string;
+  label?: string;
+  showLabel?: boolean;
+}
+
+export const ItemCodeComboField: React.FC<ItemCodeComboFieldProps> = ({
+  field,
+  id = "itemcode-combo",
+  label = "Item Code",
+  showLabel = true,
+}) => (
+  <MultiComboField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    options={ITEM_CODE_OPTIONS}
+    placeholder="Search item code (e.g. umc)"
+  />
+);
+
+interface ClassIdComboFieldProps {
+  field: FilterField<string[]>;
+  id?: string;
+  label?: string;
+  showLabel?: boolean;
+}
+
+export const ClassIdComboField: React.FC<ClassIdComboFieldProps> = ({
+  field,
+  id = "classid-combo",
+  label = "Class ID",
+  showLabel = true,
+}) => (
+  <MultiComboField
+    field={field}
+    id={id}
+    label={label}
+    showLabel={showLabel}
+    options={CLASS_ID_OPTIONS}
+    placeholder="Search item class (e.g. handaxe)"
+  />
+);
+
+// ── Legacy text input for item code (used in ItemPacksDialog) ───────────────
 
 interface ItemCodeFilterFieldProps {
   field: FilterField<string>;

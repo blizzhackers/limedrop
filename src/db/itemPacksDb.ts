@@ -25,7 +25,8 @@ export interface ItemPackFilter {
   strReqComparison?: "gte" | "lte" | "eq";
   dexReq?: number;
   dexReqComparison?: "gte" | "lte" | "eq";
-  itemCode?: string;
+  itemCode?: string | string[];
+  classIdCodes?: string[];
   statFilters?: Array<{
     stat: string;
     comparison: "gte" | "lte" | "eq";

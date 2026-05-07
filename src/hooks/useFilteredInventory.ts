@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { NTIPAliasFlag } from "@/constants/NTItemAlias";
+import { NTIPAliasClassID, NTIPAliasFlag } from "@/constants/NTItemAlias";
 import type { InventoryItem } from "@/lib/utils";
 import { isV2Item } from "@/lib/utils";
 import { useAppStore } from "@/stores/appStore";
@@ -66,6 +66,7 @@ export function useFilteredInventory(
       dexReqFilter,
       dexReqComparison,
       itemCodeFilter,
+      classIdFilter,
       statFilters,
     } = deferredFilterValues;
 
@@ -124,11 +125,23 @@ export function useFilteredInventory(
                   )
                 )
                   return false;
-                if (
-                  f.itemCode &&
-                  !item.code.toLowerCase().includes(f.itemCode.toLowerCase())
-                )
-                  return false;
+                if (f.itemCode) {
+                  const codes = Array.isArray(f.itemCode)
+                    ? f.itemCode
+                    : [f.itemCode];
+                  if (!codes.includes(item.code.toLowerCase())) return false;
+                }
+                if (f.classIdCodes?.length) {
+                  if (
+                    !f.classIdCodes.some(
+                      (name) =>
+                        NTIPAliasClassID[
+                          name as keyof typeof NTIPAliasClassID
+                        ] === item.id,
+                    )
+                  )
+                    return false;
+                }
                 if (
                   f.statFilters?.length &&
                   !checkStatFilters(item, f.statFilters as StatFilter[])
@@ -207,13 +220,30 @@ export function useFilteredInventory(
         return false;
       if (isV2Item(item)) {
         if (
-          itemCodeFilter &&
-          !item.code.toLowerCase().includes(itemCodeFilter.toLowerCase())
-        )
+          itemCodeFilter.length > 0 &&
+          !itemCodeFilter.includes(item.code.toLowerCase())
+        ) {
           return false;
+        }
+        if (
+          classIdFilter.length > 0 &&
+          !classIdFilter.some(
+            (name) =>
+              NTIPAliasClassID[name as keyof typeof NTIPAliasClassID] ===
+              item.id,
+          )
+        ) {
+          return false;
+        }
         if (!checkStatFilters(item, statFilters)) return false;
       } else {
-        if (itemCodeFilter || statFilters.length > 0) return false;
+        if (
+          itemCodeFilter.length > 0 ||
+          classIdFilter.length > 0 ||
+          statFilters.length > 0
+        ) {
+          return false;
+        }
       }
       return true;
     });

@@ -26,7 +26,8 @@ export type FilterFormValues = {
   strReqComparison: Comparison;
   dexReqFilter: number | null;
   dexReqComparison: Comparison;
-  itemCodeFilter: string;
+  itemCodeFilter: string[];
+  classIdFilter: string[];
   statFilters: StatFilter[];
 };
 
@@ -59,6 +60,7 @@ export const DEFAULT_FILTER_VALUES: FilterFormValues = {
   strReqComparison: "lte",
   dexReqFilter: null,
   dexReqComparison: "lte",
-  itemCodeFilter: "",
+  itemCodeFilter: [],
+  classIdFilter: [],
   statFilters: [],
 };
