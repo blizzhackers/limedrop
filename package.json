@@ -36,7 +36,7 @@
     "tailwindcss": "^4.2.4",
     "use-debounce": "^10.1.1",
     "vaul": "^1.1.2",
-    "zustand": "^5.0.4"
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.14",
