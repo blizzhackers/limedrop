@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import "./App.css";
 import { toast } from "sonner";
-import { shallow } from "zustand/shallow";
 import { CartDrawer } from "@/components/CartDrawer";
 import { DebugButton } from "@/components/DebugButton";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { useAccountsToLoad } from "@/hooks/useAccountsToLoad";
 import { useInventoryWorker } from "@/hooks/useInventoryWorker";
 import { D2BotAPI } from "@/lib/D2Bot";
-import { type InventoryItem, naturalSort } from "@/lib/utils";
+import { naturalSort } from "@/lib/utils";
 import {
   type AccountDataCache,
   setAccountDataCache,
   setAccounts,
-  setFullyLoaded,
-  setInventory,
-  setLoadingInventory,
   setLoginOpen,
   useAppStore,
 } from "@/stores/appStore";
@@ -32,10 +29,12 @@ export default function App() {
   const username = useAppStore((s) => s.username);
   const session = useAppStore((s) => s.session);
 
-  const [, startTransition] = useTransition();
   const [loadingAccounts, startAccountsTransition] = useTransition();
-  const [accountsToLoad, setAccountsToLoad] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
+
+  const { accountsToLoad, resetAccountLoading } = useAccountsToLoad({
+    workerRef,
+  });
 
   const [api] = useState(() => {
     const apiInstance = new D2BotAPI();
@@ -47,7 +46,6 @@ export default function App() {
 
   const handleSignOut = useCallback(() => {
     workerRef.current?.terminate();
-    setAccountsToLoad([]);
     setLoginOpen(false);
 
     if (useAppStore.getState().username === "demo") {
@@ -163,17 +161,6 @@ export default function App() {
     [api, handleSignOut],
   );
 
-  const resetAccountLoading = useCallback(() => {
-    const { selectedAccount, accounts } = useAppStore.getState();
-
-    if (selectedAccount === "Show All") {
-      const accs = Object.keys(accounts).sort(naturalSort);
-      setAccountsToLoad(accs);
-    } else {
-      setAccountsToLoad([selectedAccount]);
-    }
-  }, []);
-
   useEffect(() => {
     const pingApi = async () => {
       try {
@@ -197,103 +184,6 @@ export default function App() {
     if (session) {
       fetchAccounts(session);
     }
-  }, []);
-
-  useEffect(() => {
-    const accountsToLoadSub = useAppStore.subscribe(
-      (s) => [
-        s.gameType,
-        s.gameMode,
-        s.gameClass,
-        s.realm,
-        s.selectedAccount,
-        s.accountDataCache,
-      ],
-      ([
-        gameType,
-        gameMode,
-        gameClass,
-        realm,
-        selectedAccount,
-        accountDataCache,
-      ]) => {
-        if (typeof accountDataCache === "string") return;
-
-        const checks = {
-          ladder: gameClass === "Ladder",
-          lod: gameType === "Expansion",
-          sc: gameMode === "Softcore",
-        };
-
-        const validAccounts = accountDataCache
-          .filter(
-            (el) =>
-              el.lod === checks.lod &&
-              el.sc === checks.sc &&
-              el.ladder === checks.ladder &&
-              el.realm === realm &&
-              (selectedAccount === "Show All" ||
-                selectedAccount === el.accountName),
-          )
-          .map((el) => el.accountName)
-          .sort(naturalSort);
-        const accountSet = new Set(validAccounts);
-        workerRef.current?.terminate();
-
-        console.log("Determining accounts to load...", validAccounts);
-
-        const { selectedCharacter, inventoryCache } = useAppStore.getState();
-        const cachedItems: InventoryItem[] = [];
-        const currentFilters = {
-          gameType,
-          gameMode,
-          gameClass,
-          realm,
-          selectedCharacter,
-        };
-
-        for (const account of accountSet) {
-          const cacheKey = `${account}:${realm}`;
-          const cached = inventoryCache[cacheKey];
-
-          const isCacheValid =
-            cached &&
-            Date.now() - cached.timestamp < 5 * 60 * 1000 &&
-            JSON.stringify(cached.filters) === JSON.stringify(currentFilters);
-
-          if (isCacheValid) {
-            console.log(`Using cached data for ${account}`);
-            accountSet.delete(account);
-            cachedItems.push(...cached.items);
-          } else {
-            console.log(`Need to load data for ${account}`);
-          }
-        }
-
-        if (cachedItems.length > 0) {
-          startTransition(() => {
-            setInventory(cachedItems);
-          });
-          setLoadingInventory(false);
-
-          if (accountSet.size === 0) {
-            setFullyLoaded(true);
-            return;
-          }
-        } else {
-          setLoadingInventory(true);
-          setInventory([]);
-        }
-
-        setFullyLoaded(false);
-        setAccountsToLoad(Array.from(accountSet));
-      },
-      { equalityFn: shallow },
-    );
-
-    return () => {
-      accountsToLoadSub();
-    };
   }, []);
 
   useInventoryWorker({ api, accountsToLoad, session, apiUrl, workerRef });
