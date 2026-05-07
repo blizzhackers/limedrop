@@ -139,7 +139,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = memo(
 
     return (
       <section
-        className="bg-gray-800 rounded shadow p-0.5 md:p-2 flex flex-col flex-1 min-h-0"
+        className="rounded shadow p-0.5 md:p-2 flex flex-col flex-1 min-h-0"
         style={{ minHeight: "80vh" }}
       >
         <InventoryToolbar
