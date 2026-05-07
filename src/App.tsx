@@ -7,12 +7,9 @@ import { DebugButton } from "@/components/DebugButton";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { useInventoryWorker } from "@/hooks/useInventoryWorker";
 import { D2BotAPI } from "@/lib/D2Bot";
-import {
-  appendUniqueItems,
-  type InventoryItem,
-  naturalSort,
-} from "@/lib/utils";
+import { type InventoryItem, naturalSort } from "@/lib/utils";
 import {
   type AccountDataCache,
   setAccountDataCache,
@@ -75,105 +72,108 @@ export default function App() {
     toast.success("Signed out successfully!");
   }, []);
 
-  async function fetchAccounts(session: string) {
-    if (!session) {
-      console.warn("No session established");
-      return;
-    }
+  const fetchAccounts = useCallback(
+    async (session: string) => {
+      if (!session) {
+        console.warn("No session established");
+        return;
+      }
 
-    try {
-      setLoadingAccounts(true);
-      const response = await api.accounts();
+      try {
+        setLoadingAccounts(true);
+        const response = await api.accounts();
 
-      if (response.status === "failed") {
-        console.error("Failed to fetch accounts:", response.body);
+        if (response.status === "failed") {
+          console.error("Failed to fetch accounts:", response.body);
 
-        if (response.body === "invalid session") {
-          console.error(
-            "Invalid session detected, session needs to be refreshed",
-          );
-          handleSignOut();
-          toast.error("Session Error", {
-            description: "Your session has expired, please log in again",
-          });
+          if (response.body === "invalid session") {
+            console.error(
+              "Invalid session detected, session needs to be refreshed",
+            );
+            handleSignOut();
+            toast.error("Session Error", {
+              description: "Your session has expired, please log in again",
+            });
+            return;
+          }
           return;
         }
-        return;
-      }
 
-      const { body: accountsData } = response;
+        const { body: accountsData } = response;
 
-      if (!Array.isArray(accountsData)) {
-        console.error("Unexpected accounts data format:", accountsData);
-        return;
-      }
+        if (!Array.isArray(accountsData)) {
+          console.error("Unexpected accounts data format:", accountsData);
+          return;
+        }
 
-      accountsData.sort(naturalSort);
-      const accountsCache: AccountDataCache[] = [];
-      const accountsMap: Record<string, string[]> = {};
-      const { gameClass, gameMode, gameType, realm } = useAppStore.getState();
+        accountsData.sort(naturalSort);
+        const accountsCache: AccountDataCache[] = [];
+        const accountsMap: Record<string, string[]> = {};
+        const { gameClass, gameMode, gameType, realm } = useAppStore.getState();
 
-      for (const account of accountsData) {
-        try {
-          const res = account.split("\\");
-          if (!res || res.length < 3) continue;
+        for (const account of accountsData) {
+          try {
+            const res = account.split("\\");
+            if (!res || res.length < 3) continue;
 
-          const [realmKey, accountName, charName] = res;
-          const charkey = charName.split(".")[1];
+            const [realmKey, accountName, charName] = res;
+            const charkey = charName.split(".")[1];
 
-          if (realmKey !== realm) {
+            if (realmKey !== realm) {
+              continue;
+            }
+
+            if (!accountsMap[accountName]) {
+              accountsMap[accountName] = [];
+            }
+
+            // Check if character matches current filters
+            const charCheck = {
+              ladder: charkey[2] === "l",
+              lod: charkey[1] === "e",
+              sc: charkey[0] === "s",
+            };
+
+            const checks = {
+              ladder: gameClass === "Ladder",
+              lod: gameType === "Expansion",
+              sc: gameMode === "Softcore",
+            };
+
+            if (
+              charCheck.ladder === checks.ladder &&
+              charCheck.lod === checks.lod &&
+              charCheck.sc === checks.sc
+            ) {
+              accountsMap[accountName].push(charName);
+            }
+
+            accountsCache.push({
+              realm,
+              accountName,
+              charName,
+              ladder: charCheck.ladder,
+              sc: charCheck.sc,
+              lod: charCheck.lod,
+            });
+          } catch (err) {
+            console.error("Error processing account:", account, err);
             continue;
           }
-
-          if (!accountsMap[accountName]) {
-            accountsMap[accountName] = [];
-          }
-
-          // Check if character matches current filters
-          const charCheck = {
-            ladder: charkey[2] === "l",
-            lod: charkey[1] === "e",
-            sc: charkey[0] === "s",
-          };
-
-          const checks = {
-            ladder: gameClass === "Ladder",
-            lod: gameType === "Expansion",
-            sc: gameMode === "Softcore",
-          };
-
-          if (
-            charCheck.ladder === checks.ladder &&
-            charCheck.lod === checks.lod &&
-            charCheck.sc === checks.sc
-          ) {
-            accountsMap[accountName].push(charName);
-          }
-
-          accountsCache.push({
-            realm,
-            accountName,
-            charName,
-            ladder: charCheck.ladder,
-            sc: charCheck.sc,
-            lod: charCheck.lod,
-          });
-        } catch (err) {
-          console.error("Error processing account:", account, err);
-          continue;
         }
+
+        setAccounts(accountsMap);
+        setAccountDataCache(accountsCache);
+      } catch (err) {
+        console.error("Failed to fetch accounts:", err);
+      } finally {
+        setLoadingAccounts(false);
       }
+    },
+    [api, handleSignOut],
+  );
 
-      setAccounts(accountsMap);
-      setAccountDataCache(accountsCache);
-    } catch (err) {
-      console.error("Failed to fetch accounts:", err);
-    } finally {
-      setLoadingAccounts(false);
-    }
-  }
-
-  function resetAccountLoading() {
+  const resetAccountLoading = useCallback(() => {
     const { selectedAccount, accounts } = useAppStore.getState();
 
     if (selectedAccount === "Show All") {
@@ -182,7 +182,7 @@ export default function App() {
     } else {
       setAccountsToLoad([selectedAccount]);
     }
-  }
+  }, []);
 
   useEffect(() => {
     const pingApi = async () => {
@@ -202,12 +202,12 @@ export default function App() {
   // On mount, if we already have a persisted session, fetch accounts to
   // bootstrap the subscriber (which only fires on state *changes*, not
   // on initial load from persisted Zustand state).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We only want to run this on initial mount if session exists, not on every session change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
   useEffect(() => {
     if (session) {
       fetchAccounts(session);
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     const accountsToLoadSub = useAppStore.subscribe(
@@ -306,117 +306,7 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!session || accountsToLoad.length === 0) {
-      setLoadingInventory(false);
-      setFullyLoaded(true);
-      return;
-    }
-
-    (async () => {
-      if (workerRef.current) {
-        workerRef.current?.terminate();
-      }
-
-      const worker = new Worker(
-        new URL("./workers/inventoryWorker.ts", import.meta.url),
-        { type: "module" },
-      );
-      workerRef.current = worker;
-
-      worker.onmessage = (e: MessageEvent) => {
-        const msg = e.data;
-        if (msg.type === "account-items") {
-          console.log(msg);
-
-          const { selectedCharacter, realm, gameType, gameMode, gameClass } =
-            useAppStore.getState();
-
-          const currentFilters = {
-            gameType,
-            gameMode,
-            gameClass,
-            realm,
-            selectedCharacter,
-          };
-
-          if (msg.items.length > 0) {
-            // Group items by account
-            const itemsByAccount = msg.items.reduce(
-              (acc: Record<string, InventoryItem[]>, item: InventoryItem) => {
-                if (!acc[item.account]) {
-                  acc[item.account] = [];
-                }
-                acc[item.account].push(item);
-                return acc;
-              },
-              {},
-            );
-
-            for (const [account, items] of Object.entries(itemsByAccount)) {
-              useAppStore.setState((state) => {
-                const cacheKey = `${account}:${realm}`;
-                return {
-                  inventoryCache: {
-                    ...state.inventoryCache,
-                    [cacheKey]: {
-                      items: items as InventoryItem[],
-                      timestamp: Date.now(),
-                      filters: currentFilters,
-                    },
-                  },
-                };
-              });
-            }
-          }
-
-          const prevInvo = useAppStore.getState().inventory;
-          const newInvo = appendUniqueItems(prevInvo, msg.items);
-          startTransition(() => {
-            setInventory(newInvo);
-          });
-
-          if (prevInvo.length === 0) {
-            setLoadingInventory(false);
-          }
-        } else if (msg.type === "done") {
-          console.log(msg);
-          setLoadingInventory(false);
-          setFullyLoaded(true);
-        } else if (msg.type === "error") {
-          console.error(msg);
-        } else if (msg.type === "started") {
-          setFullyLoaded(false);
-        }
-      };
-
-      const {
-        accounts,
-        selectedCharacter,
-        realm,
-        gameClass,
-        gameType,
-        gameMode,
-        username,
-        password,
-      } = useAppStore.getState();
-
-      worker.postMessage({
-        type: "load-accounts",
-        session: api.config.session,
-        accounts: accountsToLoad,
-        accountsMap: accounts,
-        selectedCharacter,
-        realm,
-        gameClass,
-        gameType,
-        gameMode,
-        apiUrl,
-        username,
-        password,
-      });
-    })();
-  }, [api, accountsToLoad, session, apiUrl]);
+  useInventoryWorker({ api, accountsToLoad, session, apiUrl, workerRef });
 
   return (
     <div

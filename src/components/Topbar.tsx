@@ -42,10 +42,8 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = memo(
   ({ api, handleSignOut, fetchAccounts }) => {
-    const apiUrl = useAppStore((s) => s.apiUrl);
     const username = useAppStore((s) => s.username);
     const searchTerm = useAppStore((s) => s.searchTerm);
-    const password = useAppStore((s) => s.password);
     const cart = useAppStore((s) => s.cart);
     const session = useAppStore((s) => s.session);
     const loginOpen = useAppStore((s) => s.loginOpen);
@@ -98,9 +96,9 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
     const form = useForm({
       defaultValues: {
-        apiUrl: apiUrl,
-        username: username,
-        password: password,
+        apiUrl: useAppStore.getState().apiUrl,
+        username: useAppStore.getState().username,
+        password: useAppStore.getState().password,
       },
       onSubmit: async ({ value }) => {
         try {
@@ -164,9 +162,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
       };
     }, [loginOpen]);
 
-    const openCart = () => {
-      setCartOpen(true);
-    };
+    const openCart = () => setCartOpen(true);
 
     return (
       <>
