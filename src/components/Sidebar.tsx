@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = memo(
       });
 
       if (session) {
-        await fetchAccounts(session);
+        fetchAccounts(session);
       }
     };
 

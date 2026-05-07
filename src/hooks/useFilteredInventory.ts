@@ -71,7 +71,7 @@ export function useFilteredInventory(
 
     const base = searchTerm ? searchResults : inventory;
 
-    // ── Item pack filter ────────────────────────────────────────────────────
+    // ── Item pack filter ─────────────────────────────────────────────────────
     if (activeItemPackId && itemPacks.length) {
       const pack = itemPacks.find((p) => p.id === activeItemPackId);
       if (pack) {
@@ -151,9 +151,12 @@ export function useFilteredInventory(
 
     // ── Standard filter ─────────────────────────────────────────────────────
     return base.filter((item) => {
-      if (item.lod !== (gameType === "Expansion")) return false;
-      if (item.sc !== (gameMode === "Softcore")) return false;
-      if (item.ladder !== (gameClass === "Ladder")) return false;
+      // Search API doesn't pre-filter by game mode — apply here only for search results
+      if (searchTerm) {
+        if (item.lod !== (gameType === "Expansion")) return false;
+        if (item.sc !== (gameMode === "Softcore")) return false;
+        if (item.ladder !== (gameClass === "Ladder")) return false;
+      }
       if (selectedAccount !== "Show All" && item.account !== selectedAccount)
         return false;
       if (

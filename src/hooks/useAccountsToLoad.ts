@@ -101,8 +101,7 @@ export function useAccountsToLoad({ workerRef }: UseAccountsToLoadOptions) {
             return;
           }
         } else {
-          setLoadingInventory(true);
-          setInventory([]);
+          useAppStore.setState({ loadingInventory: true, inventory: [] });
         }
 
         setFullyLoaded(false);
