@@ -126,9 +126,9 @@ export function useFilteredInventory(
                 )
                   return false;
                 if (f.itemCode) {
-                  const codes = Array.isArray(f.itemCode)
-                    ? f.itemCode
-                    : [f.itemCode];
+                  const codes = (
+                    Array.isArray(f.itemCode) ? f.itemCode : [f.itemCode]
+                  ).map((c) => c.toLowerCase());
                   if (!codes.includes(item.code.toLowerCase())) return false;
                 }
                 if (f.classIdCodes?.length) {

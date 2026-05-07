@@ -17,7 +17,7 @@ import {
   EtherealFilterField,
   ItemClassFilterField,
   ItemCodeComboField,
-  ItemTypesSelector,
+  ItemTypeComboField,
   NumericFilterWithComparison,
   QualityFilterField,
   RunewordFilterField,
@@ -819,6 +819,14 @@ const ItemPacksDialog: React.FC = () => {
                       )}
                     </filterForm.Field>
 
+                    <filterForm.Field name="itemTypeFilter">
+                      {(field) => (
+                        <div className="md:col-span-2">
+                          <ItemTypeComboField field={field} />
+                        </div>
+                      )}
+                    </filterForm.Field>
+
                     {/* Stat Filters */}
                     <filterForm.Field name="statFilters">
                       {(field) => (
@@ -834,32 +842,6 @@ const ItemPacksDialog: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <filterForm.Subscribe
-                selector={(state) => ({
-                  itemTypeFilter: state.values.itemTypeFilter,
-                })}
-              >
-                {({ itemTypeFilter }) => (
-                  <div className="mt-6">
-                    <ItemTypesSelector
-                      id="item-type-select"
-                      itemTypeFilter={itemTypeFilter}
-                      onItemTypeChange={(type, checked) => {
-                        const next = new Set(itemTypeFilter);
-                        if (checked) {
-                          next.add(type);
-                        } else {
-                          next.delete(type);
-                        }
-                        filterForm.setFieldValue("itemTypeFilter", next);
-                      }}
-                      showSearch={false}
-                      showCollapsible={false}
-                      className="text-white"
-                    />
-                  </div>
-                )}
-              </filterForm.Subscribe>
               <filterForm.Subscribe
                 selector={(state) => ({
                   values: state.values,
