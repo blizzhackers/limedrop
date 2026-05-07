@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 import type { D2BotAPI } from "@/lib/D2Bot";
 import {
@@ -23,36 +23,35 @@ export const SignInPrompt: React.FC<SignInPromptProps> = ({
   api,
   fetchAccounts,
 }) => {
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [isDemoLoading, startDemoTransition] = useTransition();
 
-  async function handleDemoLogin() {
-    setIsDemoLoading(true);
-    try {
+  function handleDemoLogin() {
+    startDemoTransition(async () => {
       const demoUsername = "demo";
       const demoPassword = "demo";
       const demoApiUrl = import.meta.env.VITE_DEMO_API_URL || DEFAULT_API_URL;
 
-      const session = await api.login(demoUsername, demoPassword, demoApiUrl);
-      const validate = await api.validate(demoPassword, session);
-      if (!validate) throw new Error("Failed to validate session");
+      try {
+        const session = await api.login(demoUsername, demoPassword, demoApiUrl);
+        const validate = await api.validate(demoPassword, session);
+        if (!validate) throw new Error("Failed to validate session");
 
-      setSession(session || null);
-      setLoginOpen(false);
-      setApiUrl(demoApiUrl);
-      setUsername(demoUsername);
-      setPassword(demoPassword);
+        setSession(session || null);
+        setLoginOpen(false);
+        setApiUrl(demoApiUrl);
+        setUsername(demoUsername);
+        setPassword(demoPassword);
 
-      toast.success("Login successful!", {
-        description: "Welcome to LimeDrop!",
-      });
-      fetchAccounts(session);
-    } catch (err: unknown) {
-      toast.error(
-        "Demo login failed. Please try again. " + (err as Error).message,
-      );
-    } finally {
-      setIsDemoLoading(false);
-    }
+        toast.success("Login successful!", {
+          description: "Welcome to LimeDrop!",
+        });
+        fetchAccounts(session);
+      } catch (err: unknown) {
+        toast.error(
+          "Demo login failed. Please try again. " + (err as Error).message,
+        );
+      }
+    });
   }
 
   return (
