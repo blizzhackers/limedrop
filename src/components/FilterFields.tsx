@@ -533,6 +533,7 @@ interface ItemTypesSelectorProps {
   showCollapsible?: boolean;
   defaultOpen?: boolean;
   className?: string;
+  gridClassName?: string;
 }
 
 export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
@@ -545,6 +546,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
   showCollapsible = false,
   defaultOpen = true,
   className = "",
+  gridClassName,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(defaultOpen);
@@ -623,7 +625,7 @@ export const ItemTypesSelector: React.FC<ItemTypesSelectorProps> = ({
       )}
       <div
         id={id}
-        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-9 gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2 ${className}`}
+        className={`grid ${gridClassName ?? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-9"} gap-1 max-h-54 overflow-y-auto bg-gray-900 border border-gray-700 rounded p-2 ${className}`}
       >
         {filteredItemTypes.map(([name, val]) => (
           <ItemTypeCheckbox
