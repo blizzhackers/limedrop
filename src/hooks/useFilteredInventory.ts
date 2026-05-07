@@ -164,16 +164,21 @@ export function useFilteredInventory(
         item.character !== selectedCharacter.split(".")[0]
       )
         return false;
-      if (qualityFilter !== null && item.quality !== qualityFilter)
+      if (qualityFilter !== null && item.quality !== qualityFilter) {
         return false;
-      if (itemClassFilter !== null && item.itemClass !== itemClassFilter)
+      }
+      if (itemClassFilter !== null && item.itemClass !== itemClassFilter) {
         return false;
-      if (itemTypeFilter.size > 0 && !itemTypeFilter.has(item.itemType))
+      }
+      if (itemTypeFilter.size > 0 && !itemTypeFilter.has(item.itemType)) {
         return false;
-      if (etherealFilter !== null && item.ethereal !== etherealFilter)
+      }
+      if (etherealFilter !== null && item.ethereal !== etherealFilter) {
         return false;
-      if (runewordFilter !== null && item.runeword !== runewordFilter)
+      }
+      if (runewordFilter !== null && item.runeword !== runewordFilter) {
         return false;
+      }
       if (identifiedFilter !== null && isV2Item(item)) {
         const isIdentified = (item.flags & NTIPAliasFlag.identified) !== 0;
         if (isIdentified !== identifiedFilter) return false;

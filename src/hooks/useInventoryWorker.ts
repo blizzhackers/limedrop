@@ -92,11 +92,10 @@ export function useInventoryWorker({
           const newInvo = appendUniqueItems(prevInvo, msg.items);
           startTransition(() => {
             setInventory(newInvo);
+            if (prevInvo.length === 0 && msg.items.length > 0) {
+              setLoadingInventory(false);
+            }
           });
-
-          if (prevInvo.length === 0) {
-            setLoadingInventory(false);
-          }
         } else if (msg.type === "done") {
           console.log(msg);
           setLoadingInventory(false);

@@ -93,8 +93,8 @@ export function useAccountsToLoad({ workerRef }: UseAccountsToLoadOptions) {
         if (cachedItems.length > 0) {
           startTransition(() => {
             setInventory(cachedItems);
+            setLoadingInventory(false);
           });
-          setLoadingInventory(false);
 
           if (accountSet.size === 0) {
             setFullyLoaded(true);

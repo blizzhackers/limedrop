@@ -281,7 +281,9 @@ export const Sidebar: React.FC<SidebarProps> = memo(
       </>
     );
 
-    const isDemo = useAppStore((s) => s.username === "demo" && s.session !== null);
+    const isDemo = useAppStore(
+      (s) => s.username === "demo" && s.session !== null,
+    );
 
     return (
       <>
