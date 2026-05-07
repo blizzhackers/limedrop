@@ -9,7 +9,7 @@ import {
   SwitchCamera,
   X,
 } from "lucide-react";
-import React, { memo, useEffect, useRef, useState, useTransition } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
@@ -42,7 +42,6 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = memo(
   ({ api, handleSignOut, fetchAccounts }) => {
-    const searchValid = useAppStore((s) => !s.searchTerm);
     const apiUrl = useAppStore((s) => s.apiUrl);
     const username = useAppStore((s) => s.username);
     const searchTerm = useAppStore((s) => s.searchTerm);
@@ -56,7 +55,46 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const [showDevScreen, setShowDevScreen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+
+    const searchForm = useForm({
+      defaultValues: { searchTerm: useAppStore.getState().searchTerm },
+      onSubmit: async ({ value }) => {
+        if (!value.searchTerm) {
+          setSearchTerm("");
+          setSearchResults([]);
+          return;
+        }
+        try {
+          const { selectedAccount, selectedCharacter, realm } =
+            useAppStore.getState();
+          setLoadingInventory(true);
+          setSearchTerm(value.searchTerm);
+          const acc = selectedAccount === "Show All" ? "" : selectedAccount;
+          const char =
+            selectedCharacter === "Show All" ? "" : selectedCharacter;
+          const response = await api.query(
+            value.searchTerm.toLocaleLowerCase(),
+            realm,
+            acc,
+            char,
+          );
+          if (Array.isArray(response)) {
+            const items = response.map((el) =>
+              mapApiItemToInventoryItem(el, realm),
+            );
+            const prevInvo = useAppStore.getState().inventory;
+            const existingIds = new Set(prevInvo.map((i) => i.itemid));
+            const newItems = items.filter((i) => !existingIds.has(i.itemid));
+            if (newItems.length > 0) setInventory(prevInvo.concat(newItems));
+            setSearchResults(items);
+          }
+        } catch (err) {
+          toast.error("Search failed", { description: String(err) });
+        } finally {
+          setLoadingInventory(false);
+        }
+      },
+    });
 
     const form = useForm({
       defaultValues: {
@@ -93,21 +131,16 @@ export const Topbar: React.FC<TopbarProps> = memo(
       },
     });
 
-    const [, startTransition] = useTransition();
-
-    useEffect(() => {
-      if (inputRef.current && useAppStore.getState().searchTerm !== "") {
-        inputRef.current.value = useAppStore.getState().searchTerm;
+    function handleSearchFieldChange(
+      value: string,
+      fieldChange: (v: string) => void,
+    ) {
+      fieldChange(value);
+      if (!value && searchTerm) {
+        setSearchTerm("");
+        setSearchResults([]);
       }
-    }, []);
-
-    useEffect(() => {
-      if (!searchValid) {
-        startTransition(() => {
-          setSearchResults([]);
-        });
-      }
-    }, [searchValid]);
+    }
 
     useEffect(() => {
       function handleClickOutside(event: MouseEvent) {
@@ -134,49 +167,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
     const openCart = () => {
       setCartOpen(true);
     };
-
-    async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
-      e.preventDefault();
-      const formData = new FormData(e.currentTarget);
-      const searchTerm = formData.get("searchTerm");
-
-      if (typeof searchTerm !== "string" || !searchTerm) {
-        setSearchTerm("");
-        setSearchResults([]);
-        return;
-      }
-      try {
-        const { selectedAccount, selectedCharacter, realm } =
-          useAppStore.getState();
-        setLoadingInventory(true);
-        setSearchTerm(searchTerm);
-
-        const acc = selectedAccount === "Show All" ? "" : selectedAccount;
-        const char = selectedCharacter === "Show All" ? "" : selectedCharacter;
-        const response = await api.query(
-          searchTerm.toLocaleLowerCase(),
-          realm,
-          acc,
-          char,
-        );
-        if (Array.isArray(response)) {
-          const items = response.map((el) =>
-            mapApiItemToInventoryItem(el, realm),
-          );
-          const prevInvo = useAppStore.getState().inventory;
-          const existingIds = new Set(prevInvo.map((i) => i.itemid));
-          const newItems = items.filter((i) => !existingIds.has(i.itemid));
-          if (newItems.length > 0) {
-            setInventory(prevInvo.concat(newItems));
-          }
-          setSearchResults(items);
-        }
-      } catch (err) {
-        toast.error("Search failed", { description: String(err) });
-      } finally {
-        setLoadingInventory(false);
-      }
-    }
 
     return (
       <>
@@ -205,19 +195,28 @@ export const Topbar: React.FC<TopbarProps> = memo(
           {session && !showMobileSearch && (
             <form
               className="relative hidden md:block ml-1 max-w-lg xl:max-w-4xl w-full"
-              onSubmit={handleSearch}
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                searchForm.handleSubmit();
+              }}
             >
-              <Input
-                ref={inputRef}
-                id="searchTerm"
-                name="searchTerm"
-                type="text"
-                className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
-                placeholder="Search & enter"
-                onChange={(e) =>
-                  e.target.value === "" && searchTerm && setSearchTerm("")
-                }
-              />
+              <searchForm.Field name="searchTerm">
+                {(field) => (
+                  <Input
+                    type="text"
+                    className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
+                    placeholder="Search & enter"
+                    value={field.state.value}
+                    onChange={(e) =>
+                      handleSearchFieldChange(
+                        e.target.value,
+                        field.handleChange,
+                      )
+                    }
+                  />
+                )}
+              </searchForm.Field>
               <span className="absolute left-2 top-2.5 text-gray-400 pointer-events-none">
                 <Search className="w-5 h-5" />
               </span>
@@ -226,18 +225,31 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
           {showMobileSearch && (
             <div className="absolute inset-0 z-50 bg-gray-800 px-3 py-2 flex items-center md:hidden">
-              <form className="flex-1 relative" onSubmit={handleSearch}>
-                <Input
-                  id="searchTerm"
-                  name="searchTerm"
-                  type="text"
-                  className="w-full p-3 pl-10 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
-                  placeholder="Search & enter"
-                  autoFocus
-                  onChange={(e) =>
-                    e.target.value === "" && searchTerm && setSearchTerm("")
-                  }
-                />
+              <form
+                className="flex-1 relative"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  searchForm.handleSubmit();
+                }}
+              >
+                <searchForm.Field name="searchTerm">
+                  {(field) => (
+                    <Input
+                      type="text"
+                      className="w-full p-3 pl-10 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
+                      placeholder="Search & enter"
+                      autoFocus
+                      value={field.state.value}
+                      onChange={(e) =>
+                        handleSearchFieldChange(
+                          e.target.value,
+                          field.handleChange,
+                        )
+                      }
+                    />
+                  )}
+                </searchForm.Field>
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
                   <Search className="w-5 h-5" />
                 </span>
