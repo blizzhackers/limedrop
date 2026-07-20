@@ -32,7 +32,6 @@ import {
 import { useConvertNLDialogStore } from "@/stores/convertNLDialogStore";
 import { useItemPacksDialogStore } from "@/stores/itemPacksDialogStore";
 import { ConvertNLDialog } from "./ConvertNLDialog";
-import { DevScreen } from "./Dev";
 
 interface TopbarProps {
   api: D2BotAPI;
@@ -50,7 +49,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
 
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showMobileSearch, setShowMobileSearch] = useState(false);
-    const [showDevScreen, setShowDevScreen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -200,6 +198,7 @@ export const Topbar: React.FC<TopbarProps> = memo(
               <searchForm.Field name="searchTerm">
                 {(field) => (
                   <Input
+                    id="topbar-search"
                     type="text"
                     className="w-full p-2 pl-9 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600"
                     placeholder="Search & enter"
@@ -337,15 +336,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
                         <SwitchCamera className="w-4 h-4" />
                         Convert Ladder to NL
                       </button>
-                      {process.env.NODE_ENV === "development" && (
-                        <button
-                          type="button"
-                          onClick={() => setShowDevScreen(!showDevScreen)}
-                          className="fixed bottom-4 left-4 bg-purple-600 hover:bg-purple-700 text-white p-2 rounded z-50"
-                        >
-                          {showDevScreen ? "Hide Dev" : "Show Dev"}
-                        </button>
-                      )}
                       <button
                         type="button"
                         className="bg-red-600 hover:bg-red-700 text-white rounded-lg p-3 font-medium transition-colors"
@@ -471,21 +461,6 @@ export const Topbar: React.FC<TopbarProps> = memo(
             </div>
           </div>
         </header>
-
-        {showDevScreen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center">
-            <div className="bg-gray-900 text-white p-4 rounded-lg shadow-lg max-w-4xl max-h-[80vh] overflow-auto relative">
-              <button
-                type="button"
-                onClick={() => setShowDevScreen(false)}
-                className="absolute top-2 right-2 p-2 hover:bg-gray-700 rounded"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <DevScreen api={api} />
-            </div>
-          </div>
-        )}
       </>
     );
   },

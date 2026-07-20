@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import "./App.css";
 import { toast } from "sonner";
 import { CartDrawer } from "@/components/CartDrawer";
+import { CommandPalette } from "@/components/CommandPalette";
 import { DebugButton } from "@/components/DebugButton";
 import { DemoBanner } from "@/components/DemoBanner";
+import { DevScreenDialog } from "@/components/Dev";
 import { InventoryGrid } from "@/components/InventoryGrid";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
@@ -221,6 +223,10 @@ export default function App() {
         </main>
       </div>
       <CartDrawer api={api} />
+
+      <DevScreenDialog api={api} />
+
+      <CommandPalette onSignOut={handleSignOut} />
 
       <DebugButton />
 

@@ -2,10 +2,12 @@ import { Copy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { D2BotAPI } from "@/lib/D2Bot";
 import type { REALMS } from "@/lib/utils";
 import { useAppStore } from "@/stores/appStore";
+import { useDevScreenStore } from "@/stores/devScreenStore";
 
 interface DevScreenProps {
   api: D2BotAPI;
@@ -615,5 +617,19 @@ export const DevScreen: React.FC<DevScreenProps> = ({ api }) => {
         )}
       </div>
     </div>
+  );
+};
+
+export const DevScreenDialog: React.FC<DevScreenProps> = ({ api }) => {
+  const open = useDevScreenStore((s) => s.open);
+  const setOpen = useDevScreenStore((s) => s.setOpen);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto border-gray-700 bg-gray-900 p-0 text-white sm:max-w-5xl">
+        <DialogTitle className="sr-only">Dev Screen</DialogTitle>
+        <DevScreen api={api} />
+      </DialogContent>
+    </Dialog>
   );
 };
